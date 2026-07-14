@@ -1,26 +1,46 @@
 @import "tailwindcss";
 
+/*
+  Tokens da identidade Essencial Centro.
+  Paleta oficial documentada em docs/context/05-design-system.md
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* superfícies */
+  --background: #f8f0ed; /* creme rosado — fundo das páginas */
+  --surface: #ffffff; /* cartões */
+  --foreground: #293630; /* texto escuro */
+
+  /* marca */
+  --brand: #145b48; /* verde profundo — ação primária */
+  --brand-fg: #ffffff;
+  --roxo: #4b2a82; /* roxo institucional */
+  --lilas: #b9a3db; /* lilás suave */
+  --salvia: #829a82; /* verde sálvia */
+  --dourado: #c89a3d; /* dourado — apenas detalhes */
+  --muted: #6b746f; /* texto secundário */
+  --border: #e7dcd6;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-fg);
+  --color-roxo: var(--roxo);
+  --color-lilas: var(--lilas);
+  --color-salvia: var(--salvia);
+  --color-dourado: var(--dourado);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --radius: 0.75rem;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
