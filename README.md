@@ -34,5 +34,14 @@ Abra [http://localhost:3000](http://localhost:3000).
 
 ## Scripts
 
-`pnpm dev` · `pnpm build` · `pnpm typecheck` · `pnpm lint` ·
-`pnpm db:generate` · `pnpm db:migrate` · `pnpm db:push` · `pnpm db:studio`
+`pnpm dev` · `pnpm build` · `pnpm typecheck` · `pnpm lint` · `pnpm format` · `pnpm test` ·
+`pnpm check` (todos os portões) · `pnpm db:generate` · `pnpm db:migrate` · `pnpm db:push` · `pnpm db:studio`
+
+## Fluxo com agente (Claude Code)
+
+Config em `.claude/`: allowlist de permissões (menos prompts) e slash commands do projeto:
+
+- `/modulo <nome>` — cria uma feature seguindo a arquitetura e convenções (schema, queries, actions, teste).
+- `/check` — roda `pnpm check`.
+
+O padrão obrigatório do agente está em [`AGENTS.md`](AGENTS.md).
