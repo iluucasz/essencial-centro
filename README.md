@@ -41,7 +41,9 @@ Abra [http://localhost:3000](http://localhost:3000).
 
 Config em `.claude/`: allowlist de permissões (menos prompts) e slash commands do projeto:
 
-- `/modulo <nome>` — cria uma feature seguindo a arquitetura e convenções (schema, queries, actions, teste).
+- **`/iniciar`** — comando principal. Constrói o **próximo** módulo do MVP na ordem certa e diz
+  qual é o próximo passo. Auto-avançável: é só rodar `/iniciar` de novo a cada etapa, sem decorar a sequência.
+- `/modulo <nome>` — cria um módulo específico fora de ordem (schema, queries, actions, teste).
 - `/check` — roda `pnpm check`.
 
 O padrão obrigatório do agente está em [`AGENTS.md`](AGENTS.md).
