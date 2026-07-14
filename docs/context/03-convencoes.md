@@ -6,7 +6,8 @@
 2. `schema.ts`: tabela(s) Drizzle + schemas Zod (`drizzle-zod` para derivar de insert/select).
 3. Reexporte a tabela em `db/schema/index.ts`; rode `pnpm db:generate && pnpm db:migrate`.
 4. `queries.ts`: leituras server-only. `actions.ts`: mutações com `"use server"`.
-5. `components/`: UI da feature (usa primitivos de `@/components/ui`).
+5. `components/`: UI da feature (usa blocos TailGrids adaptados, HeroUI ou wrappers de
+   `@/components/ui`, conforme `05-design-system.md`).
 6. Rotas em `app/painel/...` ou `app/portal/...` consomem o módulo.
 7. Toda action/query de dado sensível **revalida role + posse** (ver `06-lgpd-seguranca.md`).
 8. Atualize o context bank se mudou domínio/arquitetura/fluxo.
@@ -32,8 +33,10 @@
 
 ## UI / estilo
 
-- Só tokens da marca (classes `bg-brand`, `text-roxo`, `bg-creme`…). Nada de hex solto.
-- Variantes de componente com `class-variance-authority`; merge de classes com `cn()`.
+- Só tokens da marca/semânticos (classes `bg-brand`, `text-roxo`, `bg-creme`, `border-border`,
+  HeroUI `accent`/`surface`/`danger`…). Nada de hex solto.
+- TailGrids gratuito é a referência de blocos; HeroUI cobre componentes acessíveis quando o TailGrids
+  não tiver algo adequado. Wrappers próprios podem usar `class-variance-authority` + `cn()`.
 - Acessibilidade: labels associadas, foco visível, contraste conforme `05-design-system.md`.
 
 ## Testes

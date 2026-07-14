@@ -9,6 +9,7 @@ export const brand = {
   creme: "#F8F0ED", // fundo das páginas
   salvia: "#829A82", // ícones secundários, bordas, categorias
   dourado: "#C89A3D", // detalhes premium — nunca em texto longo
+  perigo: "#B42318", // erros e ações destrutivas
   tinta: "#293630", // texto escuro
   branco: "#FFFFFF",
 } as const;

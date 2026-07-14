@@ -5,6 +5,6 @@
  * Ex.: export * from "./clientes";
  *      export * from "./auth";
  *
- * Ainda sem tabelas — o schema é construído junto com cada feature do MVP.
  */
-export {};
+export * from "../../modules/auth/schema";
+export * from "../../modules/clientes/schema";

@@ -24,6 +24,16 @@ design `05` · LGPD/segurança `06` · fichas `07`. Ao mudar domínio/arquitetur
 - **Textos e domínio em pt-BR.** Stack: Next 16 (App Router) + Drizzle/Neon + Auth.js v5 + RHF/Zod + Tailwind v4 (pnpm).
 - **Adicionar feature** = um módulo em `modules/`. Receita em `docs/context/03-convencoes.md`.
 
+## Comandos de trabalho para agentes
+
+- `/start` ou `/iniciar`: atuar como condutor do MVP. Descobrir o próximo módulo pela ordem de
+  `docs/context/04-roadmap.md`, lendo apenas o contexto necessário, implementar a feature completa,
+  rodar `pnpm check` e fechar indicando o próximo módulo.
+- `/modulo <nome>`: criar o módulo indicado seguindo `docs/context/03-convencoes.md`.
+- `/check`: rodar `pnpm check`; se falhar, corrigir a causa e rodar novamente.
+- Estes aliases espelham `.claude/commands/`, mas devem funcionar também para Codex via este
+  `AGENTS.md`. Nunca commitar nem fazer push automaticamente.
+
 ## Padrão de trabalho do agente (obrigatório)
 
 Este projeto tem portões automáticos. Código só entra se passar neles — não confie na memória, rode:

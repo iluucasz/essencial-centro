@@ -8,7 +8,9 @@
 - **Neon** (Postgres serverless) + **Drizzle ORM** + **drizzle-zod**.
 - **Auth.js v5** (`next-auth@5 beta`) + `@auth/drizzle-adapter`.
 - **Formulários**: `react-hook-form` + `zod` (`@hookform/resolvers`).
-- **UI**: primitivos próprios com `class-variance-authority` + `cn()` (`lib/utils`), ícones `lucide-react`.
+- **UI**: TailGrids gratuitos como base de blocos, HeroUI v3 (`@heroui/react`) como fallback de
+  componentes acessíveis, wrappers próprios em `components/ui/` quando fizer sentido; ícones
+  `lucide-react`.
 - **Datas**: `date-fns`.
 - Package manager: **pnpm**.
 
@@ -56,6 +58,10 @@ Regra: `painel/*` exige role `profissional` (ou `recepcao` p/ subrotas liberadas
   `role` + posse antes de gerar a URL (Blob não tem RLS própria — a checagem é 100% da aplicação).
 - **Autorização**: RBAC na aplicação (checagem de `role` + posse do recurso) em toda query/action
   de dados sensíveis — não há RLS de banco. Centralizar helpers em `lib/`.
+- **Auth.js**: módulo `modules/auth` usa Credentials Provider com senha `scrypt`, sessão `jwt` e
+  `role`/`clienteId` no token de sessão. Tabelas públicas: `usuario`, `conta`, `sessao_auth`,
+  `token_verificacao`, `autenticador`. Se o banco não tiver usuários, `/entrar` libera apenas a
+  criação do primeiro acesso profissional; depois disso, criação de usuários exige `profissional`.
 - **Sem `src/`**: código na raiz, casando com o alias `@/*` → `./*` já configurado.
 
 ## Deploy

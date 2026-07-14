@@ -1,14 +1,24 @@
-@import "tailwindcss";
+@import "@heroui/react/styles";
 
 /*
   Tokens da identidade Essencial Centro.
-  Paleta oficial documentada em docs/context/05-design-system.md
+  HeroUI v3 importa o Tailwind CSS v4; os tokens abaixo adaptam a biblioteca
+  e os blocos TailGrids para a paleta documentada em docs/context/05-design-system.md.
 */
 :root {
+  color-scheme: light;
+
   /* superfícies */
   --background: #f8f0ed; /* creme rosado — fundo das páginas */
-  --surface: #ffffff; /* cartões */
   --foreground: #293630; /* texto escuro */
+  --surface: #ffffff; /* cartões */
+  --surface-foreground: var(--foreground);
+  --surface-secondary: color-mix(in oklab, var(--background) 72%, var(--surface) 28%);
+  --surface-secondary-foreground: var(--foreground);
+  --surface-tertiary: color-mix(in oklab, var(--background) 82%, var(--salvia) 18%);
+  --surface-tertiary-foreground: var(--foreground);
+  --overlay: var(--surface);
+  --overlay-foreground: var(--foreground);
 
   /* marca */
   --brand: #145b48; /* verde profundo — ação primária */
@@ -17,20 +27,43 @@
   --lilas: #b9a3db; /* lilás suave */
   --salvia: #829a82; /* verde sálvia */
   --dourado: #c89a3d; /* dourado — apenas detalhes */
+  --perigo: #b42318; /* vermelho funcional — erros e ações destrutivas */
   --muted: #6b746f; /* texto secundário */
   --border: #e7dcd6;
+
+  /* semântica HeroUI */
+  --accent: var(--brand);
+  --accent-foreground: var(--brand-fg);
+  --default: color-mix(in oklab, var(--lilas) 18%, var(--surface) 82%);
+  --default-foreground: var(--foreground);
+  --success: var(--brand);
+  --success-foreground: var(--brand-fg);
+  --warning: var(--dourado);
+  --warning-foreground: var(--foreground);
+  --danger: var(--perigo);
+  --danger-foreground: var(--brand-fg);
+  --segment: var(--surface);
+  --segment-foreground: var(--foreground);
+  --separator: color-mix(in oklab, var(--border) 78%, var(--surface) 22%);
+  --focus: var(--roxo);
+  --link: var(--roxo);
+  --field-background: var(--surface);
+  --field-border: var(--border);
+  --field-border-width: 1px;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-foreground: var(--foreground);
+  --color-creme: var(--background);
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-fg);
   --color-roxo: var(--roxo);
   --color-lilas: var(--lilas);
   --color-salvia: var(--salvia);
   --color-dourado: var(--dourado);
+  --color-perigo: var(--perigo);
   --color-muted: var(--muted);
   --color-border: var(--border);
 
