@@ -1,0 +1,4 @@
+# Portão de qualidade: roda antes de cada commit e ABORTA se algo falhar.
+# 1) formata/lint apenas nos arquivos staged  2) checa tipos no projeto todo
+pnpm lint-staged
+pnpm typecheck

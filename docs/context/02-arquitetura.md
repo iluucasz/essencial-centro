@@ -1,6 +1,7 @@
 # Arquitetura
 
 ## Stack
+
 - **Next.js 16 (App Router)** + **React 19** + **TypeScript** (strict).
   ⚠️ Esta versão do Next difere do conhecido — consultar `node_modules/next/dist/docs/` antes de codar.
 - **Tailwind CSS v4** (config via `@theme` em `app/globals.css`).
@@ -12,6 +13,7 @@
 - Package manager: **pnpm**.
 
 ## Estrutura de pastas (alias `@/*` → raiz)
+
 ```
 app/          # roteamento App Router (thin); ver "Rotas" abaixo
 components/   # design system compartilhado (ui/)
@@ -23,7 +25,9 @@ docs/context/ # este context bank
 ```
 
 ## Rotas (planejadas)
+
 Route groups isolam as três áreas; a área restrita valida sessão no layout:
+
 ```
 app/
   (marketing)/        → site público  (/, /servicos, /contato)
@@ -32,16 +36,19 @@ app/
   portal/             → área do CLIENTE       (/portal, /portal/tratamento, …)
   api/auth/[...]      → handlers do Auth.js
 ```
+
 Regra: `painel/*` exige role `profissional` (ou `recepcao` p/ subrotas liberadas);
 `portal/*` exige role `cliente`. Autorização checada no `layout.tsx` do grupo + nas actions.
 
 ## Padrões de dados
+
 - Leitura: **Server Components** chamam `queries.ts` do módulo (server-only).
 - Mutação: **Server Actions** (`"use server"`) em `actions.ts`, sempre validando entrada com Zod
   e **reautorizando** o papel do usuário (nunca confiar no cliente).
 - Um único cliente Drizzle: `import { db } from "@/db"`.
 
 ## Decisões (ADR-lite)
+
 - **Neon + Drizzle + Auth.js** (não Supabase): portabilidade e controle; SQL puro via Drizzle.
   Custo: sem Storage/RLS embutidos → tratados na aplicação (ver abaixo e `06-lgpd-seguranca.md`).
 - **Fotos clínicas**: como Neon não tem storage, definir provedor de blobs na fase de fotos
@@ -52,4 +59,5 @@ Regra: `painel/*` exige role `profissional` (ou `recepcao` p/ subrotas liberadas
 - **Sem `src/`**: código na raiz, casando com o alias `@/*` → `./*` já configurado.
 
 ## Deploy
+
 Alvo natural Vercel (Next). Segredos via env do provedor. `DATABASE_URL`, `AUTH_SECRET` obrigatórios.

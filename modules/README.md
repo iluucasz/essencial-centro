@@ -16,6 +16,7 @@ modules/<nome>/
 ```
 
 Regras:
+
 - Tabelas do módulo também são reexportadas em `db/schema/index.ts`.
 - Nada de import cruzado entre módulos por caminhos internos — exponha pelo `index.ts` do módulo.
 - Lógica reutilizável entre módulos vai para `lib/`.

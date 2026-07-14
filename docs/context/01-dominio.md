@@ -32,11 +32,13 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
 - **EventoAuditoria** — quem criou/alterou o quê e quando (histórico de alterações).
 
 ## Relações-chave
+
 `Cliente 1—N Pacote`, `Cliente 1—N Agendamento`, `Cliente 1—N Ficha`, `Cliente 1—N Sessao`.
 `Pacote 1—N Sessao` (consome sessões). `Sessao 1—N Medida`, `Sessao 1—N Foto`, `Sessao 1—N DorRegistro`.
 `Servico` referenciado por `Pacote`, `Agendamento`, `Ficha`, `Sessao`.
 
 ## Glossário
+
 - **Anamnese** — ficha de avaliação inicial com histórico de saúde do cliente.
 - **Campo inteligente** — campo que só aparece conforme respostas anteriores (condicional).
 - **Antes/depois** — comparação padronizada de fotos ao longo do tratamento.

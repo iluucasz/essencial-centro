@@ -1,0 +1,13 @@
+# Normaliza para LF no repositório (evita ruído CRLF/LF em diffs no Windows)
+* text=auto eol=lf
+
+# Binários
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+
+# Lockfile: não mostrar diff nem tratar como texto editável
+pnpm-lock.yaml -diff linguist-generated
