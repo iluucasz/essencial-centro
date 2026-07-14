@@ -51,13 +51,22 @@ Regra: `painel/*` exige role `profissional` (ou `recepcao` p/ subrotas liberadas
 
 - **Neon + Drizzle + Auth.js** (não Supabase): portabilidade e controle; SQL puro via Drizzle.
   Custo: sem Storage/RLS embutidos → tratados na aplicação (ver abaixo e `06-lgpd-seguranca.md`).
-- **Fotos clínicas**: como Neon não tem storage, definir provedor de blobs na fase de fotos
-  (candidatos: Vercel Blob, Cloudflare R2, S3). Guardar **apenas a URL/chave** no Postgres;
-  arquivo em bucket privado com acesso assinado. Placeholder de env em `.env.example`.
+- **Fotos clínicas**: **Vercel Blob** (`BLOB_READ_WRITE_TOKEN` já provisionado — ver `.env.example`).
+  Guardar **apenas a URL/chave** no Postgres; upload/leitura sempre via Server Action que checa
+  `role` + posse antes de gerar a URL (Blob não tem RLS própria — a checagem é 100% da aplicação).
 - **Autorização**: RBAC na aplicação (checagem de `role` + posse do recurso) em toda query/action
   de dados sensíveis — não há RLS de banco. Centralizar helpers em `lib/`.
 - **Sem `src/`**: código na raiz, casando com o alias `@/*` → `./*` já configurado.
 
 ## Deploy
 
-Alvo natural Vercel (Next). Segredos via env do provedor. `DATABASE_URL`, `AUTH_SECRET` obrigatórios.
+Alvo natural Vercel (Next). Segredos via env do provedor. `DATABASE_URL`, `AUTH_SECRET`,
+`BLOB_READ_WRITE_TOKEN` obrigatórios.
+
+## IA (fase futura — fora do MVP)
+
+`GROQ_API_KEY` está provisionada no ambiente, mas **nenhum módulo do MVP a usa ainda**. Quando uma
+feature de IA for definida (ex.: apoio a campos inteligentes de ficha, resumo de evolução),
+avaliar antes: (1) dado de saúde é enviado a um LLM de terceiro → checar `06-lgpd-seguranca.md`
+(consentimento específico, minimização de dado enviado); (2) qualquer alerta/sugestão da IA é
+**apoio**, nunca decisão clínica automática — mesma regra já aplicada a medicamentos (`04-roadmap.md`).
