@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  Bell,
   CalendarClock,
   ClipboardList,
   IdCard,
@@ -11,9 +12,12 @@ import {
 
 import { BotaoSair } from "@/modules/auth/components/botao-sair";
 import { exigirUsuarioAtual } from "@/modules/auth/queries";
+import { listarMinhasNotificacoes } from "@/modules/notificacoes/queries";
 
 export default async function PortalPage() {
   const usuario = await exigirUsuarioAtual(["cliente"]);
+  const notificacoes = await listarMinhasNotificacoes();
+  const naoLidas = notificacoes.filter((n) => !n.lida).length;
 
   return (
     <main className="min-h-screen bg-creme px-6 py-8">
@@ -23,7 +27,21 @@ export default async function PortalPage() {
           <h1 className="text-2xl font-semibold text-roxo">Portal Essencial Centro</h1>
           <p className="mt-2 text-sm text-foreground">Olá, {usuario.name ?? usuario.email}.</p>
         </div>
-        <BotaoSair />
+        <div className="flex items-center gap-3">
+          <Link
+            className="relative inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+            href="/portal/notificacoes"
+          >
+            <Bell className="size-4" aria-hidden="true" />
+            Notificações
+            {naoLidas > 0 ? (
+              <span className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-perigo text-xs font-semibold text-white">
+                {naoLidas}
+              </span>
+            ) : null}
+          </Link>
+          <BotaoSair />
+        </div>
       </div>
 
       <div className="mx-auto mt-8 max-w-5xl">

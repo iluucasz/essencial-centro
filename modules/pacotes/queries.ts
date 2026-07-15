@@ -70,6 +70,30 @@ export async function listarMeusPacotes() {
   return buscarPacotesComProgresso(usuario.clienteId);
 }
 
+/**
+ * Progresso de UM pacote — usado internamente (ex.: ao concluir um agendamento, para avisar o
+ * cliente quando o pacote está acabando). Sem checagem de role própria.
+ */
+export async function obterProgressoPacote(pacoteId: string) {
+  const [registro] = await db
+    .select({ quantidadeSessoes: pacote.quantidadeSessoes, clienteId: pacote.clienteId })
+    .from(pacote)
+    .where(eq(pacote.id, pacoteId))
+    .limit(1);
+
+  if (!registro) return null;
+
+  const [{ realizados }] = await db
+    .select({ realizados: count() })
+    .from(agendamento)
+    .where(and(eq(agendamento.pacoteId, pacoteId), eq(agendamento.status, "realizado")));
+
+  return {
+    clienteId: registro.clienteId,
+    progresso: calcularProgressoPacote(registro.quantidadeSessoes, realizados),
+  };
+}
+
 /** Opções simples para seletores (ex.: vincular um agendamento a um pacote). */
 export async function listarPacotesParaSelecao() {
   autorizarPapel(await auth(), ["profissional", "recepcao"]);

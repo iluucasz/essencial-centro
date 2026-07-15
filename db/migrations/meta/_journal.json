@@ -64,6 +64,13 @@
       "when": 1784078068477,
       "tag": "0008_parched_silver_centurion",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784079734361,
+      "tag": "0009_busy_arachne",
+      "breakpoints": true
     }
   ]
 }

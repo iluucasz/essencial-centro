@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { calcularProgressoPacote } from "./progresso";
+import { calcularProgressoPacote, deveAvisarPacoteAcabando } from "./progresso";
 
 describe("calcularProgressoPacote", () => {
   it("calcula restantes e percentual no caso comum", () => {
@@ -23,5 +23,20 @@ describe("calcularProgressoPacote", () => {
 
     expect(progresso.percentualConcluido).toBe(0);
     expect(progresso.sessoesRestantes).toBe(4);
+  });
+});
+
+describe("deveAvisarPacoteAcabando", () => {
+  it("avisa quando resta 1 sessão", () => {
+    expect(deveAvisarPacoteAcabando(1)).toBe(true);
+  });
+
+  it("avisa quando o pacote já acabou (0 restantes)", () => {
+    expect(deveAvisarPacoteAcabando(0)).toBe(true);
+  });
+
+  it("não avisa quando ainda restam 2 ou mais sessões", () => {
+    expect(deveAvisarPacoteAcabando(2)).toBe(false);
+    expect(deveAvisarPacoteAcabando(5)).toBe(false);
   });
 });

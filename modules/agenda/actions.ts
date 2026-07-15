@@ -6,6 +6,10 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { autorizarPapel } from "@/modules/auth/rbac";
+import { notificarCliente } from "@/modules/notificacoes/criar-notificacao";
+import { deveAvisarPacoteAcabando } from "@/modules/pacotes/progresso";
+import { obterProgressoPacote } from "@/modules/pacotes/queries";
+import { servico } from "@/modules/servicos/schema";
 
 import { listarAgendamentosDoProfissionalNoDia } from "./queries";
 import { agendamento, atualizarStatusAgendamentoSchema, criarAgendamentoSchema } from "./schema";
@@ -72,6 +76,23 @@ export async function criarAgendamento(
     atualizadoPorId: usuarioAtual.id,
   });
 
+  const [servicoAgendado] = await db
+    .select({ nome: servico.nome })
+    .from(servico)
+    .where(eq(servico.id, servicoId))
+    .limit(1);
+
+  await notificarCliente({
+    clienteId,
+    tipo: "agendamento_criado",
+    titulo: "Atendimento marcado",
+    mensagem: `Seu atendimento de ${servicoAgendado?.nome ?? "serviço"} está marcado para ${new Intl.DateTimeFormat(
+      "pt-BR",
+      { dateStyle: "long", timeStyle: "short", timeZone: "UTC" },
+    ).format(inicio)}.`,
+    link: "/portal/agendamentos",
+  });
+
   revalidatePath("/painel/agenda");
 
   return {
@@ -90,14 +111,33 @@ export async function atualizarStatusAgendamento(formData: FormData) {
 
   if (!parsed.success) return;
 
-  await db
+  const [atualizado] = await db
     .update(agendamento)
     .set({
       status: parsed.data.status,
       atualizadoPorId: usuarioAtual.id,
       atualizadoEm: new Date(),
     })
-    .where(eq(agendamento.id, parsed.data.id));
+    .where(eq(agendamento.id, parsed.data.id))
+    .returning({ pacoteId: agendamento.pacoteId });
+
+  if (parsed.data.status === "realizado" && atualizado?.pacoteId) {
+    const info = await obterProgressoPacote(atualizado.pacoteId);
+
+    if (info && deveAvisarPacoteAcabando(info.progresso.sessoesRestantes)) {
+      const acabou = info.progresso.sessoesRestantes === 0;
+
+      await notificarCliente({
+        clienteId: info.clienteId,
+        tipo: "pacote_acabando",
+        titulo: acabou ? "Pacote concluído" : "Última sessão do seu pacote",
+        mensagem: acabou
+          ? "Você concluiu todas as sessões do seu pacote. Fale com a gente para renovar!"
+          : "Você tem apenas 1 sessão restante no seu pacote atual.",
+        link: "/portal/evolucao",
+      });
+    }
+  }
 
   revalidatePath("/painel/agenda");
 }

@@ -22,3 +22,8 @@ export function calcularProgressoPacote(
     percentualConcluido,
   };
 }
+
+/** Avisa o cliente quando resta só 1 sessão (última chance de renovar) ou o pacote acabou. */
+export function deveAvisarPacoteAcabando(sessoesRestantes: number): boolean {
+  return sessoesRestantes <= 1;
+}

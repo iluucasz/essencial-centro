@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { autorizarPapel } from "@/modules/auth/rbac";
+import { notificarCliente } from "@/modules/notificacoes/criar-notificacao";
 
 import { criarSessaoSchema, sessao } from "./schema";
 
@@ -63,6 +64,16 @@ export async function criarSessao(_: EstadoFormularioSessao = estadoInicial, for
     criadoPorId: usuarioAtual.id,
     atualizadoPorId: usuarioAtual.id,
   });
+
+  if (parsed.data.orientacoesPosAtendimento) {
+    await notificarCliente({
+      clienteId: parsed.data.clienteId,
+      tipo: "sessao_concluida",
+      titulo: "Novas orientações do seu atendimento",
+      mensagem: parsed.data.orientacoesPosAtendimento,
+      link: "/portal/sessoes",
+    });
+  }
 
   revalidatePath(`/painel/clientes/${parsed.data.clienteId}`);
 

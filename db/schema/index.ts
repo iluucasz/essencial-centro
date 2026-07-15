@@ -15,3 +15,4 @@ export * from "../../modules/fichas/schema";
 export * from "../../modules/sessoes/schema";
 export * from "../../modules/medidas/schema";
 export * from "../../modules/fotos/schema";
+export * from "../../modules/notificacoes/schema";
