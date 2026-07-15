@@ -53,6 +53,12 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
 - **MovimentacaoEstoque** — só registra **saídas** de um `Lote` (quantidade consumida + motivo
   livre). Disponível de um lote/produto é sempre calculado (inicial − saídas), nunca um campo
   mutável — mesmo princípio de "computado, não guardado" de `Pacote`/`LancamentoFinanceiro`.
+- **MedicamentoInformado** (`modules/medicamentos`, Fase 2) — "Medicamentos informados e alertas de
+  segurança" do brief: medicamento, dosagem, frequência, profissional prescritor, data de início,
+  alergia relacionada, alerta de interação, fonte do alerta. `alertaInteracao` é **sempre texto
+  digitado pela profissional** — nunca calculado/sugerido pelo sistema. `verificadoPorId`/
+  `verificadoEm` são uma etapa separada e deliberada da criação (informar ≠ verificar). Acesso
+  restrito a `profissional`.
 
 ## Relações-chave
 
@@ -61,6 +67,7 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
 `Pacote 1—N Sessao` (consome sessões). `Sessao 1—N Medida`, `Sessao 1—N Foto`, `Sessao 1—N DorRegistro`.
 `Servico` referenciado por `Pacote`, `Agendamento`, `Ficha`, `Sessao`.
 `Produto 1—N Lote 1—N MovimentacaoEstoque` — desacoplado do resto do domínio clínico por ora.
+`Cliente 1—N MedicamentoInformado`.
 
 ## Glossário
 

@@ -88,11 +88,20 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
   qualquer frequência de chamada, só a pontualidade do "algumas horas antes" depende de quem/como
   ele é disparado.
 
+- ✅ Alertas de medicamentos — `modules/medicamentos` (`medicamentoInformado`, seção "Medicamentos
+  informados e alertas de segurança" em `/painel/clientes/[id]`, restrito a `profissional`). Campos
+  exatamente os sugeridos no brief: medicamento, dosagem, frequência, profissional prescritor, data
+  de início, alergia relacionada, alerta de interação, fonte do alerta. **`alertaInteracao` é
+  preenchido manualmente pela profissional — o sistema nunca sugere/calcula interações** (a
+  restrição mais explícita do brief para essa área). "Informar" e "verificar" são duas ações
+  separadas de propósito: `criarMedicamentoInformado` só registra; `confirmarVerificacaoMedicamento`
+  é um clique deliberado à parte (`precisaVerificacao`/`contarPendentesVerificacao`), sempre exigindo
+  conferência de uma profissional — nunca confirmado sozinho na criação. Não depende do scheduler
+  (só o item de e-mail/SMS/push abaixo depende).
+
 Restante, em ordem sugerida: lembretes por e-mail/SMS/push (depende do scheduler, já resolvido
-acima; exige decidir provedor) · alertas de medicamentos ("Medicamentos informados e alertas de
-segurança" — **apoio**, exige validação profissional; nunca decisão clínica automática) ·
-atendimento domiciliar com rota · integração WhatsApp (maior dependência externa — API/aprovação
-de negócio — por último).
+acima; exige decidir provedor — aguardando decisão) · atendimento domiciliar com rota ·
+integração WhatsApp (maior dependência externa — API/aprovação de negócio — por último).
 
 ## Fase 3
 

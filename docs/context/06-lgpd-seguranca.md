@@ -58,6 +58,10 @@ Repositório está público — **não** commitar dados reais de pacientes nem d
 
 ## Áreas sensíveis específicas
 
-- **Medicamentos**: área é "Medicamentos informados e alertas de segurança" — apoio à conferência,
-  **nunca** decisão clínica automática. Alerta sempre exige validação de profissional habilitado.
+- **Medicamentos**: `modules/medicamentos` — área é "Medicamentos informados e alertas de
+  segurança" — apoio à conferência, **nunca** decisão clínica automática. O campo `alertaInteracao`
+  é sempre preenchido manualmente pela profissional; o sistema nunca sugere ou calcula interações
+  entre medicamentos. Alerta sempre exige validação de profissional habilitado — `criarMedicamentoInformado`
+  (registro) e `confirmarVerificacaoMedicamento` (conferência) são duas ações deliberadamente
+  separadas, nunca uma confirmação automática no ato de informar. Restrito a `profissional`.
 - **Biometria**: adiada (Fase 3) por custo/risco; presença via botão/PIN/QR Code no MVP.

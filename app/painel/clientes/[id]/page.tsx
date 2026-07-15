@@ -6,6 +6,7 @@ import {
   FileText,
   ImagePlus,
   NotebookPen,
+  Pill,
   Ruler,
   TrendingUp,
 } from "lucide-react";
@@ -26,6 +27,9 @@ import { listarFotosDoCliente } from "@/modules/fotos/queries";
 import { FormularioMedida } from "@/modules/medidas/components/formulario-medida";
 import { TabelaEvolucao } from "@/modules/medidas/components/tabela-evolucao";
 import { listarEvolucaoDoCliente } from "@/modules/medidas/queries";
+import { FormularioMedicamento } from "@/modules/medicamentos/components/formulario-medicamento";
+import { ListaMedicamentos } from "@/modules/medicamentos/components/lista-medicamentos";
+import { listarMedicamentosDoCliente } from "@/modules/medicamentos/queries";
 import { listarPacotesParaSelecao } from "@/modules/pacotes/queries";
 import { listarServicos } from "@/modules/servicos/queries";
 import { FormularioSessao } from "@/modules/sessoes/components/formulario-sessao";
@@ -81,6 +85,9 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
   const fotos = usuario.role === "profissional" ? await listarFotosDoCliente(id) : null;
 
   const documentos = usuario.role === "profissional" ? await listarDocumentosDoCliente(id) : null;
+
+  const medicamentos =
+    usuario.role === "profissional" ? await listarMedicamentosDoCliente(id) : null;
 
   const observacoesInternas =
     "observacoesInternas" in cliente && typeof cliente.observacoesInternas === "string"
@@ -231,6 +238,24 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
             </ModalFormulario>
           </div>
           <ListaDocumentos clienteId={id} documentos={documentos} />
+        </section>
+      ) : null}
+
+      {medicamentos ? (
+        <section className="grid gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-foreground">
+              Medicamentos informados e alertas de segurança
+            </h2>
+            <ModalFormulario
+              icone={<Pill className="size-4" aria-hidden />}
+              rotuloBotao="Novo medicamento"
+              titulo="Registrar medicamento"
+            >
+              <FormularioMedicamento clienteId={id} />
+            </ModalFormulario>
+          </div>
+          <ListaMedicamentos clienteId={id} medicamentos={medicamentos} />
         </section>
       ) : null}
     </div>
