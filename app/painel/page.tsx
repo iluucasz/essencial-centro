@@ -72,8 +72,11 @@ export default async function PainelPage() {
         <p className="mt-1 text-sm text-foreground">Resumo do dia na clínica.</p>
       </div>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
-        <Link className="rounded-2xl transition hover:-translate-y-0.5" href="/painel/agenda">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] items-stretch gap-4">
+        <Link
+          className="block h-full rounded-2xl transition hover:-translate-y-0.5"
+          href="/painel/agenda"
+        >
           <CardKpi
             cor="roxo"
             icone={CalendarClock}
@@ -81,7 +84,10 @@ export default async function PainelPage() {
             valor={String(agendamentosHoje.length)}
           />
         </Link>
-        <Link className="rounded-2xl transition hover:-translate-y-0.5" href="/painel/clientes">
+        <Link
+          className="block h-full rounded-2xl transition hover:-translate-y-0.5"
+          href="/painel/clientes"
+        >
           <CardKpi
             cor="brand"
             icone={UsersRound}
@@ -94,7 +100,10 @@ export default async function PainelPage() {
             valor={String(clientes.length)}
           />
         </Link>
-        <Link className="rounded-2xl transition hover:-translate-y-0.5" href="/painel/pacotes">
+        <Link
+          className="block h-full rounded-2xl transition hover:-translate-y-0.5"
+          href="/painel/pacotes"
+        >
           <CardKpi
             cor="dourado"
             icone={PackageCheck}
@@ -102,7 +111,10 @@ export default async function PainelPage() {
             valor={String(pacotesAtivos.length)}
           />
         </Link>
-        <Link className="rounded-2xl transition hover:-translate-y-0.5" href="/painel/pacotes">
+        <Link
+          className="block h-full rounded-2xl transition hover:-translate-y-0.5"
+          href="/painel/pacotes"
+        >
           <CardKpi
             cor={pacotesAcabando.length > 0 ? "perigo" : "roxo"}
             destaque={pacotesAcabando.length > 0 ? "neutro" : undefined}
@@ -112,7 +124,10 @@ export default async function PainelPage() {
           />
         </Link>
         {tendenciaFaturamento ? (
-          <Link className="rounded-2xl transition hover:-translate-y-0.5" href="/painel/financeiro">
+          <Link
+            className="block h-full rounded-2xl transition hover:-translate-y-0.5"
+            href="/painel/financeiro"
+          >
             <CardKpi
               cor="brand"
               icone={Wallet}
@@ -128,7 +143,7 @@ export default async function PainelPage() {
         ) : null}
       </div>
 
-      <div className="grid gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6">
+      <div className="grid gap-3 rounded-2xl border border-border bg-surface p-4 sm:p-6">
         <h2 className="text-lg font-semibold text-foreground">Atendimentos nos últimos 30 dias</h2>
         <GraficoAtendimentos pontos={pontosGrafico} />
       </div>
@@ -140,7 +155,7 @@ export default async function PainelPage() {
             Nenhum atendimento marcado para hoje.
           </div>
         ) : (
-          <ul className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+          <ul className="overflow-hidden rounded-lg border border-border bg-surface">
             {agendamentosHoje.slice(0, 5).map((a) => (
               <li
                 key={a.id}

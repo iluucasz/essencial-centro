@@ -80,7 +80,7 @@ export default async function RelatoriosPage({
         </form>
       </header>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] items-stretch gap-4">
         <CardKpi
           icone={ArrowUpCircle}
           label="Faturamento"
@@ -113,7 +113,7 @@ export default async function RelatoriosPage({
         <h2 className="text-lg font-semibold text-foreground">Agendamentos por status</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {statusAgendamento.map((status) => (
-            <div key={status} className="rounded-lg border border-border bg-surface p-4 shadow-sm">
+            <div key={status} className="rounded-lg border border-border bg-surface p-4">
               <p className="text-sm text-muted">{rotulosStatusAgendamento[status]}</p>
               <p className="mt-1 text-xl font-semibold text-foreground">
                 {relatorio.agendamentosPorStatus[status]}
@@ -130,7 +130,7 @@ export default async function RelatoriosPage({
             Nenhum atendimento realizado no período.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+          <div className="overflow-hidden rounded-lg border border-border bg-surface">
             <ul className="divide-y divide-border">
               {relatorio.rankingServicos.map((item) => (
                 <li

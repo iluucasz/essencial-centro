@@ -77,42 +77,43 @@ telas de login/autenticação** prontas (só um item de menu) — login segue um
 Implementado em `components/layout/painel-shell.tsx`, usado por `app/painel/layout.tsx`. Toda
 página nova em `app/painel/*` já herda o shell — não recrie `<main>`/cabeçalho de página inteira,
 apenas o conteúdo (a página começa direto no `<div className="grid gap-...">`, **sem** `mx-auto`/
-`max-w-*` próprio). O limite de largura (`max-w-[1600px]`) e a centralização já vêm do `<main>`
-do shell (e do `<main>` de cada página do portal) — duplicar isso na página cria "conteúdo dentro
-de conteúdo" (uma coluna estreita flutuando solta na área de conteúdo, em vez de preencher o
-espaço como no Neoxa). Exceção deliberada: páginas de confirmação/ação única e estreitas por
+`max-w-*` próprio). O `<main>` do shell ocupa toda a largura útil e usa o mesmo padding lateral do
+header (`px-4` / `md:px-6`), para o conteúdo alinhar entre o chip de área à esquerda e o perfil do
+usuário à direita. Exceção deliberada: páginas de confirmação/ação única e estreitas por
 natureza (ex.: `app/painel/checkin/[id]/page.tsx`) podem manter `mx-auto max-w-md` própria.
 Estrutura do shell:
 
-- **Sidebar fixa, 288px (`w-72`)**: logo no topo (64px de altura), seções de navegação com rótulo
-  (`Menu`, depois grupos por domínio conforme os módulos crescem), item ativo com
-  `bg-lilas/20 text-roxo`, hover `bg-creme`. Em mobile, desliza (`-translate-x-full` quando fechada)
-  com overlay e botão hambúrguer.
-- **Header fixo, 64px (`h-16`)**: título da página + subtítulo à esquerda; busca (`rounded-full`) ao
-  centro/direita; à direita: toggle de tema (futuro), sino de notificações (futuro), avatar + nome +
-  chevron do usuário (hoje resolvido pelo `BotaoSair`).
+- **Sidebar fixa, 288px (`w-72`) / recolhida, 80px (`w-20`)**: logo no topo (64px de altura) com
+  botão de recolher/expandir, seções de navegação com rótulo (`Menu`, depois grupos por domínio
+  conforme os módulos crescem), item ativo com `bg-lilas/20 text-roxo`, hover `bg-creme`. Em
+  mobile, desliza (`-translate-x-full` quando fechada) com overlay e botão hambúrguer.
+- **Header fixo, 64px (`h-16`)**: sem sombra e sem blur, apenas borda inferior sutil; à esquerda fica
+  o chip de área (`Área profissional`/`Recepção`) e à direita avatar + nome + chevron do usuário
+  (`MenuUsuario`).
 - **Conteúdo**: `padding` de `1.5rem` (`p-6`), `gap` entre cards de `1.5rem`.
 
 ### Escala a adotar (idêntica à do clone, já é o que usamos)
 
 Raios: `sm 0.25rem · md 0.375rem · lg 0.5rem · xl 0.75rem · 2xl 1rem`. Cards em `rounded-2xl`,
-botões/itens de nav em `rounded-lg`, avatar em `rounded-full`. Sombra de card: `shadow-sm`
-(`0 1px 2px rgba(0,0,0,.05)`); dropdown/overlay: `shadow-md`. Transição padrão:
+botões/itens de nav em `rounded-lg`, avatar em `rounded-full`. Em áreas internas densas, cards
+preferem superfície branca + borda sutil, sem sombra; dropdown/overlay: `shadow-md`. Transição padrão:
 `0.15s cubic-bezier(0.4,0,0.2,1)`.
 
 ### Padrões de tela reaproveitáveis
 
-- **Home do painel (KPIs)**: `components/ui/card-kpi.tsx` — visual "fraquinho" tipo Neoxa: **sem
-  borda** (só `shadow-sm`, apoiado no `--border` já suavizado de `.area-interna`), **sem badge
-  colorido de ícone** (o ícone é pequeno e discreto, tingido por `cor`: `muted` por padrão,
+- **Home do painel (KPIs)**: `components/ui/card-kpi.tsx` — visual "fraquinho" tipo Neoxa:
+  **borda sutil e sem sombra**, apoiado no contraste entre `bg-surface` e o fundo interno; **sem
+  badge colorido de ícone** (o ícone é pequeno e discreto, tingido por `cor`: `muted` por padrão,
   `roxo`/`brand`/`dourado`/`perigo` só quando o estado pedir destaque, ex.: alerta) + número grande
   - tendência opcional (`tendencia`: seta verde/vermelha + `%` + rótulo, ex.: "vs mês anterior").
     **A tendência só aparece quando há base de comparação real calculada**
     (`lib/utils.ts` → `calcularVariacaoPercentual`, retorna `null` sem base) — nunca inventar
     percentual, ao contrário dos KPIs de demonstração do clone/Neoxa (ex.: "+10% vs last 30 days"
-    fixo). A grade de cards usa `grid-cols-[repeat(auto-fit,minmax(200px,1fr))]` (fluida, proporcional
-    à largura da tela) em vez de breakpoints fixos — evita o "4 em cima, 1 sobrando embaixo" quando o
-    número de cards varia por papel (ex.: painel tem 4 cards pra recepção, 5 pra profissional).
+    fixo). O card reserva a altura da tendência mesmo quando ela não existe (`min-h-36` + slot
+    vazio), para todos os KPIs da linha manterem o mesmo tamanho. A grade de cards usa
+    `grid-cols-[repeat(auto-fit,minmax(220px,1fr))]` (fluida, proporcional à largura da tela) em vez
+    de breakpoints fixos — evita o "4 em cima, 1 sobrando embaixo" quando o número de cards varia por
+    papel (ex.: painel tem 4 cards pra recepção, 5 pra profissional).
     Gráfico de tendência (`modules/agenda/components/grafico-atendimentos.tsx`, Recharts
     `AreaChart`) usa as cores via `var(--color-brand)`/`var(--color-border)`/`var(--color-muted)` do
     tema, nunca hex solto — mesma regra de tokens dos demais componentes. Referência visual adicional
@@ -121,7 +122,13 @@ botões/itens de nav em `rounded-lg`, avatar em `rounded-full`. Sombra de card: 
 - **Tabela/listagem** (já usado em `clientes` e `servicos`, mas sem paginação ainda): linha com
   avatar/ícone + nome + meta secundária à esquerda, dado de destaque à direita, badges de status
   coloridos (`success`/`warning`/`danger`/`default`) para estado (ex.: sessão realizada/pendente/falta).
-  Adicionar paginação seguindo o clone quando as listas crescerem.
+  Nas páginas de painel, o título e as ações da seção ficam soltos (`section.grid gap-4`), seguindo
+  agenda/financeiro; a borda fica na lista ou nos cards internos, sem um container envolvendo título,
+  ação e lista. Quando a listagem for operacional (ex.: clientes), preferir um bloco de tabela com
+  toolbar interna: título/contagem à esquerda, busca/filtro/ação principal à direita, cabeçalho de
+  colunas, coluna de ações à direita. **Sem checkbox de seleção** enquanto não houver ação em massa
+  real (excluir/exportar) implementada — checkbox que não faz nada é código morto. Adicionar
+  paginação seguindo o clone quando as listas crescerem.
 - **Perfil**: capa + avatar sobreposto + nome/cargo + ações (`Editar`, `Copiar link`) + bio — útil
   como base do perfil do cliente no portal (`/portal`) e do perfil da profissional.
 - **Formulário**: já seguimos o padrão (label + campo + erro inline) nos módulos `clientes`/`servicos`;

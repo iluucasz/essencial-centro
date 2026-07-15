@@ -32,7 +32,7 @@ export function ListaServicos({ servicos }: { servicos: ServicoResumo[] }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+    <div className="overflow-hidden rounded-lg border border-border bg-surface">
       <ul className="divide-y divide-border">
         {servicos.map((servico) => (
           <li key={servico.id} className="grid gap-2 p-4 md:grid-cols-[1fr_auto]">

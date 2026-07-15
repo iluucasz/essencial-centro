@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   CalendarClock,
+  ChevronLeft,
+  ChevronRight,
   LayoutDashboard,
   Menu,
   PackageCheck,
@@ -53,21 +55,48 @@ function itemAtivo(pathname: string, href: string, exato: boolean) {
 function Sidebar({
   pathname,
   papel,
+  colapsada = false,
+  onToggleCollapse,
   onNavigate,
 }: {
   pathname: string;
   papel: PapelUsuario;
+  colapsada?: boolean;
+  onToggleCollapse?: () => void;
   onNavigate?: () => void;
 }) {
   return (
     <nav className="flex h-full flex-col gap-1 p-4" aria-label="Navegação do painel">
-      <div className="flex h-16 items-center px-2">
-        <span className="text-lg font-semibold text-brand">Essencial Centro</span>
+      <div
+        className={
+          "flex h-16 items-center px-2 " + (colapsada ? "justify-center" : "justify-between gap-3")
+        }
+      >
+        {colapsada ? null : (
+          <span className="text-lg font-semibold text-brand">Essencial Centro</span>
+        )}
+        {onToggleCollapse ? (
+          <button
+            aria-label={colapsada ? "Expandir menu" : "Recolher menu"}
+            className="rounded-lg p-2 text-muted transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+            onClick={onToggleCollapse}
+            title={colapsada ? "Expandir menu" : "Recolher menu"}
+            type="button"
+          >
+            {colapsada ? (
+              <ChevronRight className="size-4" aria-hidden="true" />
+            ) : (
+              <ChevronLeft className="size-4" aria-hidden="true" />
+            )}
+          </button>
+        ) : null}
       </div>
 
-      <p className="px-2 pt-2 pb-1 text-xs font-semibold tracking-wider text-muted uppercase">
-        Menu
-      </p>
+      {colapsada ? null : (
+        <p className="px-2 pt-2 pb-1 text-xs font-semibold tracking-wider text-muted uppercase">
+          Menu
+        </p>
+      )}
       {itensNavegacao
         .filter((item) => !("papeis" in item) || (item.papeis as readonly string[]).includes(papel))
         .map(({ href, label, icone: Icone, exato }) => {
@@ -78,14 +107,17 @@ function Sidebar({
               key={href}
               className={
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition " +
+                (colapsada ? "justify-center" : "") +
+                " " +
                 (ativo ? "bg-lilas/25 text-roxo" : "text-foreground hover:bg-creme")
               }
               href={href}
               onClick={onNavigate}
+              title={colapsada ? label : undefined}
               aria-current={ativo ? "page" : undefined}
             >
-              <Icone className="size-4" aria-hidden="true" />
-              {label}
+              <Icone className="size-4 shrink-0" aria-hidden="true" />
+              {colapsada ? null : label}
             </Link>
           );
         })}
@@ -96,12 +128,23 @@ function Sidebar({
 export function PainelShell({ children, usuario }: { children: ReactNode; usuario: UsuarioShell }) {
   const pathname = usePathname();
   const [menuAberto, setMenuAberto] = useState(false);
+  const [colapsada, setColapsada] = useState(false);
 
   return (
     <div className="area-interna min-h-screen bg-creme md:flex">
       {/* Sidebar fixa (desktop) */}
-      <aside className="hidden w-72 shrink-0 border-r border-border bg-surface md:block">
-        <Sidebar papel={usuario.role} pathname={pathname} />
+      <aside
+        className={
+          "hidden shrink-0 border-r border-border bg-surface transition-[width] duration-200 md:block " +
+          (colapsada ? "w-20" : "w-72")
+        }
+      >
+        <Sidebar
+          colapsada={colapsada}
+          onToggleCollapse={() => setColapsada((atual) => !atual)}
+          papel={usuario.role}
+          pathname={pathname}
+        />
       </aside>
 
       {/* Sidebar deslizante (mobile) */}
@@ -133,7 +176,7 @@ export function PainelShell({ children, usuario }: { children: ReactNode; usuari
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Header fixo */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b border-border bg-surface/95 px-4 shadow-sm backdrop-blur-sm md:px-6">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b border-border bg-surface px-4 md:px-6">
           <div className="flex items-center gap-3">
             <button
               aria-label="Abrir menu"
@@ -156,7 +199,7 @@ export function PainelShell({ children, usuario }: { children: ReactNode; usuari
           />
         </header>
 
-        <main className="mx-auto w-full max-w-[1600px] flex-1 p-4 md:p-6">{children}</main>
+        <main className="flex-1 px-4 py-4 md:px-6 md:py-6">{children}</main>
       </div>
     </div>
   );

@@ -25,18 +25,18 @@ export function CardKpi({
   tendencia?: { percentual: number; rotulo: string };
 }) {
   return (
-    <div className="grid gap-2 rounded-2xl bg-surface p-4 shadow-sm sm:p-5">
+    <div className="flex h-full min-h-36 flex-col rounded-2xl border border-border bg-surface p-4 sm:p-5">
       <span className={`flex items-center gap-1.5 text-sm ${coresIcone[cor]}`}>
-        <Icone className="size-4" aria-hidden={true} />
+        <Icone className="size-4 shrink-0" aria-hidden={true} />
         <span className="text-muted">{label}</span>
       </span>
       <span
-        className={`text-2xl font-semibold sm:text-3xl ${destaque === "positivo" ? "text-brand" : "text-foreground"}`}
+        className={`mt-4 text-2xl leading-none font-semibold sm:text-3xl ${destaque === "positivo" ? "text-brand" : "text-foreground"}`}
       >
         {valor}
       </span>
       {tendencia ? (
-        <span className="flex items-center gap-1.5 text-xs">
+        <span className="mt-auto flex min-h-5 items-center gap-1.5 text-xs">
           <span
             className={`flex items-center gap-0.5 font-medium ${
               tendencia.percentual >= 0 ? "text-brand" : "text-perigo"
@@ -51,7 +51,9 @@ export function CardKpi({
           </span>
           <span className="text-muted">{tendencia.rotulo}</span>
         </span>
-      ) : null}
+      ) : (
+        <span className="mt-auto min-h-5" aria-hidden="true" />
+      )}
     </div>
   );
 }

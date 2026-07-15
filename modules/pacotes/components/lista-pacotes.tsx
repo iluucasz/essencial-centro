@@ -38,10 +38,7 @@ export function ListaPacotes({ pacotes }: { pacotes: PacoteResumo[] }) {
   return (
     <div className="grid gap-4">
       {pacotes.map((pacote) => (
-        <div
-          key={pacote.id}
-          className="grid gap-3 rounded-lg border border-border bg-surface p-4 shadow-sm"
-        >
+        <div key={pacote.id} className="grid gap-3 rounded-lg border border-border bg-surface p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <span className="flex items-start gap-3">
               <span className="mt-0.5 rounded-lg bg-lilas/35 p-2 text-roxo">

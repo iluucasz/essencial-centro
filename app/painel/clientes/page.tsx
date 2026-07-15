@@ -1,58 +1,41 @@
-import { Search } from "lucide-react";
-
 import { ModalFormulario } from "@/components/ui/modal-formulario";
 import { FormularioCliente } from "@/modules/clientes/components/formulario-cliente";
 import { ListaClientes } from "@/modules/clientes/components/lista-clientes";
+import { aplicarFiltroCliente, normalizarFiltroCliente } from "@/modules/clientes/filtro";
 import { listarClientes } from "@/modules/clientes/queries";
 
 export default async function ClientesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ busca?: string }>;
+  searchParams: Promise<{ busca?: string; filtro?: string }>;
 }) {
-  const { busca } = await searchParams;
+  const { busca, filtro } = await searchParams;
+  const filtroAtual = normalizarFiltroCliente(filtro);
   const clientes = await listarClientes(busca);
+  const clientesFiltrados = aplicarFiltroCliente(clientes, filtroAtual);
 
   return (
     <div className="grid gap-8">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      <header>
         <div>
           <h1 className="text-2xl font-semibold text-brand">Clientes</h1>
           <p className="mt-2 max-w-2xl text-sm text-foreground">
             Cadastro reutilizável para agenda, fichas, sessões e evolução clínica.
           </p>
         </div>
-
-        <form className="flex w-full max-w-sm gap-2" action="/painel/clientes">
-          <label className="sr-only" htmlFor="busca">
-            Buscar cliente
-          </label>
-          <input
-            className="h-10 flex-1 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
-            defaultValue={busca}
-            id="busca"
-            name="busca"
-            placeholder="Buscar por nome ou e-mail"
-          />
-          <button
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-surface px-3 text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
-            type="submit"
-          >
-            <Search className="size-4" aria-hidden="true" />
-            <span className="sr-only">Buscar</span>
-          </button>
-        </form>
       </header>
 
-      <section className="grid gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-foreground">Cadastrados</h2>
+      <ListaClientes
+        acao={
           <ModalFormulario rotuloBotao="Novo cliente" titulo="Novo cliente">
             <FormularioCliente />
           </ModalFormulario>
-        </div>
-        <ListaClientes clientes={clientes} />
-      </section>
+        }
+        busca={busca}
+        clientes={clientesFiltrados}
+        filtro={filtroAtual}
+        total={clientes.length}
+      />
     </div>
   );
 }
