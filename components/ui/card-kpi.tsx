@@ -1,11 +1,12 @@
 import type { ComponentType } from "react";
 import { TrendingDown, TrendingUp } from "lucide-react";
 
-const coresBadge = {
-  roxo: "bg-lilas/35 text-roxo",
-  brand: "bg-brand/15 text-brand",
-  dourado: "bg-dourado/20 text-dourado",
-  perigo: "bg-perigo/15 text-perigo",
+const coresIcone = {
+  muted: "text-muted",
+  roxo: "text-roxo",
+  brand: "text-brand",
+  dourado: "text-dourado",
+  perigo: "text-perigo",
 } as const;
 
 export function CardKpi({
@@ -13,26 +14,32 @@ export function CardKpi({
   label,
   valor,
   destaque,
-  cor = "roxo",
+  cor = "muted",
   tendencia,
 }: {
   icone: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   label: string;
   valor: string;
   destaque?: "positivo" | "neutro";
-  cor?: keyof typeof coresBadge;
+  cor?: keyof typeof coresIcone;
   tendencia?: { percentual: number; rotulo: string };
 }) {
   return (
-    <div className="grid gap-2 rounded-2xl border border-border bg-surface p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <span className={`flex size-9 items-center justify-center rounded-lg ${coresBadge[cor]}`}>
-          <Icone className="size-4" aria-hidden={true} />
-        </span>
-        {tendencia ? (
+    <div className="grid gap-2 rounded-2xl bg-surface p-4 shadow-sm sm:p-5">
+      <span className={`flex items-center gap-1.5 text-sm ${coresIcone[cor]}`}>
+        <Icone className="size-4" aria-hidden={true} />
+        <span className="text-muted">{label}</span>
+      </span>
+      <span
+        className={`text-2xl font-semibold sm:text-3xl ${destaque === "positivo" ? "text-brand" : "text-foreground"}`}
+      >
+        {valor}
+      </span>
+      {tendencia ? (
+        <span className="flex items-center gap-1.5 text-xs">
           <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-              tendencia.percentual >= 0 ? "bg-brand/15 text-brand" : "bg-perigo/15 text-perigo"
+            className={`flex items-center gap-0.5 font-medium ${
+              tendencia.percentual >= 0 ? "text-brand" : "text-perigo"
             }`}
           >
             {tendencia.percentual >= 0 ? (
@@ -42,15 +49,9 @@ export function CardKpi({
             )}
             {Math.abs(tendencia.percentual)}%
           </span>
-        ) : null}
-      </div>
-      <span className="text-sm text-muted">{label}</span>
-      <span
-        className={`text-2xl font-semibold ${destaque === "positivo" ? "text-brand" : "text-foreground"}`}
-      >
-        {valor}
-      </span>
-      {tendencia ? <span className="text-xs text-muted">{tendencia.rotulo}</span> : null}
+          <span className="text-muted">{tendencia.rotulo}</span>
+        </span>
+      ) : null}
     </div>
   );
 }

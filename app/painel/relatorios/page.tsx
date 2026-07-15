@@ -80,7 +80,7 @@ export default async function RelatoriosPage({
         </form>
       </header>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
         <CardKpi
           icone={ArrowUpCircle}
           label="Faturamento"

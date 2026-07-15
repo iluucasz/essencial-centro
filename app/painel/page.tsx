@@ -72,7 +72,7 @@ export default async function PainelPage() {
         <p className="mt-1 text-sm text-foreground">Resumo do dia na clínica.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
         <Link className="rounded-2xl transition hover:-translate-y-0.5" href="/painel/agenda">
           <CardKpi
             cor="roxo"

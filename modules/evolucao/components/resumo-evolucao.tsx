@@ -13,7 +13,7 @@ export function ResumoEvolucao({ resumo }: { resumo: Resumo }) {
 
   return (
     <div className="grid gap-8">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
         <CardKpi
           icone={CalendarCheck}
           label="Sessões realizadas"

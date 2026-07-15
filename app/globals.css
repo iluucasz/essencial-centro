@@ -67,7 +67,7 @@
   --color-muted: var(--muted);
   --color-border: var(--border);
 
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-outfit);
   --font-mono: var(--font-geist-mono);
 
   --radius: 0.75rem;
@@ -88,4 +88,5 @@ body {
  */
 .area-interna {
   --background: #f7f6fa;
+  --border: #ececf3; /* bordas quase invisíveis — telas densas pedem contraste mais fraco */
 }

@@ -32,14 +32,14 @@ Fonte única: `config/brand.ts` (TS) ↔ tokens CSS em `app/globals.css` (`@them
 | Texto escuro       | `foreground`                        | `#293630` | corpo de texto                                          |
 | Superfície         | `surface`                           | `#FFFFFF` | cartões, overlays, campos                               |
 
-**Fundo das áreas internas (painel/portal):** o creme rosado quente acima é só do site público —
-dentro das áreas logadas, a classe `.area-interna` (em `app/globals.css`, já aplicada no
+**Fundo e borda das áreas internas (painel/portal):** o creme rosado quente acima é só do site
+público — dentro das áreas logadas, a classe `.area-interna` (em `app/globals.css`, já aplicada no
 `painel-shell.tsx` e no `<main>` de cada página do portal) sobrescreve `--background` para
-`#F7F6FA`, um tom frio quase branco com leve toque de lilás. Motivo: o creme rosado (tom quente)
-não harmoniza bem simultaneamente com verde e roxo em telas densas de dashboard; o tom frio
-funciona como neutro pros dois. Como os componentes continuam usando a classe `bg-creme`/
-`hover:bg-creme` normalmente, essa troca é automática por cascata de CSS — não precisa (nem deve)
-trocar a classe componente por componente.
+`#F7F6FA` (tom frio quase branco com leve toque de lilás — harmoniza verde e roxo ao mesmo tempo,
+diferente do creme quente) e `--border` para `#ECECF3` (quase invisível — telas densas de
+dashboard pedem contraste mais fraco que o `#E7DCD6` do site público). Como os componentes
+continuam usando as classes `bg-creme`/`hover:bg-creme`/`border-border` normalmente, essa troca é
+automática por cascata de CSS — não precisa (nem deve) trocar a classe componente por componente.
 
 ## Direção visual
 
@@ -102,16 +102,22 @@ botões/itens de nav em `rounded-lg`, avatar em `rounded-full`. Sombra de card: 
 
 ### Padrões de tela reaproveitáveis
 
-- **Home do painel (KPIs)**: `components/ui/card-kpi.tsx` — badge de ícone colorido (`cor`:
-  `roxo`/`brand`/`dourado`/`perigo`) + número + badge de tendência opcional (`tendencia`:
-  seta verde/vermelha + `%` + rótulo, ex.: "vs mês anterior"). **A tendência só aparece quando há
-  base de comparação real calculada** (`lib/utils.ts` → `calcularVariacaoPercentual`, retorna
-  `null` sem base) — nunca inventar percentual, ao contrário dos KPIs de demonstração do
-  clone/Neoxa (ex.: "+10% vs last 30 days" fixo). Gráfico de tendência
-  (`modules/agenda/components/grafico-atendimentos.tsx`, Recharts `AreaChart`) usa as cores via
-  `var(--color-brand)`/`var(--color-border)`/`var(--color-muted)` do tema, nunca hex solto — mesma
-  regra de tokens dos demais componentes. Referência visual adicional (inspiração de card/gráfico,
-  não paleta): template **Neoxa** da TailGrids — pago, sem clone local; usar só como direção.
+- **Home do painel (KPIs)**: `components/ui/card-kpi.tsx` — visual "fraquinho" tipo Neoxa: **sem
+  borda** (só `shadow-sm`, apoiado no `--border` já suavizado de `.area-interna`), **sem badge
+  colorido de ícone** (o ícone é pequeno e discreto, tingido por `cor`: `muted` por padrão,
+  `roxo`/`brand`/`dourado`/`perigo` só quando o estado pedir destaque, ex.: alerta) + número grande
+  - tendência opcional (`tendencia`: seta verde/vermelha + `%` + rótulo, ex.: "vs mês anterior").
+    **A tendência só aparece quando há base de comparação real calculada**
+    (`lib/utils.ts` → `calcularVariacaoPercentual`, retorna `null` sem base) — nunca inventar
+    percentual, ao contrário dos KPIs de demonstração do clone/Neoxa (ex.: "+10% vs last 30 days"
+    fixo). A grade de cards usa `grid-cols-[repeat(auto-fit,minmax(200px,1fr))]` (fluida, proporcional
+    à largura da tela) em vez de breakpoints fixos — evita o "4 em cima, 1 sobrando embaixo" quando o
+    número de cards varia por papel (ex.: painel tem 4 cards pra recepção, 5 pra profissional).
+    Gráfico de tendência (`modules/agenda/components/grafico-atendimentos.tsx`, Recharts
+    `AreaChart`) usa as cores via `var(--color-brand)`/`var(--color-border)`/`var(--color-muted)` do
+    tema, nunca hex solto — mesma regra de tokens dos demais componentes. Referência visual adicional
+    (inspiração de card/gráfico/densidade, não paleta): template **Neoxa** da TailGrids — pago, sem
+    clone local; usar só como direção.
 - **Tabela/listagem** (já usado em `clientes` e `servicos`, mas sem paginação ainda): linha com
   avatar/ícone + nome + meta secundária à esquerda, dado de destaque à direita, badges de status
   coloridos (`success`/`warning`/`danger`/`default`) para estado (ex.: sessão realizada/pendente/falta).
@@ -123,7 +129,7 @@ botões/itens de nav em `rounded-lg`, avatar em `rounded-full`. Sombra de card: 
 
 ## Tipografia
 
-**Inter** (via `next/font/google`, `app/layout.tsx`) é a tipografia oficial da marca para texto
+**Outfit** (via `next/font/google`, `app/layout.tsx`) é a tipografia oficial da marca para texto
 (`--font-sans`) — trocada do Geist original para aproximar a hierarquia visual do padrão
 TailGrids/Neoxa. Geist Mono continua para contexto monoespaçado (`--font-mono`).
 
