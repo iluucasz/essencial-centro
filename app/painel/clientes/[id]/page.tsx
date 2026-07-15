@@ -42,40 +42,38 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
       : null;
 
   return (
-    <main className="min-h-screen bg-creme px-6 py-8">
-      <div className="mx-auto grid max-w-5xl gap-6">
-        <Link
-          className="inline-flex w-fit items-center gap-2 text-sm font-medium text-roxo hover:text-brand"
-          href="/painel/clientes"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Voltar para clientes
-        </Link>
+    <div className="mx-auto grid max-w-5xl gap-6">
+      <Link
+        className="inline-flex w-fit items-center gap-2 text-sm font-medium text-roxo hover:text-brand"
+        href="/painel/clientes"
+      >
+        <ArrowLeft className="size-4" aria-hidden="true" />
+        Voltar para clientes
+      </Link>
 
-        <header>
-          <p className="text-sm font-medium text-muted">Cadastro do cliente</p>
-          <h1 className="mt-2 text-2xl font-semibold text-brand">{cliente.nome}</h1>
-        </header>
+      <header>
+        <p className="text-sm font-medium text-muted">Cadastro do cliente</p>
+        <h1 className="mt-2 text-2xl font-semibold text-brand">{cliente.nome}</h1>
+      </header>
 
-        <dl className="grid gap-4 md:grid-cols-2">
-          <LinhaInfo label="Data de nascimento" valor={cliente.dataNascimento} />
-          <LinhaInfo label="Telefone" valor={cliente.telefone} />
-          <LinhaInfo label="E-mail" valor={cliente.email} />
-          <LinhaInfo label="Profissão" valor={cliente.profissao} />
-          <LinhaInfo label="Endereço" valor={cliente.endereco} />
-          <LinhaInfo label="Contato de emergência" valor={cliente.contatoEmergenciaNome} />
-          <LinhaInfo label="Telefone de emergência" valor={cliente.contatoEmergenciaTelefone} />
-          <LinhaInfo label="Objetivo do tratamento" valor={cliente.objetivoTratamento} />
-          <LinhaInfo label="Alergias" valor={cliente.alergias} />
-          <LinhaInfo label="Medicamentos" valor={cliente.medicamentos} />
-          <LinhaInfo label="Condições de saúde" valor={cliente.condicoesSaude} />
-          <LinhaInfo label="Cirurgias" valor={cliente.cirurgias} />
-          <LinhaInfo label="Contraindicações" valor={cliente.contraindicacoes} />
-          <LinhaInfo label="Consentimento de dados" valor={cliente.consentimentoDados} />
-          <LinhaInfo label="Consentimento de imagem" valor={cliente.consentimentoImagem} />
-          <LinhaInfo label="Observações internas" valor={observacoesInternas} />
-        </dl>
-      </div>
-    </main>
+      <dl className="grid gap-4 md:grid-cols-2">
+        <LinhaInfo label="Data de nascimento" valor={cliente.dataNascimento} />
+        <LinhaInfo label="Telefone" valor={cliente.telefone} />
+        <LinhaInfo label="E-mail" valor={cliente.email} />
+        <LinhaInfo label="Profissão" valor={cliente.profissao} />
+        <LinhaInfo label="Endereço" valor={cliente.endereco} />
+        <LinhaInfo label="Contato de emergência" valor={cliente.contatoEmergenciaNome} />
+        <LinhaInfo label="Telefone de emergência" valor={cliente.contatoEmergenciaTelefone} />
+        <LinhaInfo label="Objetivo do tratamento" valor={cliente.objetivoTratamento} />
+        <LinhaInfo label="Alergias" valor={cliente.alergias} />
+        <LinhaInfo label="Medicamentos" valor={cliente.medicamentos} />
+        <LinhaInfo label="Condições de saúde" valor={cliente.condicoesSaude} />
+        <LinhaInfo label="Cirurgias" valor={cliente.cirurgias} />
+        <LinhaInfo label="Contraindicações" valor={cliente.contraindicacoes} />
+        <LinhaInfo label="Consentimento de dados" valor={cliente.consentimentoDados} />
+        <LinhaInfo label="Consentimento de imagem" valor={cliente.consentimentoImagem} />
+        <LinhaInfo label="Observações internas" valor={observacoesInternas} />
+      </dl>
+    </div>
   );
 }

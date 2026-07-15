@@ -40,6 +40,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# material de referencia de design (terceiros, so consulta local, nunca comitar)
+/docs/design-reference/
+/pulkitxm claude-directory main templates-premium_tailgrids_dashspace/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

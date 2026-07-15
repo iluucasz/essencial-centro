@@ -6,3 +6,5 @@ coverage
 pnpm-lock.yaml
 db/migrations
 docs/context/brief.md
+docs/design-reference
+pulkitxm claude-directory main templates-premium_tailgrids_dashspace

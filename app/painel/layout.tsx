@@ -3,12 +3,13 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { autorizarPapel, ErroAutorizacao } from "@/modules/auth/rbac";
+import { PainelShell } from "@/components/layout/painel-shell";
 
-export default async function PainelLayout({ children }: { children: ReactNode }) {
-  const sessao = await auth();
-
+async function autorizar() {
   try {
-    autorizarPapel(sessao, ["profissional", "recepcao"]);
+    const sessao = await auth();
+
+    return autorizarPapel(sessao, ["profissional", "recepcao"]);
   } catch (error) {
     if (error instanceof ErroAutorizacao) {
       redirect("/entrar");
@@ -16,6 +17,10 @@ export default async function PainelLayout({ children }: { children: ReactNode }
 
     throw error;
   }
+}
 
-  return children;
+export default async function PainelLayout({ children }: { children: ReactNode }) {
+  const usuario = await autorizar();
+
+  return <PainelShell usuario={usuario}>{children}</PainelShell>;
 }

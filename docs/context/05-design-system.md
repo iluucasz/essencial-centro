@@ -48,6 +48,58 @@ Fonte única: `config/brand.ts` (TS) ↔ tokens CSS em `app/globals.css` (`@them
 - **Blocos de dashboard/formulário**: partir dos gratuitos do TailGrids, removendo ornamento excessivo
   e trocando todas as cores por tokens da marca.
 
+## Referência de layout — DashSpace (TailGrids)
+
+Blueprint estrutural para as telas internas (`/painel`, e o shell também vale para `/portal`):
+clone estático fiel do template **DashSpace** da TailGrids. Guardado localmente (não versionado,
+material de terceiro — ver `.gitignore`) em `docs/design-reference/dashspace-tailgrids/`. Se a
+pasta não existir na sua máquina, tudo que importa dela já está extraído abaixo — este doc é
+autossuficiente.
+
+**O que copiar dele:** a estrutura de layout, a escala de espaçamento/raio/sombra, e os padrões de
+tela (shell, tabela, cards de KPI, perfil).
+**O que NÃO copiar:** a paleta dele (azul `#3758F9`) e a fonte (DM Sans) — usamos sempre os tokens
+da marca (verde/roxo/lilás/creme) e Geist. Ele também **não inclui telas de login/autenticação**
+prontas (só um item de menu) — login segue um layout próprio (cartão centralizado, sem sidebar),
+não o shell abaixo.
+
+### Shell do painel (sidebar + header)
+
+Implementado em `components/layout/painel-shell.tsx`, usado por `app/painel/layout.tsx`. Toda
+página nova em `app/painel/*` já herda o shell — não recrie `<main>`/cabeçalho de página inteira,
+apenas o conteúdo (a página começa direto no `<div className="mx-auto max-w-... grid gap-...">`).
+Estrutura:
+
+- **Sidebar fixa, 288px (`w-72`)**: logo no topo (64px de altura), seções de navegação com rótulo
+  (`Menu`, depois grupos por domínio conforme os módulos crescem), item ativo com
+  `bg-lilas/20 text-roxo`, hover `bg-creme`. Em mobile, desliza (`-translate-x-full` quando fechada)
+  com overlay e botão hambúrguer.
+- **Header fixo, 64px (`h-16`)**: título da página + subtítulo à esquerda; busca (`rounded-full`) ao
+  centro/direita; à direita: toggle de tema (futuro), sino de notificações (futuro), avatar + nome +
+  chevron do usuário (hoje resolvido pelo `BotaoSair`).
+- **Conteúdo**: `padding` de `1.5rem` (`p-6`), `gap` entre cards de `1.5rem`.
+
+### Escala a adotar (idêntica à do clone, já é o que usamos)
+
+Raios: `sm 0.25rem · md 0.375rem · lg 0.5rem · xl 0.75rem · 2xl 1rem`. Cards em `rounded-2xl`,
+botões/itens de nav em `rounded-lg`, avatar em `rounded-full`. Sombra de card: `shadow-sm`
+(`0 1px 2px rgba(0,0,0,.05)`); dropdown/overlay: `shadow-md`. Transição padrão:
+`0.15s cubic-bezier(0.4,0,0.2,1)`.
+
+### Padrões de tela reaproveitáveis
+
+- **Home do painel (KPIs)**: linha de 3–4 cards com métrica + variação (ex.: sessões do dia,
+  clientes ativos, pacotes a vencer) — adaptar os KPIs do clone (revenue/usuários genéricos) para os
+  indicadores reais da clínica quando o módulo de relatórios existir.
+- **Tabela/listagem** (já usado em `clientes` e `servicos`, mas sem paginação ainda): linha com
+  avatar/ícone + nome + meta secundária à esquerda, dado de destaque à direita, badges de status
+  coloridos (`success`/`warning`/`danger`/`default`) para estado (ex.: sessão realizada/pendente/falta).
+  Adicionar paginação seguindo o clone quando as listas crescerem.
+- **Perfil**: capa + avatar sobreposto + nome/cargo + ações (`Editar`, `Copiar link`) + bio — útil
+  como base do perfil do cliente no portal (`/portal`) e do perfil da profissional.
+- **Formulário**: já seguimos o padrão (label + campo + erro inline) nos módulos `clientes`/`servicos`;
+  manter.
+
 ## Tipografia
 
 Geist (sans/mono) já configurada em `app/layout.tsx`. Tipografia oficial da marca a definir;

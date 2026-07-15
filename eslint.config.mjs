@@ -30,6 +30,8 @@ const eslintConfig = defineConfig([
     "coverage/**",
     "db/migrations/**",
     "next-env.d.ts",
+    "docs/design-reference/**",
+    "pulkitxm claude-directory main templates-premium_tailgrids_dashspace/**",
   ]),
   // Desliga regras de formatação que conflitam com o Prettier (deve vir por último).
   prettier,
