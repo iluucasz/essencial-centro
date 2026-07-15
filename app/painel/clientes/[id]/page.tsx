@@ -7,6 +7,9 @@ import { exigirUsuarioAtual } from "@/modules/auth/queries";
 import { getCliente } from "@/modules/clientes/queries";
 import { ListaFichas } from "@/modules/fichas/components/lista-fichas";
 import { listarFichasDoCliente } from "@/modules/fichas/queries";
+import { FormularioMedida } from "@/modules/medidas/components/formulario-medida";
+import { TabelaEvolucao } from "@/modules/medidas/components/tabela-evolucao";
+import { listarEvolucaoDoCliente } from "@/modules/medidas/queries";
 import { listarPacotesParaSelecao } from "@/modules/pacotes/queries";
 import { listarServicos } from "@/modules/servicos/queries";
 import { FormularioSessao } from "@/modules/sessoes/components/formulario-sessao";
@@ -55,6 +58,9 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
           listarPacotesParaSelecao(),
         ])
       : null;
+
+  const evolucaoMedidas =
+    usuario.role === "profissional" ? await listarEvolucaoDoCliente(id) : null;
 
   const observacoesInternas =
     "observacoesInternas" in cliente && typeof cliente.observacoesInternas === "string"
@@ -124,6 +130,23 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
             clienteId={id}
             pacotes={dadosSessoes[3].map((p) => ({ id: p.id, nome: p.servicoNome }))}
             servicos={dadosSessoes[1].map((s) => ({ id: s.id, nome: s.nome }))}
+          />
+        </section>
+      ) : null}
+
+      {dadosSessoes && evolucaoMedidas ? (
+        <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="grid gap-4">
+            <h2 className="text-lg font-semibold text-foreground">Evolução de medidas</h2>
+            <TabelaEvolucao evolucao={evolucaoMedidas} />
+          </div>
+
+          <FormularioMedida
+            clienteId={id}
+            sessoes={dadosSessoes[0].map((s) => ({
+              id: s.id,
+              nome: `${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "UTC" }).format(s.dataHora)} · ${s.regiaoTratada ?? "Sessão"}`,
+            }))}
           />
         </section>
       ) : null}

@@ -13,3 +13,4 @@ export * from "../../modules/pacotes/schema";
 export * from "../../modules/agenda/schema";
 export * from "../../modules/fichas/schema";
 export * from "../../modules/sessoes/schema";
+export * from "../../modules/medidas/schema";

@@ -50,6 +50,13 @@
       "when": 1784076914694,
       "tag": "0006_cuddly_young_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784077509622,
+      "tag": "0007_same_bug",
+      "breakpoints": true
     }
   ]
 }
