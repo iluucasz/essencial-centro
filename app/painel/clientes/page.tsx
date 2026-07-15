@@ -1,5 +1,6 @@
 import { Search } from "lucide-react";
 
+import { ModalFormulario } from "@/components/ui/modal-formulario";
 import { FormularioCliente } from "@/modules/clientes/components/formulario-cliente";
 import { ListaClientes } from "@/modules/clientes/components/lista-clientes";
 import { listarClientes } from "@/modules/clientes/queries";
@@ -13,7 +14,7 @@ export default async function ClientesPage({
   const clientes = await listarClientes(busca);
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-8">
+    <div className="mx-auto grid max-w-4xl gap-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-brand">Clientes</h1>
@@ -43,16 +44,15 @@ export default async function ClientesPage({
         </form>
       </header>
 
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_440px]">
-        <section className="grid gap-4">
+      <section className="grid gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-foreground">Cadastrados</h2>
-          <ListaClientes clientes={clientes} />
-        </section>
-
-        <aside>
-          <FormularioCliente />
-        </aside>
-      </div>
+          <ModalFormulario rotuloBotao="Novo cliente" titulo="Novo cliente">
+            <FormularioCliente />
+          </ModalFormulario>
+        </div>
+        <ListaClientes clientes={clientes} />
+      </section>
     </div>
   );
 }

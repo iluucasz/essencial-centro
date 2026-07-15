@@ -12,6 +12,7 @@ import {
   criarFichaEsteticaCorporalSchema,
   type CriarFichaEsteticaCorporalInput,
 } from "@/modules/fichas/schema";
+import { useFecharModal } from "@/components/ui/modal-formulario";
 
 /**
  * Tipo de ENTRADA do formulário (pré-parse). Alguns campos usam `z.preprocess` (ex.: "" → undefined),
@@ -93,6 +94,7 @@ export function FormularioFichaEsteticaCorporal({
   servicos: { id: string; nome: string }[];
 }) {
   const router = useRouter();
+  const fecharModal = useFecharModal();
   const [erroEnvio, setErroEnvio] = useState<string | null>(null);
 
   const {
@@ -117,21 +119,15 @@ export function FormularioFichaEsteticaCorporal({
       return;
     }
 
-    router.push(`/painel/clientes/${clienteId}`);
     router.refresh();
+    fecharModal();
   }
 
   const erros = errors.respostas;
 
   return (
-    <form
-      className="grid gap-8 rounded-lg border border-border bg-surface p-5 shadow-sm"
-      onSubmit={handleSubmit(onSubmit)}
-    >
-      <div>
-        <h2 className="text-lg font-semibold text-brand">Anamnese — estética corporal</h2>
-        <p className="mt-1 text-sm text-muted">Cliente: {clienteNome}</p>
-      </div>
+    <form className="grid gap-8" onSubmit={handleSubmit(onSubmit)}>
+      <p className="text-sm text-muted">Cliente: {clienteNome}</p>
 
       {servicos.length > 0 ? (
         <Campo htmlFor="servicoId" label="Serviço (opcional)">

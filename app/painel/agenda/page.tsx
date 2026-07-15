@@ -1,5 +1,6 @@
 import { CalendarClock } from "lucide-react";
 
+import { ModalFormulario } from "@/components/ui/modal-formulario";
 import { listarProfissionaisAtivos } from "@/modules/auth/queries";
 import { FormularioAgendamento } from "@/modules/agenda/components/formulario-agendamento";
 import { ListaAgenda } from "@/modules/agenda/components/lista-agenda";
@@ -37,7 +38,7 @@ export default async function AgendaPage({
   ]);
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-8">
+    <div className="mx-auto grid max-w-4xl gap-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="flex items-center gap-2 text-sm font-medium text-muted">
@@ -69,24 +70,30 @@ export default async function AgendaPage({
         </form>
       </header>
 
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_440px]">
-        <section className="grid gap-4">
+      <section className="grid gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-foreground">Atendimentos</h2>
-          <ListaAgenda agendamentos={agendamentos} />
-        </section>
-
-        <aside>
-          <FormularioAgendamento
-            clientes={clientes.map((c) => ({ id: c.id, nome: c.nome }))}
-            pacotes={pacotes.map((p) => ({
-              id: p.id,
-              nome: `${p.clienteNome} · ${p.servicoNome}`,
-            }))}
-            profissionais={profissionais.map((p) => ({ id: p.id, nome: p.name ?? p.email ?? "" }))}
-            servicos={servicos.map((s) => ({ id: s.id, nome: s.nome }))}
-          />
-        </aside>
-      </div>
+          <ModalFormulario
+            icone={<CalendarClock className="size-4" aria-hidden />}
+            rotuloBotao="Novo agendamento"
+            titulo="Novo agendamento"
+          >
+            <FormularioAgendamento
+              clientes={clientes.map((c) => ({ id: c.id, nome: c.nome }))}
+              pacotes={pacotes.map((p) => ({
+                id: p.id,
+                nome: `${p.clienteNome} · ${p.servicoNome}`,
+              }))}
+              profissionais={profissionais.map((p) => ({
+                id: p.id,
+                nome: p.name ?? p.email ?? "",
+              }))}
+              servicos={servicos.map((s) => ({ id: s.id, nome: s.nome }))}
+            />
+          </ModalFormulario>
+        </div>
+        <ListaAgenda agendamentos={agendamentos} />
+      </section>
     </div>
   );
 }

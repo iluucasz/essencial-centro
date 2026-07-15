@@ -2,6 +2,12 @@ export const papeisUsuario = ["profissional", "recepcao", "cliente"] as const;
 
 export type PapelUsuario = (typeof papeisUsuario)[number];
 
+export const rotulosPapelUsuario: Record<PapelUsuario, string> = {
+  profissional: "Profissional",
+  recepcao: "Recepção",
+  cliente: "Cliente",
+};
+
 export type AreaRestrita = "painel" | "portal";
 
 export type UsuarioSessao = {

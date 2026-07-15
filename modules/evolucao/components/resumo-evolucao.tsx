@@ -1,37 +1,12 @@
 import { CalendarCheck, Heart, ImageIcon, PackageCheck } from "lucide-react";
 
+import { CardKpi } from "@/components/ui/card-kpi";
 import { GaleriaFotos } from "@/modules/fotos/components/galeria-fotos";
 import { TabelaEvolucao } from "@/modules/medidas/components/tabela-evolucao";
 import { ListaPacotes } from "@/modules/pacotes/components/lista-pacotes";
 import type { obterResumoEvolucaoCliente } from "@/modules/evolucao/queries";
 
 type Resumo = Awaited<ReturnType<typeof obterResumoEvolucaoCliente>>;
-
-function CardKpi({
-  icone: Icone,
-  label,
-  valor,
-  destaque,
-}: {
-  icone: typeof Heart;
-  label: string;
-  valor: string;
-  destaque?: "positivo" | "neutro";
-}) {
-  return (
-    <div className="grid gap-2 rounded-2xl border border-border bg-surface p-4 shadow-sm">
-      <span className="flex size-9 items-center justify-center rounded-lg bg-lilas/35 text-roxo">
-        <Icone className="size-4" aria-hidden="true" />
-      </span>
-      <span className="text-sm text-muted">{label}</span>
-      <span
-        className={`text-2xl font-semibold ${destaque === "positivo" ? "text-brand" : "text-foreground"}`}
-      >
-        {valor}
-      </span>
-    </div>
-  );
-}
 
 export function ResumoEvolucao({ resumo }: { resumo: Resumo }) {
   const pacoteDestaque = resumo.pacotes[0]?.progresso;

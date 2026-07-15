@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { LoaderCircle, NotebookPen } from "lucide-react";
 
 import { criarSessao, type EstadoFormularioSessao } from "@/modules/sessoes/actions";
+import { useFecharModal } from "@/components/ui/modal-formulario";
 
 const estadoInicial: EstadoFormularioSessao = { status: "inicial" };
 
@@ -149,18 +150,15 @@ export function FormularioSessao({
   pacotes: Opcao[];
 }) {
   const [state, formAction, pending] = useActionState(criarSessao, estadoInicial);
+  const fecharModal = useFecharModal();
+
+  useEffect(() => {
+    if (state.status === "sucesso") fecharModal();
+  }, [state, fecharModal]);
 
   return (
-    <form
-      action={formAction}
-      className="grid gap-6 rounded-lg border border-border bg-surface p-5 shadow-sm"
-    >
+    <form action={formAction} className="grid gap-6">
       <input name="clienteId" type="hidden" value={clienteId} />
-
-      <div>
-        <h2 className="text-lg font-semibold text-brand">Nova sessão</h2>
-        <p className="mt-1 text-sm text-muted">Registro clínico do atendimento realizado.</p>
-      </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <CampoSelect

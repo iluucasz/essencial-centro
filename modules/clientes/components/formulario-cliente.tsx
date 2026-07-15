@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { LoaderCircle, Save } from "lucide-react";
 
 import { criarCliente, type EstadoFormularioCliente } from "@/modules/clientes/actions";
+import { useFecharModal } from "@/components/ui/modal-formulario";
 
 const estadoInicial: EstadoFormularioCliente = { status: "inicial" };
 
@@ -124,19 +125,14 @@ function CampoCheckbox({
 
 export function FormularioCliente() {
   const [state, formAction, pending] = useActionState(criarCliente, estadoInicial);
+  const fecharModal = useFecharModal();
+
+  useEffect(() => {
+    if (state.status === "sucesso") fecharModal();
+  }, [state, fecharModal]);
 
   return (
-    <form
-      action={formAction}
-      className="grid gap-6 rounded-lg border border-border bg-surface p-5 shadow-sm"
-    >
-      <div>
-        <h2 className="text-lg font-semibold text-brand">Novo cliente</h2>
-        <p className="mt-1 text-sm text-muted">
-          Registre dados pessoais e informações clínicas iniciais.
-        </p>
-      </div>
-
+    <form action={formAction} className="grid gap-6">
       <div className="grid gap-4 md:grid-cols-2">
         <CampoTexto error={state?.campos?.nome} label="Nome completo" name="nome" required />
         <CampoTexto

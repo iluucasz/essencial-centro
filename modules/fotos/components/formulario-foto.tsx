@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { ImagePlus, LoaderCircle } from "lucide-react";
 
 import { criarFoto, type EstadoFormularioFoto } from "@/modules/fotos/actions";
+import { useFecharModal } from "@/components/ui/modal-formulario";
 
 const estadoInicial: EstadoFormularioFoto = { status: "inicial" };
 
@@ -28,21 +29,19 @@ function MensagemFormulario({ state }: { state: EstadoFormularioFoto | undefined
 
 export function FormularioFoto({ clienteId, sessoes }: { clienteId: string; sessoes: Opcao[] }) {
   const [state, formAction, pending] = useActionState(criarFoto, estadoInicial);
+  const fecharModal = useFecharModal();
+
+  useEffect(() => {
+    if (state.status === "sucesso") fecharModal();
+  }, [state, fecharModal]);
 
   return (
-    <form
-      action={formAction}
-      className="grid gap-4 rounded-lg border border-border bg-surface p-5 shadow-sm"
-      encType="multipart/form-data"
-    >
+    <form action={formAction} className="grid gap-4" encType="multipart/form-data">
       <input name="clienteId" type="hidden" value={clienteId} />
 
-      <div>
-        <h2 className="text-lg font-semibold text-brand">Nova foto</h2>
-        <p className="mt-1 text-sm text-muted">
-          Mesma posição, enquadramento, iluminação e distância a cada registro.
-        </p>
-      </div>
+      <p className="text-sm text-muted">
+        Mesma posição, enquadramento, iluminação e distância a cada registro.
+      </p>
 
       <div className="grid gap-2">
         <label className="text-sm font-medium text-foreground" htmlFor="regiao">

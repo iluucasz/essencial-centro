@@ -1,3 +1,4 @@
+import { ModalFormulario } from "@/components/ui/modal-formulario";
 import { FormularioPacote } from "@/modules/pacotes/components/formulario-pacote";
 import { ListaPacotes } from "@/modules/pacotes/components/lista-pacotes";
 import { listarPacotes } from "@/modules/pacotes/queries";
@@ -12,7 +13,7 @@ export default async function PacotesPage() {
   ]);
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-8">
+    <div className="mx-auto grid max-w-4xl gap-8">
       <header>
         <h1 className="text-2xl font-semibold text-brand">Pacotes</h1>
         <p className="mt-2 max-w-2xl text-sm text-foreground">
@@ -20,19 +21,18 @@ export default async function PacotesPage() {
         </p>
       </header>
 
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_440px]">
-        <section className="grid gap-4">
+      <section className="grid gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-foreground">Cadastrados</h2>
-          <ListaPacotes pacotes={pacotes} />
-        </section>
-
-        <aside>
-          <FormularioPacote
-            clientes={clientes.map((c) => ({ id: c.id, nome: c.nome }))}
-            servicos={servicos.map((s) => ({ id: s.id, nome: s.nome }))}
-          />
-        </aside>
-      </div>
+          <ModalFormulario rotuloBotao="Novo pacote" titulo="Novo pacote">
+            <FormularioPacote
+              clientes={clientes.map((c) => ({ id: c.id, nome: c.nome }))}
+              servicos={servicos.map((s) => ({ id: s.id, nome: s.nome }))}
+            />
+          </ModalFormulario>
+        </div>
+        <ListaPacotes pacotes={pacotes} />
+      </section>
     </div>
   );
 }

@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { LoaderCircle, Save } from "lucide-react";
 
 import { criarServico, type EstadoFormularioServico } from "@/modules/servicos/actions";
 import { gruposServico, rotulosGrupoServico } from "@/modules/servicos/schema";
+import { useFecharModal } from "@/components/ui/modal-formulario";
 
 const estadoInicial: EstadoFormularioServico = { status: "inicial" };
 
@@ -124,19 +125,14 @@ function CampoGrupo({ error }: { error?: string[] }) {
 
 export function FormularioServico() {
   const [state, formAction, pending] = useActionState(criarServico, estadoInicial);
+  const fecharModal = useFecharModal();
+
+  useEffect(() => {
+    if (state.status === "sucesso") fecharModal();
+  }, [state, fecharModal]);
 
   return (
-    <form
-      action={formAction}
-      className="grid gap-6 rounded-lg border border-border bg-surface p-5 shadow-sm"
-    >
-      <div>
-        <h2 className="text-lg font-semibold text-brand">Novo serviço</h2>
-        <p className="mt-1 text-sm text-muted">
-          Cadastre um serviço do catálogo para uso em agenda, pacotes e fichas.
-        </p>
-      </div>
-
+    <form action={formAction} className="grid gap-6">
       <div className="grid gap-4 md:grid-cols-2">
         <CampoTexto error={state?.campos?.nome} label="Nome do serviço" name="nome" required />
         <CampoGrupo error={state?.campos?.grupo} />

@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { LoaderCircle, PackagePlus } from "lucide-react";
 
 import { criarPacote, type EstadoFormularioPacote } from "@/modules/pacotes/actions";
 import { rotulosSituacaoPagamento, situacoesPagamento } from "@/modules/pacotes/schema";
+import { useFecharModal } from "@/components/ui/modal-formulario";
 
 const estadoInicial: EstadoFormularioPacote = { status: "inicial" };
 
@@ -114,17 +115,14 @@ function CampoTexto({
 
 export function FormularioPacote({ clientes, servicos }: { clientes: Opcao[]; servicos: Opcao[] }) {
   const [state, formAction, pending] = useActionState(criarPacote, estadoInicial);
+  const fecharModal = useFecharModal();
+
+  useEffect(() => {
+    if (state.status === "sucesso") fecharModal();
+  }, [state, fecharModal]);
 
   return (
-    <form
-      action={formAction}
-      className="grid gap-6 rounded-lg border border-border bg-surface p-5 shadow-sm"
-    >
-      <div>
-        <h2 className="text-lg font-semibold text-brand">Novo pacote</h2>
-        <p className="mt-1 text-sm text-muted">Sessões contratadas por um cliente.</p>
-      </div>
-
+    <form action={formAction} className="grid gap-6">
       <CampoSelect
         error={state?.campos?.clienteId}
         label="Cliente"

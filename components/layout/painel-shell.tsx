@@ -13,7 +13,7 @@ import {
   X,
 } from "lucide-react";
 
-import { BotaoSair } from "@/modules/auth/components/botao-sair";
+import { MenuUsuario } from "@/modules/auth/components/menu-usuario";
 import type { PapelUsuario } from "@/modules/auth/rbac";
 
 type UsuarioShell = {
@@ -103,26 +103,27 @@ export function PainelShell({ children, usuario }: { children: ReactNode; usuari
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Header fixo */}
-        <header className="flex h-16 items-center justify-between gap-4 border-b border-border bg-surface px-4 md:px-6">
-          <button
-            aria-label="Abrir menu"
-            className="rounded-lg p-2 text-foreground hover:bg-creme md:hidden"
-            onClick={() => setMenuAberto(true)}
-            type="button"
-          >
-            <Menu className="size-5" aria-hidden="true" />
-          </button>
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b border-border bg-surface/95 px-4 shadow-sm backdrop-blur-sm md:px-6">
+          <div className="flex items-center gap-3">
+            <button
+              aria-label="Abrir menu"
+              className="rounded-lg p-2 text-foreground hover:bg-creme md:hidden"
+              onClick={() => setMenuAberto(true)}
+              type="button"
+            >
+              <Menu className="size-5" aria-hidden="true" />
+            </button>
 
-          <span className="hidden text-sm text-muted md:inline">
-            {usuario.role === "profissional" ? "Área profissional" : "Recepção"}
-          </span>
-
-          <div className="ml-auto flex items-center gap-3">
-            <span className="hidden text-sm font-medium text-foreground sm:inline">
-              {usuario.name ?? usuario.email}
+            <span className="hidden rounded-full bg-lilas/25 px-3 py-1 text-xs font-medium text-roxo md:inline">
+              {usuario.role === "profissional" ? "Área profissional" : "Recepção"}
             </span>
-            <BotaoSair />
           </div>
+
+          <MenuUsuario
+            email={usuario.email ?? null}
+            nome={usuario.name ?? "Usuário"}
+            papel={usuario.role}
+          />
         </header>
 
         <main className="flex-1 p-4 md:p-6">{children}</main>

@@ -1,3 +1,4 @@
+import { ModalFormulario } from "@/components/ui/modal-formulario";
 import { exigirUsuarioAtual } from "@/modules/auth/queries";
 import { FormularioServico } from "@/modules/servicos/components/formulario-servico";
 import { ListaServicos } from "@/modules/servicos/components/lista-servicos";
@@ -8,7 +9,7 @@ export default async function ServicosPage() {
   const servicos = await listarServicos();
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-8">
+    <div className="mx-auto grid max-w-4xl gap-8">
       <header>
         <h1 className="text-2xl font-semibold text-brand">Serviços</h1>
         <p className="mt-2 max-w-2xl text-sm text-foreground">
@@ -16,18 +17,17 @@ export default async function ServicosPage() {
         </p>
       </header>
 
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_440px]">
-        <section className="grid gap-4">
+      <section className="grid gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-foreground">Cadastrados</h2>
-          <ListaServicos servicos={servicos} />
-        </section>
-
-        {usuario.role === "profissional" ? (
-          <aside>
-            <FormularioServico />
-          </aside>
-        ) : null}
-      </div>
+          {usuario.role === "profissional" ? (
+            <ModalFormulario rotuloBotao="Novo serviço" titulo="Novo serviço">
+              <FormularioServico />
+            </ModalFormulario>
+          ) : null}
+        </div>
+        <ListaServicos servicos={servicos} />
+      </section>
     </div>
   );
 }

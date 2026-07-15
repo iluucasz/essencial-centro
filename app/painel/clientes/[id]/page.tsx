@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, FilePlus2, TrendingUp } from "lucide-react";
+import { ArrowLeft, FilePlus2, ImagePlus, NotebookPen, Ruler, TrendingUp } from "lucide-react";
 
+import { ModalFormulario } from "@/components/ui/modal-formulario";
 import { listarAgendamentosDoCliente } from "@/modules/agenda/queries";
 import { exigirUsuarioAtual } from "@/modules/auth/queries";
 import { getCliente } from "@/modules/clientes/queries";
+import { FormularioFichaEsteticaCorporal } from "@/modules/fichas/components/formulario-ficha-estetica-corporal";
 import { ListaFichas } from "@/modules/fichas/components/lista-fichas";
 import { listarFichasDoCliente } from "@/modules/fichas/queries";
 import { FormularioFoto } from "@/modules/fotos/components/formulario-foto";
@@ -72,6 +74,13 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
       ? cliente.observacoesInternas
       : null;
 
+  const sessoesParaSelecao = dadosSessoes
+    ? dadosSessoes[0].map((s) => ({
+        id: s.id,
+        nome: `${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "UTC" }).format(s.dataHora)} · ${s.regiaoTratada ?? "Sessão"}`,
+      }))
+    : [];
+
   return (
     <div className="mx-auto grid max-w-5xl gap-6">
       <Link
@@ -121,67 +130,78 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
       <section className="grid gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-foreground">Fichas de avaliação</h2>
-          <Link
-            className="inline-flex items-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-brand-foreground transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
-            href={`/painel/clientes/${id}/fichas/nova`}
-          >
-            <FilePlus2 className="size-4" aria-hidden="true" />
-            Nova ficha
-          </Link>
+          {usuario.role === "profissional" ? (
+            <ModalFormulario
+              icone={<FilePlus2 className="size-4" aria-hidden />}
+              rotuloBotao="Nova ficha"
+              titulo="Anamnese — estética corporal"
+            >
+              <FormularioFichaEsteticaCorporal
+                clienteId={id}
+                clienteNome={cliente.nome}
+                servicos={
+                  dadosSessoes ? dadosSessoes[1].map((s) => ({ id: s.id, nome: s.nome })) : []
+                }
+              />
+            </ModalFormulario>
+          ) : null}
         </div>
         <ListaFichas fichas={fichas} />
       </section>
 
       {dadosSessoes ? (
-        <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_440px]">
-          <div className="grid gap-4">
+        <section className="grid gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-foreground">Sessões realizadas</h2>
-            <ListaSessoes sessoes={dadosSessoes[0]} />
+            <ModalFormulario
+              icone={<NotebookPen className="size-4" aria-hidden />}
+              rotuloBotao="Nova sessão"
+              titulo="Nova sessão"
+            >
+              <FormularioSessao
+                agendamentos={dadosSessoes[2].map((a) => ({
+                  id: a.id,
+                  nome: `${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "UTC" }).format(a.inicio)} · ${a.servicoNome}`,
+                }))}
+                clienteId={id}
+                pacotes={dadosSessoes[3].map((p) => ({ id: p.id, nome: p.servicoNome }))}
+                servicos={dadosSessoes[1].map((s) => ({ id: s.id, nome: s.nome }))}
+              />
+            </ModalFormulario>
           </div>
-
-          <FormularioSessao
-            agendamentos={dadosSessoes[2].map((a) => ({
-              id: a.id,
-              nome: `${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "UTC" }).format(a.inicio)} · ${a.servicoNome}`,
-            }))}
-            clienteId={id}
-            pacotes={dadosSessoes[3].map((p) => ({ id: p.id, nome: p.servicoNome }))}
-            servicos={dadosSessoes[1].map((s) => ({ id: s.id, nome: s.nome }))}
-          />
+          <ListaSessoes sessoes={dadosSessoes[0]} />
         </section>
       ) : null}
 
       {dadosSessoes && evolucaoMedidas ? (
-        <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="grid gap-4">
+        <section className="grid gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-foreground">Evolução de medidas</h2>
-            <TabelaEvolucao evolucao={evolucaoMedidas} />
+            <ModalFormulario
+              icone={<Ruler className="size-4" aria-hidden />}
+              rotuloBotao="Nova medida"
+              titulo="Nova medida"
+            >
+              <FormularioMedida clienteId={id} sessoes={sessoesParaSelecao} />
+            </ModalFormulario>
           </div>
-
-          <FormularioMedida
-            clienteId={id}
-            sessoes={dadosSessoes[0].map((s) => ({
-              id: s.id,
-              nome: `${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "UTC" }).format(s.dataHora)} · ${s.regiaoTratada ?? "Sessão"}`,
-            }))}
-          />
+          <TabelaEvolucao evolucao={evolucaoMedidas} />
         </section>
       ) : null}
 
       {dadosSessoes && fotos ? (
-        <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="grid gap-4">
+        <section className="grid gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-foreground">Fotos</h2>
-            <GaleriaFotos fotos={fotos} />
+            <ModalFormulario
+              icone={<ImagePlus className="size-4" aria-hidden />}
+              rotuloBotao="Nova foto"
+              titulo="Nova foto"
+            >
+              <FormularioFoto clienteId={id} sessoes={sessoesParaSelecao} />
+            </ModalFormulario>
           </div>
-
-          <FormularioFoto
-            clienteId={id}
-            sessoes={dadosSessoes[0].map((s) => ({
-              id: s.id,
-              nome: `${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "UTC" }).format(s.dataHora)} · ${s.regiaoTratada ?? "Sessão"}`,
-            }))}
-          />
+          <GaleriaFotos fotos={fotos} />
         </section>
       ) : null}
     </div>
