@@ -43,10 +43,19 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
   realizados e novos clientes. Só leitura — sem tabela própria, reusa `modules/agenda`,
   `modules/financeiro` e `modules/clientes`.
 
-Restante, em ordem sugerida: emissão de documentos · assinatura eletrônica (depende de já ter
-documentos para assinar) · estoque e lotes · scheduler para lembretes baseados em tempo (Vercel
-Cron ou equivalente) · lembretes por e-mail/SMS/push (depende do scheduler; exige decidir provedor)
-· alertas de medicamentos ("Medicamentos informados e alertas de segurança" — **apoio**, exige
+- ✅ Emissão de documentos — `modules/documentos` (`documento`: tipo, título, conteúdo, status
+  emitido/assinado). Profissional emite (contrato, termo de responsabilidade, termo de autorização
+  de imagem, orientação ou outro) na ficha do cliente (`/painel/clientes/[id]`, seção "Documentos e
+  termos", restrito a `profissional` — mesmo critério de `fichas`/`sessoes`); cliente vê e assina em
+  `/portal/documentos`, com "Imprimir/Salvar PDF" via impressão do navegador (`window.print()` +
+  `print:hidden`, sem lib de PDF nova). Assinatura ainda é a simplificada do MVP (carimbo de
+  data/hora, mesmo padrão de `modules/fichas`) — **assinatura eletrônica real é o próximo módulo**,
+  que agora tem documento para assinar.
+
+Restante, em ordem sugerida: assinatura eletrônica (depende de já ter documentos para assinar,
+resolvido acima) · estoque e lotes · scheduler para lembretes baseados em tempo (Vercel Cron ou
+equivalente) · lembretes por e-mail/SMS/push (depende do scheduler; exige decidir provedor) ·
+alertas de medicamentos ("Medicamentos informados e alertas de segurança" — **apoio**, exige
 validação profissional; nunca decisão clínica automática; depende do scheduler) · atendimento
 domiciliar com rota · integração WhatsApp (maior dependência externa — API/aprovação de negócio —
 por último).

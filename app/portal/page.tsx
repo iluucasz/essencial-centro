@@ -3,6 +3,7 @@ import {
   Bell,
   CalendarClock,
   ClipboardList,
+  FileText,
   IdCard,
   ImageIcon,
   NotebookPen,
@@ -110,6 +111,16 @@ export default async function PortalPage() {
             <ImageIcon className="size-5" aria-hidden="true" />
           </span>
           Minhas fotos
+        </Link>
+
+        <Link
+          className="inline-flex items-center gap-3 rounded-lg border border-border bg-surface p-4 text-sm font-medium text-foreground shadow-sm transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+          href="/portal/documentos"
+        >
+          <span className="rounded-lg bg-lilas/35 p-2 text-roxo">
+            <FileText className="size-5" aria-hidden="true" />
+          </span>
+          Meus documentos
         </Link>
 
         <Link

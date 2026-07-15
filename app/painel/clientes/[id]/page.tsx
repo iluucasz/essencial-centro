@@ -1,11 +1,22 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, FilePlus2, ImagePlus, NotebookPen, Ruler, TrendingUp } from "lucide-react";
+import {
+  ArrowLeft,
+  FilePlus2,
+  FileText,
+  ImagePlus,
+  NotebookPen,
+  Ruler,
+  TrendingUp,
+} from "lucide-react";
 
 import { ModalFormulario } from "@/components/ui/modal-formulario";
 import { listarAgendamentosDoCliente } from "@/modules/agenda/queries";
 import { exigirUsuarioAtual } from "@/modules/auth/queries";
 import { getCliente } from "@/modules/clientes/queries";
+import { FormularioDocumento } from "@/modules/documentos/components/formulario-documento";
+import { ListaDocumentos } from "@/modules/documentos/components/lista-documentos";
+import { listarDocumentosDoCliente } from "@/modules/documentos/queries";
 import { FormularioFichaEsteticaCorporal } from "@/modules/fichas/components/formulario-ficha-estetica-corporal";
 import { ListaFichas } from "@/modules/fichas/components/lista-fichas";
 import { listarFichasDoCliente } from "@/modules/fichas/queries";
@@ -68,6 +79,8 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
     usuario.role === "profissional" ? await listarEvolucaoDoCliente(id) : null;
 
   const fotos = usuario.role === "profissional" ? await listarFotosDoCliente(id) : null;
+
+  const documentos = usuario.role === "profissional" ? await listarDocumentosDoCliente(id) : null;
 
   const observacoesInternas =
     "observacoesInternas" in cliente && typeof cliente.observacoesInternas === "string"
@@ -202,6 +215,22 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
             </ModalFormulario>
           </div>
           <GaleriaFotos fotos={fotos} />
+        </section>
+      ) : null}
+
+      {documentos ? (
+        <section className="grid gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-foreground">Documentos e termos</h2>
+            <ModalFormulario
+              icone={<FileText className="size-4" aria-hidden />}
+              rotuloBotao="Novo documento"
+              titulo="Emitir documento"
+            >
+              <FormularioDocumento clienteId={id} />
+            </ModalFormulario>
+          </div>
+          <ListaDocumentos documentos={documentos} />
         </section>
       ) : null}
     </div>

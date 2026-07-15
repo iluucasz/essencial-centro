@@ -28,8 +28,11 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
   diferença, sessão, profissional. Base dos gráficos/tabelas de evolução.
 - **Foto** — imagem clínica padronizada (mesma posição/enquadramento/iluminação/distância),
   data, região, para comparação antes/depois. **Dado sensível** (ver `06-lgpd-seguranca.md`).
-- **Termo / Documento** — consentimentos e contratos assinados; **cada consentimento é separado**
-  (atendimento ≠ uso de imagem). Guardam status, assinaturas e versões.
+- **Documento** (`modules/documentos`, Fase 2) — contratos, termos e orientações emitidos pela
+  profissional para um cliente: tipo, título, conteúdo, status (emitido/assinado), data de emissão
+  e de assinatura. Assinatura simplificada do MVP (carimbo de data/hora), mesmo padrão do aceite de
+  termos/autorização de imagem já embutido em `Ficha` — **cada consentimento é separado**
+  (atendimento ≠ uso de imagem). Acesso restrito a `profissional` (não liberado para `recepcao`).
 - **DorRegistro** — escala 0–10, tipo, frequência, localização (mapa corporal), evolução por sessão.
 - **EventoAuditoria** — quem criou/alterou o quê e quando (histórico de alterações).
 - **LancamentoFinanceiro** — receita ou despesa da clínica: categoria, valor, data, forma e
@@ -39,7 +42,8 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
 
 ## Relações-chave
 
-`Cliente 1—N Pacote`, `Cliente 1—N Agendamento`, `Cliente 1—N Ficha`, `Cliente 1—N Sessao`.
+`Cliente 1—N Pacote`, `Cliente 1—N Agendamento`, `Cliente 1—N Ficha`, `Cliente 1—N Sessao`,
+`Cliente 1—N Documento`.
 `Pacote 1—N Sessao` (consome sessões). `Sessao 1—N Medida`, `Sessao 1—N Foto`, `Sessao 1—N DorRegistro`.
 `Servico` referenciado por `Pacote`, `Agendamento`, `Ficha`, `Sessao`.
 
