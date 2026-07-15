@@ -5,6 +5,7 @@ import { FormularioAgendamento } from "@/modules/agenda/components/formulario-ag
 import { ListaAgenda } from "@/modules/agenda/components/lista-agenda";
 import { listarAgendamentosDoDia } from "@/modules/agenda/queries";
 import { listarClientes } from "@/modules/clientes/queries";
+import { listarPacotesParaSelecao } from "@/modules/pacotes/queries";
 import { listarServicos } from "@/modules/servicos/queries";
 
 function paraDataInputValue(data: Date) {
@@ -27,11 +28,12 @@ export default async function AgendaPage({
   const { data: dataParam } = await searchParams;
   const data = parseData(dataParam);
 
-  const [agendamentos, clientes, servicos, profissionais] = await Promise.all([
+  const [agendamentos, clientes, servicos, profissionais, pacotes] = await Promise.all([
     listarAgendamentosDoDia(data),
     listarClientes(),
     listarServicos(),
     listarProfissionaisAtivos(),
+    listarPacotesParaSelecao(),
   ]);
 
   return (
@@ -76,6 +78,10 @@ export default async function AgendaPage({
         <aside>
           <FormularioAgendamento
             clientes={clientes.map((c) => ({ id: c.id, nome: c.nome }))}
+            pacotes={pacotes.map((p) => ({
+              id: p.id,
+              nome: `${p.clienteNome} · ${p.servicoNome}`,
+            }))}
             profissionais={profissionais.map((p) => ({ id: p.id, nome: p.name ?? p.email ?? "" }))}
             servicos={servicos.map((s) => ({ id: s.id, nome: s.nome }))}
           />

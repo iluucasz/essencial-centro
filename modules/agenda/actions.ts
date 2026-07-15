@@ -33,6 +33,7 @@ export async function criarAgendamento(
     clienteId: getValor(formData, "clienteId"),
     servicoId: getValor(formData, "servicoId"),
     profissionalId: getValor(formData, "profissionalId"),
+    pacoteId: getValor(formData, "pacoteId"),
     inicio: getValor(formData, "inicio"),
     duracaoMinutos: getValor(formData, "duracaoMinutos"),
     observacoes: getValor(formData, "observacoes"),
@@ -46,7 +47,8 @@ export async function criarAgendamento(
     } satisfies EstadoFormularioAgendamento;
   }
 
-  const { clienteId, servicoId, profissionalId, inicio, duracaoMinutos, observacoes } = parsed.data;
+  const { clienteId, servicoId, profissionalId, pacoteId, inicio, duracaoMinutos, observacoes } =
+    parsed.data;
 
   const agendamentosDoDia = await listarAgendamentosDoProfissionalNoDia(profissionalId, inicio);
   const conflito = encontrarConflito({ inicio, duracaoMinutos }, agendamentosDoDia);
@@ -62,6 +64,7 @@ export async function criarAgendamento(
     clienteId,
     servicoId,
     profissionalId,
+    pacoteId,
     inicio,
     duracaoMinutos,
     observacoes,

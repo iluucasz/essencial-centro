@@ -1,15 +1,16 @@
 "use client";
 
 import { useActionState } from "react";
-import { CalendarPlus, LoaderCircle } from "lucide-react";
+import { LoaderCircle, PackagePlus } from "lucide-react";
 
-import { criarAgendamento, type EstadoFormularioAgendamento } from "@/modules/agenda/actions";
+import { criarPacote, type EstadoFormularioPacote } from "@/modules/pacotes/actions";
+import { rotulosSituacaoPagamento, situacoesPagamento } from "@/modules/pacotes/schema";
 
-const estadoInicial: EstadoFormularioAgendamento = { status: "inicial" };
+const estadoInicial: EstadoFormularioPacote = { status: "inicial" };
 
 type Opcao = { id: string; nome: string };
 
-function MensagemFormulario({ state }: { state: EstadoFormularioAgendamento | undefined }) {
+function MensagemFormulario({ state }: { state: EstadoFormularioPacote | undefined }) {
   if (!state?.mensagem) return null;
 
   return (
@@ -27,19 +28,17 @@ function MensagemFormulario({ state }: { state: EstadoFormularioAgendamento | un
 }
 
 function CampoSelect({
+  defaultValue,
   error,
   label,
   name,
   opcoes,
-  opcaoVazia,
-  required = true,
 }: {
+  defaultValue?: string;
   error?: string[];
   label: string;
   name: string;
-  opcoes: Opcao[];
-  opcaoVazia?: string;
-  required?: boolean;
+  opcoes: { id: string; nome: string }[];
 }) {
   const errorId = `${name}-erro`;
 
@@ -52,13 +51,13 @@ function CampoSelect({
         aria-describedby={error?.length ? errorId : undefined}
         aria-invalid={error?.length ? true : undefined}
         className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
-        defaultValue=""
+        defaultValue={defaultValue ?? ""}
         id={name}
         name={name}
-        required={required}
+        required
       >
-        <option disabled={required} value="">
-          {opcaoVazia ?? "Selecione"}
+        <option disabled value="">
+          Selecione
         </option>
         {opcoes.map((opcao) => (
           <option key={opcao.id} value={opcao.id}>
@@ -113,18 +112,8 @@ function CampoTexto({
   );
 }
 
-export function FormularioAgendamento({
-  clientes,
-  servicos,
-  profissionais,
-  pacotes,
-}: {
-  clientes: Opcao[];
-  servicos: Opcao[];
-  profissionais: Opcao[];
-  pacotes: Opcao[];
-}) {
-  const [state, formAction, pending] = useActionState(criarAgendamento, estadoInicial);
+export function FormularioPacote({ clientes, servicos }: { clientes: Opcao[]; servicos: Opcao[] }) {
+  const [state, formAction, pending] = useActionState(criarPacote, estadoInicial);
 
   return (
     <form
@@ -132,8 +121,8 @@ export function FormularioAgendamento({
       className="grid gap-6 rounded-lg border border-border bg-surface p-5 shadow-sm"
     >
       <div>
-        <h2 className="text-lg font-semibold text-brand">Novo agendamento</h2>
-        <p className="mt-1 text-sm text-muted">Marque um atendimento na agenda.</p>
+        <h2 className="text-lg font-semibold text-brand">Novo pacote</h2>
+        <p className="mt-1 text-sm text-muted">Sessões contratadas por um cliente.</p>
       </div>
 
       <CampoSelect
@@ -148,39 +137,31 @@ export function FormularioAgendamento({
         name="servicoId"
         opcoes={servicos}
       />
-      <CampoSelect
-        error={state?.campos?.profissionalId}
-        label="Profissional"
-        name="profissionalId"
-        opcoes={profissionais}
-      />
-      <CampoSelect
-        error={state?.campos?.pacoteId}
-        label="Pacote (opcional)"
-        name="pacoteId"
-        opcaoVazia="Sessão avulsa"
-        opcoes={pacotes}
-        required={false}
-      />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <CampoTexto
-          error={state?.campos?.inicio}
-          label="Data e horário"
-          name="inicio"
-          required
-          type="datetime-local"
-        />
-        <CampoTexto
-          error={state?.campos?.duracaoMinutos}
-          label="Duração (minutos)"
-          name="duracaoMinutos"
+          error={state?.campos?.quantidadeSessoes}
+          label="Quantidade de sessões"
+          name="quantidadeSessoes"
           required
           type="number"
         />
+        <CampoTexto error={state?.campos?.validade} label="Validade" name="validade" type="date" />
+        <CampoTexto error={state?.campos?.valorCentavos} label="Valor (R$)" name="valor" />
+        <CampoTexto
+          error={state?.campos?.formaPagamento}
+          label="Forma de pagamento"
+          name="formaPagamento"
+        />
       </div>
 
-      <CampoTexto error={state?.campos?.observacoes} label="Observações" name="observacoes" />
+      <CampoSelect
+        defaultValue="pendente"
+        error={state?.campos?.situacaoPagamento}
+        label="Situação do pagamento"
+        name="situacaoPagamento"
+        opcoes={situacoesPagamento.map((s) => ({ id: s, nome: rotulosSituacaoPagamento[s] }))}
+      />
 
       <MensagemFormulario state={state} />
 
@@ -192,9 +173,9 @@ export function FormularioAgendamento({
         {pending ? (
           <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
         ) : (
-          <CalendarPlus className="size-4" />
+          <PackagePlus className="size-4" />
         )}
-        Agendar
+        Salvar pacote
       </button>
     </form>
   );

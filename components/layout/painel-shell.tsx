@@ -3,7 +3,15 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarClock, LayoutDashboard, Menu, Sparkles, UsersRound, X } from "lucide-react";
+import {
+  CalendarClock,
+  LayoutDashboard,
+  Menu,
+  PackageCheck,
+  Sparkles,
+  UsersRound,
+  X,
+} from "lucide-react";
 
 import { BotaoSair } from "@/modules/auth/components/botao-sair";
 import type { PapelUsuario } from "@/modules/auth/rbac";
@@ -18,6 +26,7 @@ const itensNavegacao = [
   { href: "/painel", label: "Painel", icone: LayoutDashboard, exato: true },
   { href: "/painel/agenda", label: "Agenda", icone: CalendarClock, exato: false },
   { href: "/painel/clientes", label: "Clientes", icone: UsersRound, exato: false },
+  { href: "/painel/pacotes", label: "Pacotes", icone: PackageCheck, exato: false },
   { href: "/painel/servicos", label: "Serviços", icone: Sparkles, exato: false },
 ] as const;
 

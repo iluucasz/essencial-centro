@@ -3,6 +3,7 @@ import { integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-
 import { z } from "zod";
 
 import { cliente } from "@/modules/clientes/schema";
+import { pacote } from "@/modules/pacotes/schema";
 import { servico } from "@/modules/servicos/schema";
 import { usuario } from "@/modules/auth/schema";
 
@@ -19,10 +20,6 @@ export const rotulosStatusAgendamento: Record<StatusAgendamento, string> = {
   cancelado: "Cancelado",
 };
 
-/**
- * Vínculo com pacote (docs/context/01-dominio.md) entra quando o módulo `pacotes` existir —
- * coluna `pacoteId` será adicionada nessa fase, junto da migration correspondente.
- */
 export const agendamento = pgTable("agendamento", {
   id: uuid("id").defaultRandom().primaryKey(),
   clienteId: uuid("cliente_id")
@@ -34,6 +31,8 @@ export const agendamento = pgTable("agendamento", {
   profissionalId: uuid("profissional_id")
     .notNull()
     .references(() => usuario.id, { onDelete: "restrict" }),
+  /** Sessão avulsa quando nulo; consome uma sessão do pacote quando vinculado. */
+  pacoteId: uuid("pacote_id").references(() => pacote.id, { onDelete: "set null" }),
   inicio: timestamp("inicio", { mode: "date" }).notNull(),
   duracaoMinutos: integer("duracao_minutos").notNull(),
   status: statusAgendamentoEnum("status").notNull().default("marcado"),
@@ -62,10 +61,16 @@ const observacoesOpcional = z.preprocess(
   z.string().trim().max(2000).optional(),
 );
 
+const pacoteIdOpcional = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.string().uuid("Pacote inválido.").optional(),
+);
+
 export const criarAgendamentoSchema = z.object({
   clienteId: z.string().uuid("Selecione um cliente."),
   servicoId: z.string().uuid("Selecione um serviço."),
   profissionalId: z.string().uuid("Selecione uma profissional."),
+  pacoteId: pacoteIdOpcional,
   inicio: dataHoraSchema,
   duracaoMinutos: z.coerce
     .number("Informe a duração em minutos.")

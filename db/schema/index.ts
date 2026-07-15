@@ -9,4 +9,5 @@
 export * from "../../modules/auth/schema";
 export * from "../../modules/clientes/schema";
 export * from "../../modules/servicos/schema";
+export * from "../../modules/pacotes/schema";
 export * from "../../modules/agenda/schema";

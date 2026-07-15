@@ -29,6 +29,13 @@
       "when": 1784074234577,
       "tag": "0003_gifted_thaddeus_ross",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784075094764,
+      "tag": "0004_chilly_stone_men",
+      "breakpoints": true
     }
   ]
 }
