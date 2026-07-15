@@ -25,12 +25,21 @@ Fonte única: `config/brand.ts` (TS) ↔ tokens CSS em `app/globals.css` (`@them
 | Verde principal    | `brand` (`bg-brand`) / `accent`     | `#145B48` | ação primária, títulos, navegação, resultados positivos |
 | Roxo institucional | `roxo` (`text-roxo`) / `focus`      | `#4B2A82` | títulos, ícones, botões secundários, foco e links       |
 | Lilás suave        | `lilas` (`bg-lilas`)                | `#B9A3DB` | fundos de cartões, seleção, gráficos, notificações      |
-| Creme rosado       | `creme` / `background` (`bg-creme`) | `#F8F0ED` | fundo das páginas                                       |
+| Creme rosado       | `creme` / `background` (`bg-creme`) | `#F8F0ED` | fundo do site público (marketing/login) — ver nota      |
 | Verde sálvia       | `salvia` (`text-salvia`)            | `#829A82` | ícones secundários, bordas, categorias                  |
 | Dourado            | `dourado` / `warning`               | `#C89A3D` | só detalhes/selos — **nunca** texto longo               |
 | Perigo funcional   | `perigo` / `danger`                 | `#B42318` | erros e ações destrutivas                               |
 | Texto escuro       | `foreground`                        | `#293630` | corpo de texto                                          |
 | Superfície         | `surface`                           | `#FFFFFF` | cartões, overlays, campos                               |
+
+**Fundo das áreas internas (painel/portal):** o creme rosado quente acima é só do site público —
+dentro das áreas logadas, a classe `.area-interna` (em `app/globals.css`, já aplicada no
+`painel-shell.tsx` e no `<main>` de cada página do portal) sobrescreve `--background` para
+`#F7F6FA`, um tom frio quase branco com leve toque de lilás. Motivo: o creme rosado (tom quente)
+não harmoniza bem simultaneamente com verde e roxo em telas densas de dashboard; o tom frio
+funciona como neutro pros dois. Como os componentes continuam usando a classe `bg-creme`/
+`hover:bg-creme` normalmente, essa troca é automática por cascata de CSS — não precisa (nem deve)
+trocar a classe componente por componente.
 
 ## Direção visual
 
@@ -58,17 +67,22 @@ autossuficiente.
 
 **O que copiar dele:** a estrutura de layout, a escala de espaçamento/raio/sombra, e os padrões de
 tela (shell, tabela, cards de KPI, perfil).
-**O que NÃO copiar:** a paleta dele (azul `#3758F9`) e a fonte (DM Sans) — usamos sempre os tokens
-da marca (verde/roxo/lilás/creme) e Geist. Ele também **não inclui telas de login/autenticação**
-prontas (só um item de menu) — login segue um layout próprio (cartão centralizado, sem sidebar),
-não o shell abaixo.
+**O que NÃO copiar:** a paleta dele (azul `#3758F9`) — usamos sempre os tokens da marca
+(verde/roxo/lilás/creme, e o `.area-interna` frio nas áreas logadas). Ele também **não inclui
+telas de login/autenticação** prontas (só um item de menu) — login segue um layout próprio
+(cartão centralizado, sem sidebar), não o shell abaixo.
 
 ### Shell do painel (sidebar + header)
 
 Implementado em `components/layout/painel-shell.tsx`, usado por `app/painel/layout.tsx`. Toda
 página nova em `app/painel/*` já herda o shell — não recrie `<main>`/cabeçalho de página inteira,
-apenas o conteúdo (a página começa direto no `<div className="mx-auto max-w-... grid gap-...">`).
-Estrutura:
+apenas o conteúdo (a página começa direto no `<div className="grid gap-...">`, **sem** `mx-auto`/
+`max-w-*` próprio). O limite de largura (`max-w-[1600px]`) e a centralização já vêm do `<main>`
+do shell (e do `<main>` de cada página do portal) — duplicar isso na página cria "conteúdo dentro
+de conteúdo" (uma coluna estreita flutuando solta na área de conteúdo, em vez de preencher o
+espaço como no Neoxa). Exceção deliberada: páginas de confirmação/ação única e estreitas por
+natureza (ex.: `app/painel/checkin/[id]/page.tsx`) podem manter `mx-auto max-w-md` própria.
+Estrutura do shell:
 
 - **Sidebar fixa, 288px (`w-72`)**: logo no topo (64px de altura), seções de navegação com rótulo
   (`Menu`, depois grupos por domínio conforme os módulos crescem), item ativo com
@@ -109,8 +123,9 @@ botões/itens de nav em `rounded-lg`, avatar em `rounded-full`. Sombra de card: 
 
 ## Tipografia
 
-Geist (sans/mono) já configurada em `app/layout.tsx`. Tipografia oficial da marca a definir;
-manter Geist como padrão limpo até lá.
+**Inter** (via `next/font/google`, `app/layout.tsx`) é a tipografia oficial da marca para texto
+(`--font-sans`) — trocada do Geist original para aproximar a hierarquia visual do padrão
+TailGrids/Neoxa. Geist Mono continua para contexto monoespaçado (`--font-mono`).
 
 ## Ícone do app
 

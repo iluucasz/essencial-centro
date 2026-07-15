@@ -20,8 +20,8 @@ export default async function PortalPage() {
   const naoLidas = notificacoes.filter((n) => !n.lida).length;
 
   return (
-    <main className="min-h-screen bg-creme px-6 py-8">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
+    <main className="area-interna mx-auto min-h-screen w-full max-w-[1600px] bg-creme px-6 py-8">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-muted">Área do cliente</p>
           <h1 className="text-2xl font-semibold text-roxo">Portal Essencial Centro</h1>
@@ -44,7 +44,7 @@ export default async function PortalPage() {
         </div>
       </div>
 
-      <div className="mx-auto mt-8 max-w-5xl">
+      <div className="mt-8">
         <Link
           className="flex items-center gap-3 rounded-2xl bg-brand p-5 text-brand-foreground shadow-sm transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
           href="/portal/evolucao"
@@ -61,7 +61,7 @@ export default async function PortalPage() {
         </Link>
       </div>
 
-      <div className="mx-auto mt-4 grid max-w-5xl gap-4 sm:grid-cols-2">
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Link
           className="inline-flex items-center gap-3 rounded-lg border border-border bg-surface p-4 text-sm font-medium text-foreground shadow-sm transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
           href="/portal/agendamentos"

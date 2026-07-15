@@ -28,7 +28,7 @@ export default async function EvolucaoClientePage({ params }: { params: Promise<
 
   if (usuario.role !== "profissional") {
     return (
-      <div className="mx-auto grid max-w-6xl gap-6">
+      <div className="grid gap-6">
         {voltar}
         <div className="rounded-lg border border-border bg-surface p-6 text-sm text-muted">
           Somente a profissional acessa a evolução clínica do cliente.
@@ -40,7 +40,7 @@ export default async function EvolucaoClientePage({ params }: { params: Promise<
   const resumo = await obterResumoEvolucaoCliente(id);
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-6">
+    <div className="grid gap-6">
       {voltar}
 
       <header>

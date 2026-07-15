@@ -66,7 +66,7 @@ export default async function PainelPage() {
   const pontosGrafico = agruparAgendamentosPorDia(agendamentosPeriodo, 30, hoje);
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-8">
+    <div className="grid gap-8">
       <div>
         <h1 className="text-2xl font-semibold text-brand">Olá, {usuario.name ?? usuario.email}</h1>
         <p className="mt-1 text-sm text-foreground">Resumo do dia na clínica.</p>

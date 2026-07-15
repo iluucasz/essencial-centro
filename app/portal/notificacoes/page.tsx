@@ -8,8 +8,8 @@ export default async function NotificacoesPage() {
   const notificacoes = await listarMinhasNotificacoes();
 
   return (
-    <main className="min-h-screen bg-creme px-6 py-8">
-      <div className="mx-auto grid max-w-2xl gap-6">
+    <main className="area-interna mx-auto min-h-screen w-full max-w-[1600px] bg-creme px-6 py-8">
+      <div className="grid gap-6">
         <Link
           className="inline-flex w-fit items-center gap-2 text-sm font-medium text-roxo hover:text-brand"
           href="/portal"

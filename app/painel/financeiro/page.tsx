@@ -24,7 +24,7 @@ export default async function FinanceiroPage() {
   const resumo = calcularResumoFinanceiro(lancamentos);
 
   return (
-    <div className="mx-auto grid max-w-4xl gap-8">
+    <div className="grid gap-8">
       <header>
         <h1 className="text-2xl font-semibold text-brand">Financeiro</h1>
         <p className="mt-2 max-w-2xl text-sm text-foreground">

@@ -67,7 +67,7 @@
   --color-muted: var(--muted);
   --color-border: var(--border);
 
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 
   --radius: 0.75rem;
@@ -76,4 +76,16 @@
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/**
+ * Áreas internas (painel/profissional, portal/cliente): fundo mais frio que harmoniza
+ * roxo e verde ao mesmo tempo. O creme rosado do :root continua valendo só pro site
+ * público (marketing/login) — ver docs/context/05-design-system.md. Como os tokens
+ * derivados (`--surface-secondary` etc.) apontam para `--background` via `var()`, essa
+ * sobrescrita em cascata já ajusta automaticamente qualquer `bg-creme`/`hover:bg-creme`
+ * renderizado dentro do escopo, sem precisar trocar classe por classe.
+ */
+.area-interna {
+  --background: #f7f6fa;
 }

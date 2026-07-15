@@ -82,7 +82,7 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
     : [];
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-6">
+    <div className="grid gap-6">
       <Link
         className="inline-flex w-fit items-center gap-2 text-sm font-medium text-roxo hover:text-brand"
         href="/painel/clientes"

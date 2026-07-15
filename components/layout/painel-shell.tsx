@@ -98,7 +98,7 @@ export function PainelShell({ children, usuario }: { children: ReactNode; usuari
   const [menuAberto, setMenuAberto] = useState(false);
 
   return (
-    <div className="min-h-screen bg-creme md:flex">
+    <div className="area-interna min-h-screen bg-creme md:flex">
       {/* Sidebar fixa (desktop) */}
       <aside className="hidden w-72 shrink-0 border-r border-border bg-surface md:block">
         <Sidebar papel={usuario.role} pathname={pathname} />
@@ -156,7 +156,7 @@ export function PainelShell({ children, usuario }: { children: ReactNode; usuari
           />
         </header>
 
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main className="mx-auto w-full max-w-[1600px] flex-1 p-4 md:p-6">{children}</main>
       </div>
     </div>
   );

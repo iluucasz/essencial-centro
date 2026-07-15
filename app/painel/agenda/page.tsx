@@ -38,7 +38,7 @@ export default async function AgendaPage({
   ]);
 
   return (
-    <div className="mx-auto grid max-w-4xl gap-8">
+    <div className="grid gap-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="flex items-center gap-2 text-sm font-medium text-muted">
