@@ -88,9 +88,16 @@ botões/itens de nav em `rounded-lg`, avatar em `rounded-full`. Sombra de card: 
 
 ### Padrões de tela reaproveitáveis
 
-- **Home do painel (KPIs)**: linha de 3–4 cards com métrica + variação (ex.: sessões do dia,
-  clientes ativos, pacotes a vencer) — adaptar os KPIs do clone (revenue/usuários genéricos) para os
-  indicadores reais da clínica quando o módulo de relatórios existir.
+- **Home do painel (KPIs)**: `components/ui/card-kpi.tsx` — badge de ícone colorido (`cor`:
+  `roxo`/`brand`/`dourado`/`perigo`) + número + badge de tendência opcional (`tendencia`:
+  seta verde/vermelha + `%` + rótulo, ex.: "vs mês anterior"). **A tendência só aparece quando há
+  base de comparação real calculada** (`lib/utils.ts` → `calcularVariacaoPercentual`, retorna
+  `null` sem base) — nunca inventar percentual, ao contrário dos KPIs de demonstração do
+  clone/Neoxa (ex.: "+10% vs last 30 days" fixo). Gráfico de tendência
+  (`modules/agenda/components/grafico-atendimentos.tsx`, Recharts `AreaChart`) usa as cores via
+  `var(--color-brand)`/`var(--color-border)`/`var(--color-muted)` do tema, nunca hex solto — mesma
+  regra de tokens dos demais componentes. Referência visual adicional (inspiração de card/gráfico,
+  não paleta): template **Neoxa** da TailGrids — pago, sem clone local; usar só como direção.
 - **Tabela/listagem** (já usado em `clientes` e `servicos`, mas sem paginação ainda): linha com
   avatar/ícone + nome + meta secundária à esquerda, dado de destaque à direita, badges de status
   coloridos (`success`/`warning`/`danger`/`default`) para estado (ex.: sessão realizada/pendente/falta).

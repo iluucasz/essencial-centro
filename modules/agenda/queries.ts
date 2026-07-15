@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lt, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lt, lte, ne } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -30,6 +30,20 @@ const colunasAgendamento = {
   servicoNome: servico.nome,
   profissionalNome: usuario.name,
 };
+
+/** Usado pelo gráfico de tendência do painel — volume de agendamentos por dia. */
+export async function listarAgendamentosUltimosDias(dias: number) {
+  autorizarPapel(await auth(), ["profissional", "recepcao"]);
+
+  const inicio = new Date();
+  inicio.setDate(inicio.getDate() - (dias - 1));
+  inicio.setHours(0, 0, 0, 0);
+
+  return db
+    .select({ inicio: agendamento.inicio })
+    .from(agendamento)
+    .where(and(gte(agendamento.inicio, inicio), ne(agendamento.status, "cancelado")));
+}
 
 export async function listarAgendamentosDoDia(data: Date) {
   autorizarPapel(await auth(), ["profissional", "recepcao"]);

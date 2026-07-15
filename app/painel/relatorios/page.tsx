@@ -1,6 +1,7 @@
 import { ArrowUpCircle, CalendarCheck, Scale, UserPlus, UsersRound, Wallet } from "lucide-react";
 
 import { CardKpi } from "@/components/ui/card-kpi";
+import { primeiroDiaDoMes, ultimoDiaDoMes } from "@/lib/utils";
 import { rotulosStatusAgendamento, statusAgendamento } from "@/modules/agenda/schema";
 import { obterRelatorioPeriodo } from "@/modules/relatorios/queries";
 
@@ -8,14 +9,6 @@ const formatadorMoeda = new Intl.NumberFormat("pt-BR", { style: "currency", curr
 
 function paraDataInputValue(data: Date) {
   return data.toISOString().slice(0, 10);
-}
-
-function primeiroDiaDoMes(data: Date) {
-  return new Date(Date.UTC(data.getUTCFullYear(), data.getUTCMonth(), 1));
-}
-
-function ultimoDiaDoMes(data: Date) {
-  return new Date(Date.UTC(data.getUTCFullYear(), data.getUTCMonth() + 1, 0, 23, 59, 59, 999));
 }
 
 function parseDataInicio(valor: string | undefined, padrao: Date) {

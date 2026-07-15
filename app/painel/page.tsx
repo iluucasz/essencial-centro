@@ -1,26 +1,69 @@
 import Link from "next/link";
-import { CalendarClock, PackageCheck, TriangleAlert, UsersRound } from "lucide-react";
+import { CalendarClock, PackageCheck, TriangleAlert, UsersRound, Wallet } from "lucide-react";
 
 import { CardKpi } from "@/components/ui/card-kpi";
-import { listarAgendamentosDoDia } from "@/modules/agenda/queries";
+import { calcularVariacaoPercentual, primeiroDiaDoMes, ultimoDiaDoMes } from "@/lib/utils";
+import { GraficoAtendimentos } from "@/modules/agenda/components/grafico-atendimentos";
+import { listarAgendamentosDoDia, listarAgendamentosUltimosDias } from "@/modules/agenda/queries";
+import { agruparAgendamentosPorDia } from "@/modules/agenda/tendencia";
 import { exigirUsuarioAtual } from "@/modules/auth/queries";
 import { listarClientes } from "@/modules/clientes/queries";
+import { listarLancamentos } from "@/modules/financeiro/queries";
+import { calcularResumoFinanceiro } from "@/modules/financeiro/resumo";
 import { deveAvisarPacoteAcabando } from "@/modules/pacotes/progresso";
 import { listarPacotes } from "@/modules/pacotes/queries";
+import { contarClientesNovos } from "@/modules/relatorios/resumo";
+
+const formatadorMoeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+async function obterTendenciaFaturamento(hoje: Date) {
+  const mesAnteriorRef = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() - 1, 1));
+
+  const [lancamentosMesAtual, lancamentosMesAnterior] = await Promise.all([
+    listarLancamentos({ inicio: primeiroDiaDoMes(hoje), fim: ultimoDiaDoMes(hoje) }),
+    listarLancamentos({
+      inicio: primeiroDiaDoMes(mesAnteriorRef),
+      fim: ultimoDiaDoMes(mesAnteriorRef),
+    }),
+  ]);
+
+  const atual = calcularResumoFinanceiro(lancamentosMesAtual).receitasPagas;
+  const anterior = calcularResumoFinanceiro(lancamentosMesAnterior).receitasPagas;
+  const percentual = calcularVariacaoPercentual(atual, anterior);
+
+  return { valorCentavos: atual, percentual };
+}
 
 export default async function PainelPage() {
   const usuario = await exigirUsuarioAtual(["profissional", "recepcao"]);
+  const hoje = new Date();
 
-  const [agendamentosHoje, clientes, pacotes] = await Promise.all([
-    listarAgendamentosDoDia(new Date()),
+  const [agendamentosHoje, clientes, pacotes, agendamentosPeriodo] = await Promise.all([
+    listarAgendamentosDoDia(hoje),
     listarClientes(),
     listarPacotes(),
+    listarAgendamentosUltimosDias(30),
   ]);
+
+  const tendenciaFaturamento =
+    usuario.role === "profissional" ? await obterTendenciaFaturamento(hoje) : null;
 
   const pacotesAtivos = pacotes.filter((p) => p.ativo);
   const pacotesAcabando = pacotesAtivos.filter((p) =>
     deveAvisarPacoteAcabando(p.progresso.sessoesRestantes),
   );
+
+  const novosClientesEsteMes = contarClientesNovos(
+    clientes,
+    primeiroDiaDoMes(hoje),
+    ultimoDiaDoMes(hoje),
+  );
+  const percentualCrescimentoClientes = calcularVariacaoPercentual(
+    clientes.length,
+    clientes.length - novosClientesEsteMes,
+  );
+
+  const pontosGrafico = agruparAgendamentosPorDia(agendamentosPeriodo, 30, hoje);
 
   return (
     <div className="mx-auto grid max-w-5xl gap-8">
@@ -29,9 +72,10 @@ export default async function PainelPage() {
         <p className="mt-1 text-sm text-foreground">Resumo do dia na clínica.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         <Link className="rounded-2xl transition hover:-translate-y-0.5" href="/painel/agenda">
           <CardKpi
+            cor="roxo"
             icone={CalendarClock}
             label="Atendimentos hoje"
             valor={String(agendamentosHoje.length)}
@@ -39,13 +83,20 @@ export default async function PainelPage() {
         </Link>
         <Link className="rounded-2xl transition hover:-translate-y-0.5" href="/painel/clientes">
           <CardKpi
+            cor="brand"
             icone={UsersRound}
             label="Clientes cadastrados"
+            tendencia={
+              percentualCrescimentoClientes === null
+                ? undefined
+                : { percentual: percentualCrescimentoClientes, rotulo: "vs base anterior" }
+            }
             valor={String(clientes.length)}
           />
         </Link>
         <Link className="rounded-2xl transition hover:-translate-y-0.5" href="/painel/pacotes">
           <CardKpi
+            cor="dourado"
             icone={PackageCheck}
             label="Pacotes ativos"
             valor={String(pacotesAtivos.length)}
@@ -53,12 +104,33 @@ export default async function PainelPage() {
         </Link>
         <Link className="rounded-2xl transition hover:-translate-y-0.5" href="/painel/pacotes">
           <CardKpi
+            cor={pacotesAcabando.length > 0 ? "perigo" : "roxo"}
             destaque={pacotesAcabando.length > 0 ? "neutro" : undefined}
             icone={TriangleAlert}
             label="Pacotes acabando"
             valor={String(pacotesAcabando.length)}
           />
         </Link>
+        {tendenciaFaturamento ? (
+          <Link className="rounded-2xl transition hover:-translate-y-0.5" href="/painel/financeiro">
+            <CardKpi
+              cor="brand"
+              icone={Wallet}
+              label="Faturamento do mês"
+              tendencia={
+                tendenciaFaturamento.percentual === null
+                  ? undefined
+                  : { percentual: tendenciaFaturamento.percentual, rotulo: "vs mês anterior" }
+              }
+              valor={formatadorMoeda.format(tendenciaFaturamento.valorCentavos / 100)}
+            />
+          </Link>
+        ) : null}
+      </div>
+
+      <div className="grid gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6">
+        <h2 className="text-lg font-semibold text-foreground">Atendimentos nos últimos 30 dias</h2>
+        <GraficoAtendimentos pontos={pontosGrafico} />
       </div>
 
       <div className="grid gap-3">
