@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -140,4 +140,22 @@ export async function atualizarStatusAgendamento(formData: FormData) {
   }
 
   revalidatePath("/painel/agenda");
+}
+
+/** Confirma presença (chegada na clínica) — destino do QR Code mostrado ao cliente no portal. */
+export async function confirmarPresenca(formData: FormData) {
+  autorizarPapel(await auth(), ["profissional", "recepcao"]);
+
+  const id = getValor(formData, "id");
+  if (typeof id !== "string") return;
+
+  await db
+    .update(agendamento)
+    .set({ checkinEm: new Date() })
+    .where(
+      and(eq(agendamento.id, id), eq(agendamento.status, "marcado"), isNull(agendamento.checkinEm)),
+    );
+
+  revalidatePath("/painel/agenda");
+  revalidatePath(`/painel/checkin/${id}`);
 }

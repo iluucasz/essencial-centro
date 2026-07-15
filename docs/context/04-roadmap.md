@@ -30,12 +30,20 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
   vinculados a cliente/pacote), situação (pendente/pago/cancelado) e resumo (recebido, pago,
   saldo). Acesso restrito a `profissional` — mais amplo que o controle de pagamento por pacote já
   existente na Fase 1 (`modules/pacotes`), por isso não liberado para `recepcao`.
+- ✅ Presença por QR Code — em `modules/agenda` (`checkin.ts`, coluna `checkinEm`). O cliente vê um
+  QR Code (gerado com a lib `qrcode`, sem dependência de canvas nativo) em `/portal/agendamentos`
+  para cada atendimento marcado; mostra na recepção, que abre com a câmera do celular (sem scanner
+  dentro do app) e cai em `/painel/checkin/[id]` — página do painel (profissional/recepção) que
+  confirma a presença com um clique. Distinto do status "Realizado" (que só a profissional marca
+  ao concluir o atendimento).
 
-Restante: assinatura eletrônica · presença por QR Code · relatórios avançados · estoque e lotes ·
-atendimento domiciliar com rota · integração WhatsApp · emissão de documentos · lembretes por
-e-mail/SMS/push (hoje só in-app) · scheduler para lembretes baseados em tempo · alertas de
+Restante, em ordem sugerida: relatórios avançados (agora que agenda+pacotes+financeiro têm dados
+reais) · emissão de documentos · assinatura eletrônica (depende de já ter documentos para assinar)
+· estoque e lotes · scheduler para lembretes baseados em tempo (Vercel Cron ou equivalente) ·
+lembretes por e-mail/SMS/push (depende do scheduler; exige decidir provedor) · alertas de
 medicamentos ("Medicamentos informados e alertas de segurança" — **apoio**, exige validação
-profissional; nunca decisão clínica automática).
+profissional; nunca decisão clínica automática; depende do scheduler) · atendimento domiciliar com
+rota · integração WhatsApp (maior dependência externa — API/aprovação de negócio — por último).
 
 ## Fase 3
 

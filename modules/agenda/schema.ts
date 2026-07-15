@@ -37,6 +37,7 @@ export const agendamento = pgTable("agendamento", {
   duracaoMinutos: integer("duracao_minutos").notNull(),
   status: statusAgendamentoEnum("status").notNull().default("marcado"),
   observacoes: text("observacoes"),
+  checkinEm: timestamp("checkin_em", { mode: "date" }),
   criadoPorId: uuid("criado_por_id")
     .notNull()
     .references(() => usuario.id, { onDelete: "restrict" }),

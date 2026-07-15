@@ -25,6 +25,7 @@ const colunasAgendamento = {
   duracaoMinutos: agendamento.duracaoMinutos,
   status: agendamento.status,
   observacoes: agendamento.observacoes,
+  checkinEm: agendamento.checkinEm,
   clienteNome: cliente.nome,
   servicoNome: servico.nome,
   profissionalNome: usuario.name,
@@ -82,6 +83,22 @@ export async function listarAgendamentosDoCliente(clienteId: string) {
     .where(eq(agendamento.clienteId, clienteId))
     .orderBy(desc(agendamento.inicio))
     .limit(20);
+}
+
+/** Usado pela página de confirmação de presença (destino do QR Code mostrado ao cliente). */
+export async function obterAgendamentoParaCheckin(id: string) {
+  autorizarPapel(await auth(), ["profissional", "recepcao"]);
+
+  const [registro] = await db
+    .select(colunasAgendamento)
+    .from(agendamento)
+    .innerJoin(cliente, eq(cliente.id, agendamento.clienteId))
+    .innerJoin(servico, eq(servico.id, agendamento.servicoId))
+    .innerJoin(usuario, eq(usuario.id, agendamento.profissionalId))
+    .where(eq(agendamento.id, id))
+    .limit(1);
+
+  return registro ?? null;
 }
 
 export async function listarMeusAgendamentos() {

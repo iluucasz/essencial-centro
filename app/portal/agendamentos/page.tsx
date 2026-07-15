@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowLeft, CalendarClock } from "lucide-react";
 
+import { podeConfirmarPresenca } from "@/modules/agenda/checkin";
+import { QrCheckin } from "@/modules/agenda/components/qr-checkin";
 import { rotulosStatusAgendamento } from "@/modules/agenda/schema";
 import { listarMeusAgendamentos } from "@/modules/agenda/queries";
 import { ErroAutorizacao } from "@/modules/auth/rbac";
@@ -58,14 +60,26 @@ export default async function MeusAgendamentosPage() {
         ) : (
           <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
             {agendamentos.map((agendamento) => (
-              <li key={agendamento.id} className="grid gap-1 p-4">
-                <span className="font-medium text-foreground">
-                  {formatarDataHora(agendamento.inicio)}
-                </span>
-                <span className="text-sm text-muted">
-                  {agendamento.servicoNome} · {agendamento.profissionalNome ?? "Profissional"} ·{" "}
-                  {rotulosStatusAgendamento[agendamento.status]}
-                </span>
+              <li
+                key={agendamento.id}
+                className="grid gap-3 p-4 sm:grid-cols-[1fr_auto] sm:items-center"
+              >
+                <div>
+                  <span className="block font-medium text-foreground">
+                    {formatarDataHora(agendamento.inicio)}
+                  </span>
+                  <span className="mt-1 block text-sm text-muted">
+                    {agendamento.servicoNome} · {agendamento.profissionalNome ?? "Profissional"} ·{" "}
+                    {rotulosStatusAgendamento[agendamento.status]}
+                  </span>
+                </div>
+
+                {podeConfirmarPresenca(agendamento.status, agendamento.checkinEm) ? (
+                  <div className="grid justify-items-center gap-1">
+                    <QrCheckin agendamentoId={agendamento.id} />
+                    <span className="text-xs text-muted">Mostre na recepção</span>
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>

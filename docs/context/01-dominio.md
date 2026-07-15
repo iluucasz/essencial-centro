@@ -16,7 +16,9 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
 - **Pacote** — conjunto de sessões contratadas de um serviço para um cliente: quantidade,
   realizadas, restantes, contratação, validade, valor, forma/situação de pagamento, faltas.
 - **Agendamento** — atendimento marcado: cliente, serviço, profissional, data/hora, duração,
-  vínculo com pacote, status (marcado, realizado, falta, cancelado), observações.
+  vínculo com pacote, status (marcado, realizado, falta, cancelado), observações. `checkinEm`
+  registra a confirmação de presença (chegada na clínica, via QR Code) — independente do status
+  "realizado", que só a profissional marca ao concluir o atendimento.
 - **Ficha / Anamnese** — formulário estruturado por serviço, vinculado ao prontuário do cliente.
   Dinâmica (campos inteligentes). Tem versionamento e status. Detalhe em `07-fichas.md`.
 - **Sessao** — registro de um atendimento realizado: serviço, região, equipamentos, parâmetros,

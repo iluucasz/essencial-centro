@@ -1,0 +1,1 @@
+ALTER TABLE "agendamento" ADD COLUMN "checkin_em" timestamp;

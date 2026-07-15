@@ -1,6 +1,8 @@
-import { CalendarClock, Check, UserX, X } from "lucide-react";
+import Link from "next/link";
+import { CalendarClock, Check, QrCode, UserX, X } from "lucide-react";
 
 import { atualizarStatusAgendamento } from "@/modules/agenda/actions";
+import { podeConfirmarPresenca } from "@/modules/agenda/checkin";
 import { rotulosStatusAgendamento, type StatusAgendamento } from "@/modules/agenda/schema";
 
 type AgendamentoResumo = {
@@ -9,6 +11,7 @@ type AgendamentoResumo = {
   duracaoMinutos: number;
   status: StatusAgendamento;
   observacoes: string | null;
+  checkinEm: Date | null;
   clienteNome: string;
   servicoNome: string;
   profissionalNome: string | null;
@@ -91,6 +94,20 @@ export function ListaAgenda({ agendamentos }: { agendamentos: AgendamentoResumo[
               >
                 {rotulosStatusAgendamento[agendamento.status]}
               </span>
+
+              {agendamento.checkinEm ? (
+                <span className="text-xs font-medium text-muted">
+                  Presença às {formatarHorario(agendamento.checkinEm)}
+                </span>
+              ) : podeConfirmarPresenca(agendamento.status, agendamento.checkinEm) ? (
+                <Link
+                  className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface px-2 py-1 text-xs font-medium text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+                  href={`/painel/checkin/${agendamento.id}`}
+                >
+                  <QrCode className="size-3.5" aria-hidden="true" />
+                  Presença
+                </Link>
+              ) : null}
 
               {agendamento.status === "marcado" ? (
                 <>
