@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, lt } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lt } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -64,6 +64,24 @@ export async function listarAgendamentosDoProfissionalNoDia(profissionalId: stri
         eq(agendamento.status, "marcado"),
       ),
     );
+}
+
+/** Usado pelo formulário de sessão, para vincular o registro clínico a um atendimento marcado. */
+export async function listarAgendamentosDoCliente(clienteId: string) {
+  autorizarPapel(await auth(), ["profissional"]);
+
+  return db
+    .select({
+      id: agendamento.id,
+      inicio: agendamento.inicio,
+      status: agendamento.status,
+      servicoNome: servico.nome,
+    })
+    .from(agendamento)
+    .innerJoin(servico, eq(servico.id, agendamento.servicoId))
+    .where(eq(agendamento.clienteId, clienteId))
+    .orderBy(desc(agendamento.inicio))
+    .limit(20);
 }
 
 export async function listarMeusAgendamentos() {

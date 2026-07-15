@@ -2,9 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, FilePlus2 } from "lucide-react";
 
+import { listarAgendamentosDoCliente } from "@/modules/agenda/queries";
+import { exigirUsuarioAtual } from "@/modules/auth/queries";
 import { getCliente } from "@/modules/clientes/queries";
 import { ListaFichas } from "@/modules/fichas/components/lista-fichas";
 import { listarFichasDoCliente } from "@/modules/fichas/queries";
+import { listarPacotesParaSelecao } from "@/modules/pacotes/queries";
+import { listarServicos } from "@/modules/servicos/queries";
+import { FormularioSessao } from "@/modules/sessoes/components/formulario-sessao";
+import { ListaSessoes } from "@/modules/sessoes/components/lista-sessoes";
+import { listarSessoesDoCliente } from "@/modules/sessoes/queries";
 
 function formatarData(data: Date) {
   return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(data);
@@ -32,11 +39,22 @@ function LinhaInfo({ label, valor }: { label: string; valor?: Date | string | bo
 
 export default async function ClienteDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const usuario = await exigirUsuarioAtual(["profissional", "recepcao"]);
   const [cliente, fichas] = await Promise.all([getCliente(id), listarFichasDoCliente(id)]);
 
   if (!cliente) {
     notFound();
   }
+
+  const dadosSessoes =
+    usuario.role === "profissional"
+      ? await Promise.all([
+          listarSessoesDoCliente(id),
+          listarServicos(),
+          listarAgendamentosDoCliente(id),
+          listarPacotesParaSelecao(),
+        ])
+      : null;
 
   const observacoesInternas =
     "observacoesInternas" in cliente && typeof cliente.observacoesInternas === "string"
@@ -90,6 +108,25 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
         </div>
         <ListaFichas fichas={fichas} />
       </section>
+
+      {dadosSessoes ? (
+        <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_440px]">
+          <div className="grid gap-4">
+            <h2 className="text-lg font-semibold text-foreground">Sessões realizadas</h2>
+            <ListaSessoes sessoes={dadosSessoes[0]} />
+          </div>
+
+          <FormularioSessao
+            agendamentos={dadosSessoes[2].map((a) => ({
+              id: a.id,
+              nome: `${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "UTC" }).format(a.inicio)} · ${a.servicoNome}`,
+            }))}
+            clienteId={id}
+            pacotes={dadosSessoes[3].map((p) => ({ id: p.id, nome: p.servicoNome }))}
+            servicos={dadosSessoes[1].map((s) => ({ id: s.id, nome: s.nome }))}
+          />
+        </section>
+      ) : null}
     </div>
   );
 }
