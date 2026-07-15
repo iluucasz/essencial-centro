@@ -3,6 +3,17 @@
 Módulo central: transforma as fichas de papel em **formulários digitais estruturados**,
 vinculados ao prontuário do cliente. Não são cópias duras do papel — **reagem às respostas**.
 
+## Status de implementação
+
+Infraestrutura genérica pronta (`modules/fichas/`): tabela `ficha` (JSONB `respostas` + `tipo` +
+`status` + versionamento via `versaoAnteriorId`), separação relato/avaliação profissional/
+compartilhada, filtro de acesso do cliente (`acesso.ts`), consentimento de imagem separado do
+atendimento. **Só o tipo `estetica_corporal` tem schema de respostas + formulário implementados**
+(prova do padrão de campos inteligentes). Os outros 10 tipos do catálogo abaixo entram um de cada
+vez: novo `respostasSchema` + entrada em `respostasPorTipo` (`schema.ts`) + formulário próprio —
+sem migração de tabela. Editar/gerar nova versão de uma ficha já assinada ainda não tem UI/action
+(coluna `versaoAnteriorId` existe, mas não é escrita ainda).
+
 ## Fluxo
 
 `Cliente → Novo atendimento → <Serviço> → Abrir anamnese correspondente`.

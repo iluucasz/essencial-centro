@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FilePlus2 } from "lucide-react";
 
 import { getCliente } from "@/modules/clientes/queries";
+import { ListaFichas } from "@/modules/fichas/components/lista-fichas";
+import { listarFichasDoCliente } from "@/modules/fichas/queries";
 
 function formatarData(data: Date) {
   return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(data);
@@ -30,7 +32,7 @@ function LinhaInfo({ label, valor }: { label: string; valor?: Date | string | bo
 
 export default async function ClienteDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const cliente = await getCliente(id);
+  const [cliente, fichas] = await Promise.all([getCliente(id), listarFichasDoCliente(id)]);
 
   if (!cliente) {
     notFound();
@@ -74,6 +76,20 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
         <LinhaInfo label="Consentimento de imagem" valor={cliente.consentimentoImagem} />
         <LinhaInfo label="Observações internas" valor={observacoesInternas} />
       </dl>
+
+      <section className="grid gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-foreground">Fichas de avaliação</h2>
+          <Link
+            className="inline-flex items-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-brand-foreground transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+            href={`/painel/clientes/${id}/fichas/nova`}
+          >
+            <FilePlus2 className="size-4" aria-hidden="true" />
+            Nova ficha
+          </Link>
+        </div>
+        <ListaFichas fichas={fichas} />
+      </section>
     </div>
   );
 }

@@ -23,8 +23,16 @@
 
 ## Formulários
 
-- `react-hook-form` + `zodResolver`. O **mesmo** schema Zod valida no cliente e re-valida na action.
-- Campos inteligentes (condicionais) via `watch()` do RHF — ver `07-fichas.md`.
+Dois padrões, conforme a complexidade do dado — o **mesmo** schema Zod sempre valida no cliente
+(quando houver) e **revalida na action** (nunca confiar só no cliente):
+
+- **Simples (achatado, poucos campos)**: `<form action={formAction}>` nativo + `useActionState`,
+  lendo `FormData` na action (ver `modules/clientes`, `modules/servicos`, `modules/agenda`,
+  `modules/pacotes`). Sem RHF — menos peso para casos que não precisam de campo condicional.
+- **Complexo (dados aninhados e/ou campos inteligentes)**: `react-hook-form` + `zodResolver`,
+  chamando a Server Action **diretamente com o objeto tipado** (não `FormData`) no `onSubmit` do
+  RHF. Campos inteligentes (condicionais) via `watch()` do RHF. Ver `modules/fichas` — primeiro
+  módulo a usar esse padrão — e `07-fichas.md`.
 
 ## Server Actions — checklist
 
