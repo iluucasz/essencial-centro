@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, FilePlus2 } from "lucide-react";
+import { ArrowLeft, FilePlus2, TrendingUp } from "lucide-react";
 
 import { listarAgendamentosDoCliente } from "@/modules/agenda/queries";
 import { exigirUsuarioAtual } from "@/modules/auth/queries";
@@ -82,9 +82,21 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
         Voltar para clientes
       </Link>
 
-      <header>
-        <p className="text-sm font-medium text-muted">Cadastro do cliente</p>
-        <h1 className="mt-2 text-2xl font-semibold text-brand">{cliente.nome}</h1>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-muted">Cadastro do cliente</p>
+          <h1 className="mt-2 text-2xl font-semibold text-brand">{cliente.nome}</h1>
+        </div>
+
+        {usuario.role === "profissional" ? (
+          <Link
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-roxo transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+            href={`/painel/clientes/${id}/evolucao`}
+          >
+            <TrendingUp className="size-4" aria-hidden="true" />
+            Ver evolução
+          </Link>
+        ) : null}
       </header>
 
       <dl className="grid gap-4 md:grid-cols-2">
