@@ -29,9 +29,11 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
 - **Foto** — imagem clínica padronizada (mesma posição/enquadramento/iluminação/distância),
   data, região, para comparação antes/depois. **Dado sensível** (ver `06-lgpd-seguranca.md`).
 - **Documento** (`modules/documentos`, Fase 2) — contratos, termos e orientações emitidos pela
-  profissional para um cliente: tipo, título, conteúdo, status (emitido/assinado), data de emissão
-  e de assinatura. Assinatura simplificada do MVP (carimbo de data/hora), mesmo padrão do aceite de
-  termos/autorização de imagem já embutido em `Ficha` — **cada consentimento é separado**
+  profissional para um cliente: tipo, título, conteúdo, status (emitido/assinado). Assinatura
+  eletrônica simples (traço desenhado num `<canvas>`) + evidências capturadas no servidor: IP,
+  user-agent e hash SHA-256 do conteúdo assinado (`assinaturaImagemDataUrl`, `assinaturaIp`,
+  `assinaturaUserAgent`, `conteudoHash`) — nunca confiadas do cliente além do traço em si. Mesmo
+  princípio de separação de consentimento já usado em `Ficha` — **cada consentimento é separado**
   (atendimento ≠ uso de imagem). Acesso restrito a `profissional` (não liberado para `recepcao`).
 - **DorRegistro** — escala 0–10, tipo, frequência, localização (mapa corporal), evolução por sessão.
 - **EventoAuditoria** — quem criou/alterou o quê e quando (histórico de alterações).

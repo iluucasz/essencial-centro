@@ -45,8 +45,14 @@ export const documento = pgTable("documento", {
   titulo: text("titulo").notNull(),
   conteudo: text("conteudo").notNull(),
   status: statusDocumentoEnum("status").notNull().default("emitido"),
-  /** "Assinatura" simplificada do MVP: confirmação com carimbo de data/hora (Fase 2 traz e-signature real). */
   assinadoEm: timestamp("assinado_em", { mode: "date" }),
+  /** Traço desenhado na tela (data URL PNG) — "assinatura digital simples na tela" do brief. */
+  assinaturaImagemDataUrl: text("assinatura_imagem_data_url"),
+  /** IP e user-agent capturados no servidor no momento da assinatura — nunca confiados do cliente. */
+  assinaturaIp: text("assinatura_ip"),
+  assinaturaUserAgent: text("assinatura_user_agent"),
+  /** SHA-256 do `conteudo` no momento da assinatura — evidência de integridade (o que foi assinado). */
+  conteudoHash: text("conteudo_hash"),
   criadoPorId: uuid("criado_por_id")
     .notNull()
     .references(() => usuario.id, { onDelete: "restrict" }),

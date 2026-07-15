@@ -230,7 +230,7 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
               <FormularioDocumento clienteId={id} />
             </ModalFormulario>
           </div>
-          <ListaDocumentos documentos={documentos} />
+          <ListaDocumentos clienteId={id} documentos={documentos} />
         </section>
       ) : null}
     </div>

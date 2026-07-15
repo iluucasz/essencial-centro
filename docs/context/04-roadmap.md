@@ -48,14 +48,20 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
   de imagem, orientação ou outro) na ficha do cliente (`/painel/clientes/[id]`, seção "Documentos e
   termos", restrito a `profissional` — mesmo critério de `fichas`/`sessoes`); cliente vê e assina em
   `/portal/documentos`, com "Imprimir/Salvar PDF" via impressão do navegador (`window.print()` +
-  `print:hidden`, sem lib de PDF nova). Assinatura ainda é a simplificada do MVP (carimbo de
-  data/hora, mesmo padrão de `modules/fichas`) — **assinatura eletrônica real é o próximo módulo**,
-  que agora tem documento para assinar.
+  `print:hidden`, sem lib de PDF nova).
+- ✅ Assinatura eletrônica — mesmo `modules/documentos`. Segue o padrão do brief ("assinatura
+  digital simples na tela") em vez de um provedor pago (Clicksign/DocuSign exigiriam conta e chave
+  de API que não temos configuradas): `PainelAssinatura` é um `<canvas>` desenhado com o dedo/mouse
+  (`modules/documentos/components/painel-assinatura.tsx`), validado no servidor
+  (`assinaturaValida` — rejeita canvas em branco, nunca confia só no client) e acompanhado de
+  evidências capturadas **no servidor** (nunca do input do cliente): IP (`x-forwarded-for`),
+  user-agent, e hash SHA-256 do `conteudo` no momento da assinatura (`calcularHashConteudo`, prova
+  de integridade — o que exatamente foi assinado). Profissional também tem uma tela de detalhe
+  read-only (`/painel/clientes/[id]/documentos/[documentoId]`) pra conferir a mesma evidência.
 
-Restante, em ordem sugerida: assinatura eletrônica (depende de já ter documentos para assinar,
-resolvido acima) · estoque e lotes · scheduler para lembretes baseados em tempo (Vercel Cron ou
-equivalente) · lembretes por e-mail/SMS/push (depende do scheduler; exige decidir provedor) ·
-alertas de medicamentos ("Medicamentos informados e alertas de segurança" — **apoio**, exige
+Restante, em ordem sugerida: estoque e lotes · scheduler para lembretes baseados em tempo (Vercel
+Cron ou equivalente) · lembretes por e-mail/SMS/push (depende do scheduler; exige decidir provedor)
+· alertas de medicamentos ("Medicamentos informados e alertas de segurança" — **apoio**, exige
 validação profissional; nunca decisão clínica automática; depende do scheduler) · atendimento
 domiciliar com rota · integração WhatsApp (maior dependência externa — API/aprovação de negócio —
 por último).

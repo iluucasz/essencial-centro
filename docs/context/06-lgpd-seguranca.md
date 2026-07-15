@@ -41,6 +41,16 @@ Após assinada, uma ficha **não é sobrescrita**: mudança gera nova versão ou
 Cada ficha guarda: criação, última atualização, quem alterou, conteúdo anterior, assinaturas,
 status (`rascunho` | `preenchida` | `revisada` | `assinada`).
 
+## Assinatura eletrônica de documentos
+
+`modules/documentos` (Fase 2) coleta, no momento da assinatura, **IP e user-agent do cliente** como
+evidência de autenticidade — capturados sempre no servidor (`headers()`, nunca de input do
+formulário) e nunca no `criarDocumento` (só existem a partir do momento em que o cliente assina).
+É uma nova categoria de dado pessoal coletado; some junto com o traço da assinatura e o hash
+SHA-256 do conteúdo assinado (prova de integridade). Visível tanto pro cliente (no próprio
+documento, em `/portal/documentos/[id]`) quanto pra profissional (`/painel/clientes/[id]/documentos/[documentoId]`)
+— transparência, não coleta oculta.
+
 ## Segredos
 
 `.env.local` (ignorado). `AUTH_SECRET` forte; `DATABASE_URL` só em env. Nada de credencial no repo.
