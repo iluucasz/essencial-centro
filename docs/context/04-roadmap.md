@@ -99,9 +99,30 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
   conferência de uma profissional — nunca confirmado sozinho na criação. Não depende do scheduler
   (só o item de e-mail/SMS/push abaixo depende).
 
-Restante, em ordem sugerida: lembretes por e-mail/SMS/push (depende do scheduler, já resolvido
-acima; exige decidir provedor — aguardando decisão) · atendimento domiciliar com rota ·
-integração WhatsApp (maior dependência externa — API/aprovação de negócio — por último).
+- ✅ Lembretes por e-mail — `modules/notificacoes/email.ts` (Brevo, `POST /v3/smtp/email` direto
+  via `fetch`, sem SDK — chamada única não justifica dependência nova). Sem SMS (não pedido) e sem
+  push nesta rodada. Integrado como reforço do `notificarCliente` já existente: **todo** tipo de
+  notificação (agendamento criado, sessão concluída, pacote acabando, os dois lembretes do
+  scheduler, geral) agora também vira e-mail — um único ponto de integração, sem duplicar lógica
+  por tipo. Nunca bloqueante: sem `BREVO_API_KEY`/`BREVO_SENDER_EMAIL` configuradas, ou se a chamada
+  falhar, o envio é pulado silenciosamente (só loga o erro) — o canal in-app já cobriu a entrega.
+  **Pendência de infraestrutura, fora do meu alcance**: o remetente precisa estar verificado
+  (domínio ou remetente único) no painel da Brevo antes de enviar de verdade — sem isso, a Brevo
+  rejeita a chamada mesmo com a chave certa.
+
+- ⚠️ Lembretes por WhatsApp — pesquisado, não implementado. Descartamos as libs não-oficiais
+  (Evolution API/Baileys/WPPConnect/whatsapp-web.js): todas exigem uma conexão persistente com o
+  WhatsApp Web, incompatível com Vercel serverless (funções efêmeras, sem processo contínuo) —
+  precisariam de uma VPS separada, peça de infra nova, mais risco de ban no número da clínica. A
+  API oficial (Cloud API da Meta) resolve isso — é só HTTP, encaixa igual à Brevo — mas não é mais
+  gratuita pra mensagem iniciada pela clínica (esse é sempre o nosso caso, lembrete não é resposta
+  dentro de uma janela de atendimento): ~R$0,04–0,05 por "utility template" entregue no Brasil
+  (custo real baixo pra uma clínica pequena, ~R$50/mês numa estimativa de 40 lembretes/dia — mas
+  não é grátis, e exige conta Meta Business verificada + número dedicado + templates pré-aprovados,
+  que só o cliente pode providenciar). Decisão do cliente: aguardando.
+
+Restante: atendimento domiciliar com rota · integração WhatsApp (ver acima — maior dependência
+externa, por último).
 
 ## Fase 3
 

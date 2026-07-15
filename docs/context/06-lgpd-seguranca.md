@@ -51,6 +51,15 @@ SHA-256 do conteúdo assinado (prova de integridade). Visível tanto pro cliente
 documento, em `/portal/documentos/[id]`) quanto pra profissional (`/painel/clientes/[id]/documentos/[documentoId]`)
 — transparência, não coleta oculta.
 
+## Terceiros que processam dado pessoal
+
+- **Brevo** (`modules/notificacoes/email.ts`, Fase 2) — recebe e-mail, nome e o conteúdo da
+  mensagem (que pode citar tipo de atendimento/horário) de todo cliente notificado, pra enviar o
+  reforço por e-mail das notificações. Nunca recebe dado clínico (fichas, sessões, medidas, fotos,
+  medicamentos) — só o que já está no corpo de uma notificação in-app comum. Igual ao Vercel Blob,
+  é um processador terceirizado de dado pessoal — considerar no aviso de privacidade quando ele for
+  escrito.
+
 ## Segredos
 
 `.env.local` (ignorado). `AUTH_SECRET` forte; `DATABASE_URL` só em env. Nada de credencial no repo.
