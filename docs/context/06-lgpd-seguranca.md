@@ -12,9 +12,28 @@ Isso é requisito de arquitetura, não item opcional.
 - **Consentimentos separados**: atendimento ≠ uso de imagem ≠ contrato. Cada um registrado,
   datado e versionado individualmente. Uso de imagem é opt-in explícito.
 - **Registro de atividades (auditoria)**: quem criou/alterou, quando, e conteúdo anterior.
-- **Fotos e arquivos sensíveis**: bucket privado; no Postgres só a chave/URL; acesso via URL
-  assinada de curta duração. Cliente só acessa as próprias imagens.
+- **Fotos e arquivos sensíveis**: no Postgres só a chave/URL, nunca exposta no HTML/UI — acesso
+  sempre via proxy autenticado (`app/api/fotos/[id]/imagem`) que reautoriza role+posse a cada
+  request. **Ver alerta abaixo — o bucket atual não é privado.**
 - **Política de privacidade** clara e consentimento para uso de dados no cadastro.
+
+## ⚠️ Pendência conhecida: Vercel Blob está em modo público
+
+O store do Vercel Blob conectado (`BLOB_READ_WRITE_TOKEN`) está configurado como **público**
+(`access:"public"` — a API rejeita `access:"private"` nesse store: "Cannot use private access on
+a public store"). Decisão registrada em `modules/fotos`: manter público por ora, ajustar depois
+(o app nunca expõe a URL do blob na UI — só o `pathname` interno via proxy autenticado — mas
+**quem obtiver a URL real do arquivo acessa sem login**, já que o nome tem só um sufixo aleatório
+como proteção, não controle de acesso de verdade).
+
+**Antes de subir fotos reais de pacientes em produção**, resolver de um destes jeitos:
+
+1. Reconfigurar o store existente para privado no painel da Vercel (Storage → Blob store → Settings).
+2. Criar um novo store dedicado a fotos clínicas, privado desde a criação, e trocar o
+   `BLOB_READ_WRITE_TOKEN` usado por `modules/fotos`.
+
+Depois disso, trocar `access:"public"` → `access:"private"` em `modules/fotos/actions.ts` e em
+`app/api/fotos/[id]/imagem/route.ts` (única mudança de código necessária).
 
 ## Versionamento de fichas
 

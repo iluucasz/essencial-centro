@@ -7,6 +7,9 @@ import { exigirUsuarioAtual } from "@/modules/auth/queries";
 import { getCliente } from "@/modules/clientes/queries";
 import { ListaFichas } from "@/modules/fichas/components/lista-fichas";
 import { listarFichasDoCliente } from "@/modules/fichas/queries";
+import { FormularioFoto } from "@/modules/fotos/components/formulario-foto";
+import { GaleriaFotos } from "@/modules/fotos/components/galeria-fotos";
+import { listarFotosDoCliente } from "@/modules/fotos/queries";
 import { FormularioMedida } from "@/modules/medidas/components/formulario-medida";
 import { TabelaEvolucao } from "@/modules/medidas/components/tabela-evolucao";
 import { listarEvolucaoDoCliente } from "@/modules/medidas/queries";
@@ -61,6 +64,8 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
 
   const evolucaoMedidas =
     usuario.role === "profissional" ? await listarEvolucaoDoCliente(id) : null;
+
+  const fotos = usuario.role === "profissional" ? await listarFotosDoCliente(id) : null;
 
   const observacoesInternas =
     "observacoesInternas" in cliente && typeof cliente.observacoesInternas === "string"
@@ -142,6 +147,23 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
           </div>
 
           <FormularioMedida
+            clienteId={id}
+            sessoes={dadosSessoes[0].map((s) => ({
+              id: s.id,
+              nome: `${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "UTC" }).format(s.dataHora)} · ${s.regiaoTratada ?? "Sessão"}`,
+            }))}
+          />
+        </section>
+      ) : null}
+
+      {dadosSessoes && fotos ? (
+        <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="grid gap-4">
+            <h2 className="text-lg font-semibold text-foreground">Fotos</h2>
+            <GaleriaFotos fotos={fotos} />
+          </div>
+
+          <FormularioFoto
             clienteId={id}
             sessoes={dadosSessoes[0].map((s) => ({
               id: s.id,

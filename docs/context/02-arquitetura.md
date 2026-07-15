@@ -53,9 +53,15 @@ Regra: `painel/*` exige role `profissional` (ou `recepcao` p/ subrotas liberadas
 
 - **Neon + Drizzle + Auth.js** (não Supabase): portabilidade e controle; SQL puro via Drizzle.
   Custo: sem Storage/RLS embutidos → tratados na aplicação (ver abaixo e `06-lgpd-seguranca.md`).
-- **Fotos clínicas**: **Vercel Blob** (`BLOB_READ_WRITE_TOKEN` já provisionado — ver `.env.example`).
-  Guardar **apenas a URL/chave** no Postgres; upload/leitura sempre via Server Action que checa
-  `role` + posse antes de gerar a URL (Blob não tem RLS própria — a checagem é 100% da aplicação).
+- **Fotos clínicas**: **Vercel Blob** (`@vercel/blob`, `BLOB_READ_WRITE_TOKEN`), implementado em
+  `modules/fotos`. Upload via Server Action com `access: "private"` (blob **não** tem URL pública).
+  Só o `pathname` fica salvo no Postgres — nunca a URL do Blob. Leitura via proxy autenticado
+  (`app/api/fotos/[id]/imagem`, Route Handler) que chama `get(pathname, { access: "private" })` no
+  servidor e reautoriza `role` + posse **a cada request** — mais forte que uma URL assinada de
+  prazo fixo, e evita expor o token do Blob ou uma URL "quase pública" no HTML. `@vercel/blob@2.6.1`
+  também oferece `issueSignedToken`/`presignUrl` (delegação, presigned URLs) para servir arquivos
+  grandes sem passar pelo Next.js — não usado ainda; considerar se performance de imagem exigir.
+  Limite de 4MB por foto no MVP (body de Server Action na Vercel: 4.5MB).
 - **Autorização**: RBAC na aplicação (checagem de `role` + posse do recurso) em toda query/action
   de dados sensíveis — não há RLS de banco. Centralizar helpers em `lib/`.
 - **Auth.js**: módulo `modules/auth` usa Credentials Provider com senha `scrypt`, sessão `jwt` e

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarClock, ClipboardList, IdCard, NotebookPen, Ruler } from "lucide-react";
+import { CalendarClock, ClipboardList, IdCard, ImageIcon, NotebookPen, Ruler } from "lucide-react";
 
 import { BotaoSair } from "@/modules/auth/components/botao-sair";
 import { exigirUsuarioAtual } from "@/modules/auth/queries";
@@ -57,6 +57,16 @@ export default async function PortalPage() {
             <Ruler className="size-5" aria-hidden="true" />
           </span>
           Minha evolução
+        </Link>
+
+        <Link
+          className="inline-flex items-center gap-3 rounded-lg border border-border bg-surface p-4 text-sm font-medium text-foreground shadow-sm transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+          href="/portal/fotos"
+        >
+          <span className="rounded-lg bg-lilas/35 p-2 text-roxo">
+            <ImageIcon className="size-5" aria-hidden="true" />
+          </span>
+          Minhas fotos
         </Link>
 
         <Link
