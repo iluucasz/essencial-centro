@@ -17,8 +17,7 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
 - ✅ Pacotes e sessões restantes — `modules/pacotes`.
 - ✅ Notificações (lembretes) — `modules/notificacoes`, central in-app disparada por evento
   (agendamento criado, orientações pós-sessão, pacote acabando). Lembretes **baseados em tempo**
-  ("um dia antes", "algumas horas antes") ficam para quando houver um scheduler (Vercel Cron ou
-  equivalente) — não existe hoje.
+  ("um dia antes", "algumas horas antes") foram para a Fase 2 — ver scheduler abaixo.
 - ✅ Área de evolução do cliente (gráficos/tabelas/comparações) — `modules/evolucao`.
 - ✅ Termos e consentimentos (separados) + histórico de alterações — dentro de `modules/fichas`
   (aceite + autorização de imagem separados). Versionamento de ficha assinada (`versaoAnteriorId`)
@@ -71,12 +70,29 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
   validade de produtos" citado no brief. Não integra com `sessao.produtosAplicados` (continua
   texto livre) — decisão de manter os dois módulos desacoplados por ora.
 
-Restante, em ordem sugerida: scheduler para lembretes baseados em tempo (Vercel Cron ou
-equivalente) · lembretes por e-mail/SMS/push (depende do scheduler; exige decidir provedor) ·
-alertas de medicamentos ("Medicamentos informados e alertas de segurança" — **apoio**, exige
-validação profissional; nunca decisão clínica automática; depende do scheduler) · atendimento
-domiciliar com rota · integração WhatsApp (maior dependência externa — API/aprovação de negócio —
-por último).
+- ✅ Scheduler para lembretes baseados em tempo — `app/api/cron/lembretes` (Vercel Cron,
+  `vercel.json`), protegido por `CRON_SECRET` (padrão oficial da Vercel: header
+  `Authorization: Bearer $CRON_SECRET`, comparado no próprio Route Handler — nunca confia em nada
+  além disso, não há sessão de usuário numa chamada de cron). `modules/agenda/lembretes.ts` decide
+  quem precisa de lembrete de forma **idempotente por construção**: dispara "na primeira execução
+  em que faltam ≤24h/≤3h pro atendimento", não numa janela estreita de horário — então funciona
+  corretamente não importa a frequência real do disparo (bom, porque a Vercel documenta que
+  entregas de cron podem falhar ou duplicar — idempotência é a recomendação oficial deles, não só
+  uma escolha nossa). Os dois carimbos `agendamento.lembreteDiaAnteriorEm`/`lembreteHorasAntesEm`
+  são o que evita duplicar. **Pendência real de infraestrutura**: no plano Hobby (gratuito) da
+  Vercel, cron só roda **uma vez por dia** (`vercel.json` está configurado com `"0 11 * * *"`,
+  11h UTC ≈ 8h em Brasília) — isso cobre bem o lembrete "um dia antes", mas o lembrete "algumas
+  horas antes" só vai disparar com precisão de fato se (a) o projeto estiver no plano Pro da
+  Vercel, ou (b) um gatilho externo (ex.: cron-job.org, GitHub Actions agendado) chamar o mesmo
+  endpoint autenticado com mais frequência — o endpoint em si já funciona corretamente com
+  qualquer frequência de chamada, só a pontualidade do "algumas horas antes" depende de quem/como
+  ele é disparado.
+
+Restante, em ordem sugerida: lembretes por e-mail/SMS/push (depende do scheduler, já resolvido
+acima; exige decidir provedor) · alertas de medicamentos ("Medicamentos informados e alertas de
+segurança" — **apoio**, exige validação profissional; nunca decisão clínica automática) ·
+atendimento domiciliar com rota · integração WhatsApp (maior dependência externa — API/aprovação
+de negócio — por último).
 
 ## Fase 3
 

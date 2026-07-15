@@ -38,6 +38,9 @@ export const agendamento = pgTable("agendamento", {
   status: statusAgendamentoEnum("status").notNull().default("marcado"),
   observacoes: text("observacoes"),
   checkinEm: timestamp("checkin_em", { mode: "date" }),
+  /** Marca quando cada lembrete baseado em tempo foi disparado — evita duplicar a cada execução do cron. */
+  lembreteDiaAnteriorEm: timestamp("lembrete_dia_anterior_em", { mode: "date" }),
+  lembreteHorasAntesEm: timestamp("lembrete_horas_antes_em", { mode: "date" }),
   criadoPorId: uuid("criado_por_id")
     .notNull()
     .references(() => usuario.id, { onDelete: "restrict" }),

@@ -6,14 +6,16 @@ import { usuario } from "@/modules/auth/schema";
 /**
  * Central de notificações in-app (docs/context/00-produto.md "Agenda e notificações").
  * Sem provedor externo (e-mail/SMS/WhatsApp) nesta fase — fica para a Fase 2
- * (docs/context/04-roadmap.md); também não há cron/scheduler no projeto, então só os lembretes
- * disparados por uma ação real do usuário (agendar, concluir sessão, pacote acabando) existem
- * aqui — os baseados em tempo ("um dia antes") exigiriam um scheduler, ainda não construído.
+ * (docs/context/04-roadmap.md). `lembrete_dia_anterior`/`lembrete_horas_antes` são disparados
+ * pelo scheduler (`app/api/cron/lembretes`, ver `modules/agenda/lembretes.ts`), não por uma ação
+ * direta do usuário — os demais tipos continuam síncronos, logo após a ação real.
  */
 export const tiposNotificacao = [
   "agendamento_criado",
   "sessao_concluida",
   "pacote_acabando",
+  "lembrete_dia_anterior",
+  "lembrete_horas_antes",
   "geral",
 ] as const;
 

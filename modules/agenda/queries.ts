@@ -126,6 +126,36 @@ export async function obterAgendamentoParaCheckin(id: string) {
   return registro ?? null;
 }
 
+/**
+ * Usado só pelo job de lembretes do cron (`app/api/cron/lembretes`) — sem sessão de usuário
+ * (disparado pela Vercel, não por alguém logado), então sem checagem de role própria. A
+ * autorização desse fluxo é a validação do `CRON_SECRET` na própria rota da API.
+ */
+export async function listarAgendamentosParaLembretes() {
+  const agora = new Date();
+  const limite = new Date(agora.getTime() + 25 * 60 * 60 * 1000);
+
+  return db
+    .select({
+      id: agendamento.id,
+      clienteId: agendamento.clienteId,
+      inicio: agendamento.inicio,
+      status: agendamento.status,
+      lembreteDiaAnteriorEm: agendamento.lembreteDiaAnteriorEm,
+      lembreteHorasAntesEm: agendamento.lembreteHorasAntesEm,
+      servicoNome: servico.nome,
+    })
+    .from(agendamento)
+    .innerJoin(servico, eq(servico.id, agendamento.servicoId))
+    .where(
+      and(
+        eq(agendamento.status, "marcado"),
+        gte(agendamento.inicio, agora),
+        lte(agendamento.inicio, limite),
+      ),
+    );
+}
+
 export async function listarMeusAgendamentos() {
   const sessao = await auth();
   const usuarioSessao = autorizarPapel(sessao, ["cliente"]);
