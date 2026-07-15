@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { IdCard } from "lucide-react";
+import { CalendarClock, IdCard } from "lucide-react";
 
 import { BotaoSair } from "@/modules/auth/components/botao-sair";
 import { exigirUsuarioAtual } from "@/modules/auth/queries";
@@ -18,7 +18,17 @@ export default async function PortalPage() {
         <BotaoSair />
       </div>
 
-      <div className="mx-auto mt-8 max-w-5xl">
+      <div className="mx-auto mt-8 grid max-w-5xl gap-4 sm:grid-cols-2">
+        <Link
+          className="inline-flex items-center gap-3 rounded-lg border border-border bg-surface p-4 text-sm font-medium text-foreground shadow-sm transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+          href="/portal/agendamentos"
+        >
+          <span className="rounded-lg bg-lilas/35 p-2 text-roxo">
+            <CalendarClock className="size-5" aria-hidden="true" />
+          </span>
+          Meus agendamentos
+        </Link>
+
         <Link
           className="inline-flex items-center gap-3 rounded-lg border border-border bg-surface p-4 text-sm font-medium text-foreground shadow-sm transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
           href="/portal/dados"
