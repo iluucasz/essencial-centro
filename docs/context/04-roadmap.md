@@ -26,11 +26,16 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
 
 ## Fase 2
 
-Financeiro completo · assinatura eletrônica · presença por QR Code · relatórios avançados ·
-estoque e lotes · atendimento domiciliar com rota · integração WhatsApp · emissão de documentos ·
-lembretes por e-mail/SMS/push (hoje só in-app) · scheduler para lembretes baseados em tempo ·
-alertas de medicamentos ("Medicamentos informados e alertas de segurança" — **apoio**, exige
-validação profissional; nunca decisão clínica automática).
+- ✅ Financeiro completo — `modules/financeiro`. Lançamentos de receita/despesa (avulsos ou
+  vinculados a cliente/pacote), situação (pendente/pago/cancelado) e resumo (recebido, pago,
+  saldo). Acesso restrito a `profissional` — mais amplo que o controle de pagamento por pacote já
+  existente na Fase 1 (`modules/pacotes`), por isso não liberado para `recepcao`.
+
+Restante: assinatura eletrônica · presença por QR Code · relatórios avançados · estoque e lotes ·
+atendimento domiciliar com rota · integração WhatsApp · emissão de documentos · lembretes por
+e-mail/SMS/push (hoje só in-app) · scheduler para lembretes baseados em tempo · alertas de
+medicamentos ("Medicamentos informados e alertas de segurança" — **apoio**, exige validação
+profissional; nunca decisão clínica automática).
 
 ## Fase 3
 

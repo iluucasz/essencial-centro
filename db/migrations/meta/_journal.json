@@ -71,6 +71,13 @@
       "when": 1784079734361,
       "tag": "0009_busy_arachne",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784082364117,
+      "tag": "0010_lethal_magneto",
+      "breakpoints": true
     }
   ]
 }

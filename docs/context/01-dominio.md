@@ -30,6 +30,10 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
   (atendimento ≠ uso de imagem). Guardam status, assinaturas e versões.
 - **DorRegistro** — escala 0–10, tipo, frequência, localização (mapa corporal), evolução por sessão.
 - **EventoAuditoria** — quem criou/alterou o quê e quando (histórico de alterações).
+- **LancamentoFinanceiro** — receita ou despesa da clínica: categoria, valor, data, forma e
+  situação de pagamento (pendente/pago/cancelado), opcionalmente vinculado a `Cliente`/`Pacote`.
+  Acesso restrito a `profissional` (ver `04-roadmap.md` Fase 2). Distinto do valor/situação de
+  pagamento já registrados em `Pacote` — este é o livro-caixa completo da clínica.
 
 ## Relações-chave
 

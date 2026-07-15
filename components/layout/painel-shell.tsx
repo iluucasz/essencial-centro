@@ -10,6 +10,7 @@ import {
   PackageCheck,
   Sparkles,
   UsersRound,
+  Wallet,
   X,
 } from "lucide-react";
 
@@ -28,13 +29,28 @@ const itensNavegacao = [
   { href: "/painel/clientes", label: "Clientes", icone: UsersRound, exato: false },
   { href: "/painel/pacotes", label: "Pacotes", icone: PackageCheck, exato: false },
   { href: "/painel/servicos", label: "Serviços", icone: Sparkles, exato: false },
+  {
+    href: "/painel/financeiro",
+    label: "Financeiro",
+    icone: Wallet,
+    exato: false,
+    papeis: ["profissional"],
+  },
 ] as const;
 
 function itemAtivo(pathname: string, href: string, exato: boolean) {
   return exato ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function Sidebar({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+function Sidebar({
+  pathname,
+  papel,
+  onNavigate,
+}: {
+  pathname: string;
+  papel: PapelUsuario;
+  onNavigate?: () => void;
+}) {
   return (
     <nav className="flex h-full flex-col gap-1 p-4" aria-label="Navegação do painel">
       <div className="flex h-16 items-center px-2">
@@ -44,25 +60,27 @@ function Sidebar({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
       <p className="px-2 pt-2 pb-1 text-xs font-semibold tracking-wider text-muted uppercase">
         Menu
       </p>
-      {itensNavegacao.map(({ href, label, icone: Icone, exato }) => {
-        const ativo = itemAtivo(pathname, href, exato);
+      {itensNavegacao
+        .filter((item) => !("papeis" in item) || (item.papeis as readonly string[]).includes(papel))
+        .map(({ href, label, icone: Icone, exato }) => {
+          const ativo = itemAtivo(pathname, href, exato);
 
-        return (
-          <Link
-            key={href}
-            className={
-              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition " +
-              (ativo ? "bg-lilas/25 text-roxo" : "text-foreground hover:bg-creme")
-            }
-            href={href}
-            onClick={onNavigate}
-            aria-current={ativo ? "page" : undefined}
-          >
-            <Icone className="size-4" aria-hidden="true" />
-            {label}
-          </Link>
-        );
-      })}
+          return (
+            <Link
+              key={href}
+              className={
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition " +
+                (ativo ? "bg-lilas/25 text-roxo" : "text-foreground hover:bg-creme")
+              }
+              href={href}
+              onClick={onNavigate}
+              aria-current={ativo ? "page" : undefined}
+            >
+              <Icone className="size-4" aria-hidden="true" />
+              {label}
+            </Link>
+          );
+        })}
     </nav>
   );
 }
@@ -75,7 +93,7 @@ export function PainelShell({ children, usuario }: { children: ReactNode; usuari
     <div className="min-h-screen bg-creme md:flex">
       {/* Sidebar fixa (desktop) */}
       <aside className="hidden w-72 shrink-0 border-r border-border bg-surface md:block">
-        <Sidebar pathname={pathname} />
+        <Sidebar papel={usuario.role} pathname={pathname} />
       </aside>
 
       {/* Sidebar deslizante (mobile) */}
@@ -96,7 +114,11 @@ export function PainelShell({ children, usuario }: { children: ReactNode; usuari
             >
               <X className="size-5" aria-hidden="true" />
             </button>
-            <Sidebar pathname={pathname} onNavigate={() => setMenuAberto(false)} />
+            <Sidebar
+              papel={usuario.role}
+              pathname={pathname}
+              onNavigate={() => setMenuAberto(false)}
+            />
           </div>
         </div>
       ) : null}
