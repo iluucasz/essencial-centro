@@ -41,6 +41,16 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
   situação de pagamento (pendente/pago/cancelado), opcionalmente vinculado a `Cliente`/`Pacote`.
   Acesso restrito a `profissional` (ver `04-roadmap.md` Fase 2). Distinto do valor/situação de
   pagamento já registrados em `Pacote` — este é o livro-caixa completo da clínica.
+- **Produto** (`modules/estoque`, Fase 2) — catálogo de insumos (nome, unidade, estoque mínimo
+  opcional). Não é a mesma coisa que `Servico`/`Pacote` (o que a clínica **vende**) — é o que ela
+  **consome** internamente. "Campo de operações internas" do brief — invisível ao cliente, restrito
+  a `profissional`.
+- **Lote** — cada remessa recebida de um `Produto`: quantidade inicial, validade, fornecedor,
+  custo, nº do lote do fornecedor. É a própria "entrada" no estoque (não existe um evento de
+  entrada separado).
+- **MovimentacaoEstoque** — só registra **saídas** de um `Lote` (quantidade consumida + motivo
+  livre). Disponível de um lote/produto é sempre calculado (inicial − saídas), nunca um campo
+  mutável — mesmo princípio de "computado, não guardado" de `Pacote`/`LancamentoFinanceiro`.
 
 ## Relações-chave
 
@@ -48,6 +58,7 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
 `Cliente 1—N Documento`.
 `Pacote 1—N Sessao` (consome sessões). `Sessao 1—N Medida`, `Sessao 1—N Foto`, `Sessao 1—N DorRegistro`.
 `Servico` referenciado por `Pacote`, `Agendamento`, `Ficha`, `Sessao`.
+`Produto 1—N Lote 1—N MovimentacaoEstoque` — desacoplado do resto do domínio clínico por ora.
 
 ## Glossário
 

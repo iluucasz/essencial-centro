@@ -59,9 +59,21 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
   de integridade — o que exatamente foi assinado). Profissional também tem uma tela de detalhe
   read-only (`/painel/clientes/[id]/documentos/[documentoId]`) pra conferir a mesma evidência.
 
-Restante, em ordem sugerida: estoque e lotes · scheduler para lembretes baseados em tempo (Vercel
-Cron ou equivalente) · lembretes por e-mail/SMS/push (depende do scheduler; exige decidir provedor)
-· alertas de medicamentos ("Medicamentos informados e alertas de segurança" — **apoio**, exige
+- ✅ Estoque e lotes — `modules/estoque` (`/painel/estoque`, restrito a `profissional` — não está
+  nas 15 telas do profissional listadas no brief nem nas capacidades de `recepcao`; é "campo de
+  operações internas", invisível ao cliente). `produto` (catálogo) → `lote` (cada remessa recebida,
+  com validade/fornecedor/custo) → `movimentacaoEstoque` (só saídas — o próprio `lote` já é a
+  entrada). Disponível de cada lote/produto é **computado**, não guardado
+  (`calcularQuantidadeDisponivel` = inicial − saídas, nunca negativo — mesmo padrão de
+  `pacotes/progresso.ts`), o que dá rastro de quem consumiu o quê sem um campo mutável solto.
+  Badge de estoque baixo (`deveAvisarEstoqueBaixo`, só quando o produto define mínimo) e de
+  validade (`calcularStatusValidade`: vencido/vence em 30 dias/ok), lendo direto o "Lotes e
+  validade de produtos" citado no brief. Não integra com `sessao.produtosAplicados` (continua
+  texto livre) — decisão de manter os dois módulos desacoplados por ora.
+
+Restante, em ordem sugerida: scheduler para lembretes baseados em tempo (Vercel Cron ou
+equivalente) · lembretes por e-mail/SMS/push (depende do scheduler; exige decidir provedor) ·
+alertas de medicamentos ("Medicamentos informados e alertas de segurança" — **apoio**, exige
 validação profissional; nunca decisão clínica automática; depende do scheduler) · atendimento
 domiciliar com rota · integração WhatsApp (maior dependência externa — API/aprovação de negócio —
 por último).

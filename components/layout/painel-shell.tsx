@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Boxes,
   CalendarClock,
   ChevronLeft,
   ChevronRight,
@@ -43,6 +44,13 @@ const itensNavegacao = [
     href: "/painel/relatorios",
     label: "Relatórios",
     icone: BarChart3,
+    exato: false,
+    papeis: ["profissional"],
+  },
+  {
+    href: "/painel/estoque",
+    label: "Estoque",
+    icone: Boxes,
     exato: false,
     papeis: ["profissional"],
   },
