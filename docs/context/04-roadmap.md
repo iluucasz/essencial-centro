@@ -37,13 +37,19 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
   confirma a presença com um clique. Distinto do status "Realizado" (que só a profissional marca
   ao concluir o atendimento).
 
-Restante, em ordem sugerida: relatórios avançados (agora que agenda+pacotes+financeiro têm dados
-reais) · emissão de documentos · assinatura eletrônica (depende de já ter documentos para assinar)
-· estoque e lotes · scheduler para lembretes baseados em tempo (Vercel Cron ou equivalente) ·
-lembretes por e-mail/SMS/push (depende do scheduler; exige decidir provedor) · alertas de
-medicamentos ("Medicamentos informados e alertas de segurança" — **apoio**, exige validação
-profissional; nunca decisão clínica automática; depende do scheduler) · atendimento domiciliar com
-rota · integração WhatsApp (maior dependência externa — API/aprovação de negócio — por último).
+- ✅ Relatórios avançados — `modules/relatorios` (`/painel/relatorios`, restrito a `profissional`).
+  Agrega, por período (padrão: mês atual), o financeiro (`calcularResumoFinanceiro`), agendamentos
+  por status, taxa de comparecimento (realizados/(realizados+faltas)), ranking de serviços mais
+  realizados e novos clientes. Só leitura — sem tabela própria, reusa `modules/agenda`,
+  `modules/financeiro` e `modules/clientes`.
+
+Restante, em ordem sugerida: emissão de documentos · assinatura eletrônica (depende de já ter
+documentos para assinar) · estoque e lotes · scheduler para lembretes baseados em tempo (Vercel
+Cron ou equivalente) · lembretes por e-mail/SMS/push (depende do scheduler; exige decidir provedor)
+· alertas de medicamentos ("Medicamentos informados e alertas de segurança" — **apoio**, exige
+validação profissional; nunca decisão clínica automática; depende do scheduler) · atendimento
+domiciliar com rota · integração WhatsApp (maior dependência externa — API/aprovação de negócio —
+por último).
 
 ## Fase 3
 

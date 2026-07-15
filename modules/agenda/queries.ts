@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lt } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lt, lte } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -44,6 +44,17 @@ export async function listarAgendamentosDoDia(data: Date) {
     .innerJoin(usuario, eq(usuario.id, agendamento.profissionalId))
     .where(and(gte(agendamento.inicio, inicioDoDia), lt(agendamento.inicio, inicioDoDiaSeguinte)))
     .orderBy(asc(agendamento.inicio));
+}
+
+/** Usado pelos relatórios — agregado por período, sem os dados de contato do cliente. */
+export async function listarAgendamentosNoPeriodo(inicio: Date, fim: Date) {
+  autorizarPapel(await auth(), ["profissional"]);
+
+  return db
+    .select({ id: agendamento.id, status: agendamento.status, servicoNome: servico.nome })
+    .from(agendamento)
+    .innerJoin(servico, eq(servico.id, agendamento.servicoId))
+    .where(and(gte(agendamento.inicio, inicio), lte(agendamento.inicio, fim)));
 }
 
 /** Usado só pela action de criação, para checar sobreposição — sem checagem de role própria. */
