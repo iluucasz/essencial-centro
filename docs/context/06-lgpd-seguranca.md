@@ -66,6 +66,18 @@ documento, em `/portal/documentos/[id]`) quanto pra profissional (`/painel/clien
   Roda sobre uma lib não-oficial (Baileys) por trás da Evolution API — o risco de ban do número do
   WhatsApp discutido na Fase 2 do roadmap é do cliente, que optou por hospedar essa instância; a
   aplicação em si só fala HTTP com ela.
+- **Groq** (`modules/assistente`, Fase 3) — LLM de terceiro usado pelo assistente de IA flutuante
+  do painel (botão restrito a `profissional`, nunca visível pra `recepcao`/`cliente`). Recebe só o
+  resultado já filtrado/resumido (`modules/assistente/reshape.ts`) da ferramenta acionada pela
+  pergunta feita — nunca um dump em lote de uma tabela inteira, e nunca dado de um cliente que não
+  o perguntado. Fotografias e o conteúdo do Vercel Blob nunca são enviados (só metadados: contagem
+  e data da última foto) — nem a assinatura eletrônica, IP ou user-agent de `modules/documentos`
+  (`reshapeDocumento` os descarta antes de montar a resposta da ferramenta). **O sistema nunca
+  sugere/calcula medicamento, dosagem ou interação** — só relata o que a profissional já registrou
+  manualmente (mesma regra de `modules/medicamentos`, `04-roadmap.md`); o prompt do assistente
+  reforça essa recusa explicitamente. Sem consentimento específico adicional coletado nesta fase
+  (dado já é visível à própria profissional dentro do painel) — considerar no aviso de privacidade
+  quando ele for escrito, junto dos demais processadores terceirizados.
 
 ## Segredos
 

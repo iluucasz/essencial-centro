@@ -136,9 +136,9 @@ preferem superfície branca + borda sutil, sem sombra; dropdown/overlay: `shadow
 
 ## Tipografia
 
-**Outfit** (via `next/font/google`, `app/layout.tsx`) é a tipografia oficial da marca para texto
-(`--font-sans`) — trocada do Geist original para aproximar a hierarquia visual do padrão
-TailGrids/Neoxa. Geist Mono continua para contexto monoespaçado (`--font-mono`).
+**Plus Jakarta Sans** (via `next/font/google`, `app/layout.tsx`) é a tipografia principal da marca
+para texto (`--font-sans`). **Inter** é a tipografia secundária para títulos (`--font-heading`, já
+aplicada globalmente em `h1`–`h6`). Geist Mono continua para contexto monoespaçado (`--font-mono`).
 
 ## Ícone do app
 

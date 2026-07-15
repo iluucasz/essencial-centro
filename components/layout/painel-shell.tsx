@@ -21,11 +21,20 @@ import {
 
 import { MenuUsuario } from "@/modules/auth/components/menu-usuario";
 import type { PapelUsuario } from "@/modules/auth/rbac";
+import { WidgetAssistente } from "@/modules/assistente/components/widget-assistente";
+import type { PapelMensagemAssistente } from "@/modules/assistente/schema";
 
 type UsuarioShell = {
   name?: string | null;
   email?: string | null;
   role: PapelUsuario;
+};
+
+type MensagemHistoricoAssistente = {
+  id: string;
+  papel: PapelMensagemAssistente;
+  conteudo: string;
+  criadoEm: Date;
 };
 
 const itensNavegacao = [
@@ -141,7 +150,17 @@ function Sidebar({
   );
 }
 
-export function PainelShell({ children, usuario }: { children: ReactNode; usuario: UsuarioShell }) {
+export function PainelShell({
+  assistenteDisponivel = false,
+  children,
+  historicoAssistente = [],
+  usuario,
+}: {
+  assistenteDisponivel?: boolean;
+  children: ReactNode;
+  historicoAssistente?: MensagemHistoricoAssistente[];
+  usuario: UsuarioShell;
+}) {
   const pathname = usePathname();
   const [menuAberto, setMenuAberto] = useState(false);
   const [colapsada, setColapsada] = useState(false);
@@ -217,6 +236,13 @@ export function PainelShell({ children, usuario }: { children: ReactNode; usuari
 
         <main className="flex-1 px-4 py-4 md:px-6 md:py-6">{children}</main>
       </div>
+
+      {assistenteDisponivel ? (
+        <WidgetAssistente
+          historicoInicial={historicoAssistente}
+          nomeProfissional={usuario.name ?? "Profissional"}
+        />
+      ) : null}
     </div>
   );
 }

@@ -141,8 +141,23 @@ Fase 2 concluída — próximo passo é a Fase 3.
 
 ## Fase 3
 
-Biometria · integração com equipamentos · prescrição eletrônica (quando juridicamente aplicável) ·
-inteligência para comparação de evolução · integrações externas · publicação nas lojas.
+- ✅ Assistente de IA — `modules/assistente` (botão flutuante em todo `/painel/*`, restrito a
+  `profissional` — só aparece quando `GROQ_API_KEY` está configurada, senão fica oculto,
+  igual à degradação silenciosa já usada em e-mail/WhatsApp). Responde perguntas em linguagem
+  natural sobre dado já registrado em qualquer módulo (clientes, evolução, medidas, sessões,
+  medicamentos, financeiro, estoque, agenda, pacotes, documentos, relatórios) via tool-calling
+  (Groq + Vercel AI SDK, `openai/gpt-oss-120b`) sobre as próprias `queries.ts` já autorizadas —
+  nunca acesso cru ao banco, então a mesma checagem de role/posse que protege o painel inteiro
+  protege o assistente de graça. **Nunca sugere/calcula medicamento, dosagem ou interação** — só
+  relata o que a profissional já registrou manualmente (mesma regra de `modules/medicamentos`),
+  reforçado tanto no prompt do sistema quanto na ferramenta em si. Histórico simples por
+  profissional (`mensagem_assistente`, sem thread/conversa separada — escopo enxuto de propósito).
+  **Limitações conhecidas**: sem rate-limit/teto de custo de chamada à Groq nesta fase; contexto
+  enviado ao modelo é limitado às últimas 20 mensagens da conversa.
+
+Restante: biometria (autenticação de presença, ligada a integração de equipamento) · integração
+com equipamentos · prescrição eletrônica (quando juridicamente aplicável) · integrações externas ·
+publicação nas lojas.
 
 ## Ordem sugerida de construção (Fase 1)
 

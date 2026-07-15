@@ -67,7 +67,8 @@
   --color-muted: var(--muted);
   --color-border: var(--border);
 
-  --font-sans: var(--font-outfit);
+  --font-sans: var(--font-jakarta-sans);
+  --font-heading: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 
   --radius: 0.75rem;
@@ -76,6 +77,16 @@
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: var(--font-jakarta-sans), system-ui, sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-inter), var(--font-jakarta-sans), system-ui, sans-serif;
 }
 
 /**

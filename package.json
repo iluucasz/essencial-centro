@@ -29,11 +29,14 @@
     ]
   },
   "dependencies": {
+    "@ai-sdk/groq": "^4.0.11",
+    "@ai-sdk/react": "^4.0.32",
     "@auth/drizzle-adapter": "^1.11.2",
     "@heroui/react": "^3.2.2",
     "@hookform/resolvers": "^5.4.0",
     "@neondatabase/serverless": "^1.1.0",
     "@vercel/blob": "^2.6.1",
+    "ai": "^7.0.29",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
