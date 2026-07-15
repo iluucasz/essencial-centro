@@ -59,6 +59,13 @@ documento, em `/portal/documentos/[id]`) quanto pra profissional (`/painel/clien
   medicamentos) — só o que já está no corpo de uma notificação in-app comum. Igual ao Vercel Blob,
   é um processador terceirizado de dado pessoal — considerar no aviso de privacidade quando ele for
   escrito.
+- **Evolution API / Zeabur** (`modules/notificacoes/whatsapp.ts`, Fase 2) — instância própria do
+  cliente (self-hosted, não é serviço da Meta), mas ainda assim um terceiro que processa dado
+  pessoal: recebe telefone e o mesmo conteúdo de notificação enviado por e-mail, pra reforço via
+  WhatsApp. Mesma regra do Brevo — nunca recebe dado clínico, só o texto já usado no e-mail/in-app.
+  Roda sobre uma lib não-oficial (Baileys) por trás da Evolution API — o risco de ban do número do
+  WhatsApp discutido na Fase 2 do roadmap é do cliente, que optou por hospedar essa instância; a
+  aplicação em si só fala HTTP com ela.
 
 ## Segredos
 

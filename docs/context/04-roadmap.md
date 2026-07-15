@@ -110,19 +110,23 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
   (domínio ou remetente único) no painel da Brevo antes de enviar de verdade — sem isso, a Brevo
   rejeita a chamada mesmo com a chave certa.
 
-- ⚠️ Lembretes por WhatsApp — pesquisado, não implementado. Descartamos as libs não-oficiais
-  (Evolution API/Baileys/WPPConnect/whatsapp-web.js): todas exigem uma conexão persistente com o
-  WhatsApp Web, incompatível com Vercel serverless (funções efêmeras, sem processo contínuo) —
-  precisariam de uma VPS separada, peça de infra nova, mais risco de ban no número da clínica. A
-  API oficial (Cloud API da Meta) resolve isso — é só HTTP, encaixa igual à Brevo — mas não é mais
-  gratuita pra mensagem iniciada pela clínica (esse é sempre o nosso caso, lembrete não é resposta
-  dentro de uma janela de atendimento): ~R$0,04–0,05 por "utility template" entregue no Brasil
-  (custo real baixo pra uma clínica pequena, ~R$50/mês numa estimativa de 40 lembretes/dia — mas
-  não é grátis, e exige conta Meta Business verificada + número dedicado + templates pré-aprovados,
-  que só o cliente pode providenciar). Decisão do cliente: aguardando.
+- ✅ Lembretes por WhatsApp — `modules/notificacoes/whatsapp.ts` (Evolution API v2.3.7, self-hosted
+  pelo cliente na Zeabur — VPS Tencent Cloud São Paulo, instância "lucas"). Descartamos a Cloud API
+  oficial da Meta (deixou de ser gratuita pra mensagem iniciada pela clínica, ~R$0,04–0,05/utility
+  template) depois que o cliente decidiu hospedar a própria Evolution API — a preocupação original
+  com libs não-oficiais (Baileys por trás, risco de ban, exige processo persistente incompatível
+  com serverless) foi absorvida pelo próprio cliente ao escolher esse caminho; a aplicação só fala
+  HTTP com a instância já publicada, sem gerenciar a sessão do WhatsApp Web. `POST
+{EVOLUTION_API_URL}/message/sendText/{instance}` (header `apikey`, corpo `{ number, text }`) —
+  mesmo padrão "nunca lança, resultado estruturado, desativa sem as 3 env vars" já usado no e-mail
+  (`ResultadoEnvioCanal` compartilhado em `modules/notificacoes/tipos.ts`). Integrado como reforço
+  do `notificarCliente`: roda em paralelo ao e-mail via `Promise.all`, sempre que o cliente tem
+  telefone cadastrado; falha de WhatsApp nunca bloqueia o fluxo principal nem o e-mail. Normalização
+  de telefone assume DDI 55 (Brasil) e trata o caso do DDD 55 real (Santa Maria/RS) por tamanho do
+  número, não só prefixo. Diagnóstico manual (status da conexão + envio de teste) em
+  `/painel/configuracoes`, sempre `profissional`, nunca chamado em polling.
 
-Restante: atendimento domiciliar com rota · integração WhatsApp (ver acima — maior dependência
-externa, por último).
+Restante: atendimento domiciliar com rota.
 
 ## Fase 3
 

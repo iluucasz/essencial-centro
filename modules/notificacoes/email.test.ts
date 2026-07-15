@@ -19,7 +19,7 @@ describe("enviarEmailNotificacao", () => {
     delete process.env.BREVO_SENDER_EMAIL;
     const fetchMock = vi.spyOn(global, "fetch");
 
-    await enviarEmailNotificacao({
+    const resultado = await enviarEmailNotificacao({
       destinatarioEmail: "cliente@example.com",
       destinatarioNome: "Cliente",
       titulo: "Título",
@@ -27,6 +27,7 @@ describe("enviarEmailNotificacao", () => {
     });
 
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(resultado).toEqual({ attempted: false, sent: false, error: null });
   });
 
   it("envia pra API da Brevo com o corpo esperado quando configurada", async () => {
@@ -37,7 +38,7 @@ describe("enviarEmailNotificacao", () => {
       .spyOn(global, "fetch")
       .mockResolvedValue(new Response(JSON.stringify({ messageId: "123" }), { status: 201 }));
 
-    await enviarEmailNotificacao({
+    const resultado = await enviarEmailNotificacao({
       destinatarioEmail: "cliente@example.com",
       destinatarioNome: "Cliente",
       titulo: "Lembrete: atendimento amanhã",
@@ -56,21 +57,42 @@ describe("enviarEmailNotificacao", () => {
     expect(corpo.to).toEqual([{ email: "cliente@example.com", name: "Cliente" }]);
     expect(corpo.subject).toBe("Lembrete: atendimento amanhã");
     expect(corpo.htmlContent).toContain("/portal/agendamentos");
+    expect(resultado).toEqual({ attempted: true, sent: true, error: null });
   });
 
-  it("não lança quando a chamada falha — só registra o erro", async () => {
+  it("retorna erro estruturado quando a Brevo responde com falha, sem lançar", async () => {
+    process.env.BREVO_API_KEY = "chave-teste";
+    process.env.BREVO_SENDER_EMAIL = "contato@essencialcentro.com";
+    vi.spyOn(global, "fetch").mockResolvedValue(new Response("Unauthorized", { status: 401 }));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const resultado = await enviarEmailNotificacao({
+      destinatarioEmail: "cliente@example.com",
+      destinatarioNome: "Cliente",
+      titulo: "Título",
+      mensagem: "Mensagem",
+    });
+
+    expect(resultado).toEqual({ attempted: true, sent: false, error: "Brevo respondeu 401." });
+  });
+
+  it("não lança quando a chamada falha — retorna erro estruturado", async () => {
     process.env.BREVO_API_KEY = "chave-teste";
     process.env.BREVO_SENDER_EMAIL = "contato@essencialcentro.com";
     vi.spyOn(global, "fetch").mockRejectedValue(new Error("rede indisponível"));
     vi.spyOn(console, "error").mockImplementation(() => {});
 
-    await expect(
-      enviarEmailNotificacao({
-        destinatarioEmail: "cliente@example.com",
-        destinatarioNome: "Cliente",
-        titulo: "Título",
-        mensagem: "Mensagem",
-      }),
-    ).resolves.toBeUndefined();
+    const resultado = await enviarEmailNotificacao({
+      destinatarioEmail: "cliente@example.com",
+      destinatarioNome: "Cliente",
+      titulo: "Título",
+      mensagem: "Mensagem",
+    });
+
+    expect(resultado).toEqual({
+      attempted: true,
+      sent: false,
+      error: "Erro ao chamar a API da Brevo.",
+    });
   });
 });
