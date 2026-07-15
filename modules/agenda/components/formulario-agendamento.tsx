@@ -4,6 +4,7 @@ import { useActionState, useEffect } from "react";
 import { CalendarPlus, LoaderCircle } from "lucide-react";
 
 import { criarAgendamento, type EstadoFormularioAgendamento } from "@/modules/agenda/actions";
+import { modalidadeAtendimento, rotulosModalidadeAtendimento } from "@/modules/agenda/schema";
 import { useFecharModal } from "@/components/ui/modal-formulario";
 
 const estadoInicial: EstadoFormularioAgendamento = { status: "inicial" };
@@ -176,6 +177,24 @@ export function FormularioAgendamento({
           required
           type="number"
         />
+      </div>
+
+      <div className="grid gap-2">
+        <label className="text-sm font-medium text-foreground" htmlFor="modalidade">
+          Modalidade
+        </label>
+        <select
+          className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
+          defaultValue="presencial"
+          id="modalidade"
+          name="modalidade"
+        >
+          {modalidadeAtendimento.map((valor) => (
+            <option key={valor} value={valor}>
+              {rotulosModalidadeAtendimento[valor]}
+            </option>
+          ))}
+        </select>
       </div>
 
       <CampoTexto error={state?.campos?.observacoes} label="Observações" name="observacoes" />

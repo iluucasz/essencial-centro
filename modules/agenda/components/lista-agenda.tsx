@@ -1,15 +1,20 @@
 import Link from "next/link";
-import { CalendarClock, Check, QrCode, UserX, X } from "lucide-react";
+import { CalendarClock, Check, Home, QrCode, UserX, X } from "lucide-react";
 
 import { atualizarStatusAgendamento } from "@/modules/agenda/actions";
 import { podeConfirmarPresenca } from "@/modules/agenda/checkin";
-import { rotulosStatusAgendamento, type StatusAgendamento } from "@/modules/agenda/schema";
+import {
+  type ModalidadeAtendimento,
+  type StatusAgendamento,
+  rotulosStatusAgendamento,
+} from "@/modules/agenda/schema";
 
 type AgendamentoResumo = {
   id: string;
   inicio: Date;
   duracaoMinutos: number;
   status: StatusAgendamento;
+  modalidade: ModalidadeAtendimento;
   observacoes: string | null;
   checkinEm: Date | null;
   clienteNome: string;
@@ -94,6 +99,13 @@ export function ListaAgenda({ agendamentos }: { agendamentos: AgendamentoResumo[
               >
                 {rotulosStatusAgendamento[agendamento.status]}
               </span>
+
+              {agendamento.modalidade === "domiciliar" ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-dourado/20 px-2.5 py-1 text-xs font-medium text-dourado">
+                  <Home className="size-3" aria-hidden="true" />
+                  Domiciliar
+                </span>
+              ) : null}
 
               {agendamento.checkinEm ? (
                 <span className="text-xs font-medium text-muted">

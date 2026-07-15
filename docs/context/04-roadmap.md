@@ -126,7 +126,18 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
   número, não só prefixo. Diagnóstico manual (status da conexão + envio de teste) em
   `/painel/configuracoes`, sempre `profissional`, nunca chamado em polling.
 
-Restante: atendimento domiciliar com rota.
+- ✅ Atendimento domiciliar com rota — coluna `modalidade` (`presencial`/`domiciliar`) em
+  `agendamento` (`modules/agenda/schema.ts`), escolhida no mesmo formulário de agendamento, sem
+  tabela nova. Reusa `cliente.endereco` (já existente desde a Fase 1) em vez de duplicar endereço
+  por atendimento — quem faz atendimento domiciliar em endereço diferente do cadastro atualiza o
+  cadastro do cliente. Seção "Rota domiciliar do dia" em `/painel/agenda` lista, na ordem dos
+  horários, todo atendimento `domiciliar` ainda `marcado` no dia visto, com um link "Abrir rota no
+  Google Maps" (`modules/agenda/rota.ts`, `construirLinkRotaGoogleMaps`) — deep link multi-parada
+  (`maps/dir/?api=1&destination=...&waypoints=...`) sem chave de API nem dependência nova, mesma
+  lógica de "evitar polvo tecnológico" já aplicada no resto do projeto. Paradas sem endereço
+  cadastrado aparecem na lista com aviso, mas não entram no link da rota.
+
+Fase 2 concluída — próximo passo é a Fase 3.
 
 ## Fase 3
 

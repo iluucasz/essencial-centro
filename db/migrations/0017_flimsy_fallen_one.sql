@@ -1,0 +1,2 @@
+CREATE TYPE "public"."modalidade_atendimento" AS ENUM('presencial', 'domiciliar');--> statement-breakpoint
+ALTER TABLE "agendamento" ADD COLUMN "modalidade" "modalidade_atendimento" DEFAULT 'presencial' NOT NULL;

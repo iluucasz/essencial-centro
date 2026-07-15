@@ -4,7 +4,8 @@ import { ModalFormulario } from "@/components/ui/modal-formulario";
 import { listarProfissionaisAtivos } from "@/modules/auth/queries";
 import { FormularioAgendamento } from "@/modules/agenda/components/formulario-agendamento";
 import { ListaAgenda } from "@/modules/agenda/components/lista-agenda";
-import { listarAgendamentosDoDia } from "@/modules/agenda/queries";
+import { RotaDomiciliar } from "@/modules/agenda/components/rota-domiciliar";
+import { listarAgendamentosDoDia, listarParadasDomiciliaresDoDia } from "@/modules/agenda/queries";
 import { listarClientes } from "@/modules/clientes/queries";
 import { listarPacotesParaSelecao } from "@/modules/pacotes/queries";
 import { listarServicos } from "@/modules/servicos/queries";
@@ -29,13 +30,15 @@ export default async function AgendaPage({
   const { data: dataParam } = await searchParams;
   const data = parseData(dataParam);
 
-  const [agendamentos, clientes, servicos, profissionais, pacotes] = await Promise.all([
-    listarAgendamentosDoDia(data),
-    listarClientes(),
-    listarServicos(),
-    listarProfissionaisAtivos(),
-    listarPacotesParaSelecao(),
-  ]);
+  const [agendamentos, paradasDomiciliares, clientes, servicos, profissionais, pacotes] =
+    await Promise.all([
+      listarAgendamentosDoDia(data),
+      listarParadasDomiciliaresDoDia(data),
+      listarClientes(),
+      listarServicos(),
+      listarProfissionaisAtivos(),
+      listarPacotesParaSelecao(),
+    ]);
 
   return (
     <div className="grid gap-8">
@@ -69,6 +72,8 @@ export default async function AgendaPage({
           </button>
         </form>
       </header>
+
+      <RotaDomiciliar paradas={paradasDomiciliares} />
 
       <section className="grid gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">

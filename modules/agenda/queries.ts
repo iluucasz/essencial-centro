@@ -24,6 +24,7 @@ const colunasAgendamento = {
   inicio: agendamento.inicio,
   duracaoMinutos: agendamento.duracaoMinutos,
   status: agendamento.status,
+  modalidade: agendamento.modalidade,
   observacoes: agendamento.observacoes,
   checkinEm: agendamento.checkinEm,
   clienteNome: cliente.nome,
@@ -57,6 +58,35 @@ export async function listarAgendamentosDoDia(data: Date) {
     .innerJoin(servico, eq(servico.id, agendamento.servicoId))
     .innerJoin(usuario, eq(usuario.id, agendamento.profissionalId))
     .where(and(gte(agendamento.inicio, inicioDoDia), lt(agendamento.inicio, inicioDoDiaSeguinte)))
+    .orderBy(asc(agendamento.inicio));
+}
+
+/**
+ * Usado pela "Rota domiciliar do dia" — só os atendimentos marcados como `domiciliar` e ainda
+ * `marcado` (sem faltas/cancelados), com o endereço do cliente, na ordem dos horários.
+ */
+export async function listarParadasDomiciliaresDoDia(data: Date) {
+  autorizarPapel(await auth(), ["profissional", "recepcao"]);
+
+  const { inicioDoDia, inicioDoDiaSeguinte } = limitesDoDia(data);
+
+  return db
+    .select({
+      id: agendamento.id,
+      inicio: agendamento.inicio,
+      clienteNome: cliente.nome,
+      endereco: cliente.endereco,
+    })
+    .from(agendamento)
+    .innerJoin(cliente, eq(cliente.id, agendamento.clienteId))
+    .where(
+      and(
+        gte(agendamento.inicio, inicioDoDia),
+        lt(agendamento.inicio, inicioDoDiaSeguinte),
+        eq(agendamento.modalidade, "domiciliar"),
+        eq(agendamento.status, "marcado"),
+      ),
+    )
     .orderBy(asc(agendamento.inicio));
 }
 

@@ -20,6 +20,17 @@ export const rotulosStatusAgendamento: Record<StatusAgendamento, string> = {
   cancelado: "Cancelado",
 };
 
+export const modalidadeAtendimento = ["presencial", "domiciliar"] as const;
+
+export type ModalidadeAtendimento = (typeof modalidadeAtendimento)[number];
+
+export const modalidadeAtendimentoEnum = pgEnum("modalidade_atendimento", modalidadeAtendimento);
+
+export const rotulosModalidadeAtendimento: Record<ModalidadeAtendimento, string> = {
+  presencial: "Presencial",
+  domiciliar: "Domiciliar",
+};
+
 export const agendamento = pgTable("agendamento", {
   id: uuid("id").defaultRandom().primaryKey(),
   clienteId: uuid("cliente_id")
@@ -36,6 +47,7 @@ export const agendamento = pgTable("agendamento", {
   inicio: timestamp("inicio", { mode: "date" }).notNull(),
   duracaoMinutos: integer("duracao_minutos").notNull(),
   status: statusAgendamentoEnum("status").notNull().default("marcado"),
+  modalidade: modalidadeAtendimentoEnum("modalidade").notNull().default("presencial"),
   observacoes: text("observacoes"),
   checkinEm: timestamp("checkin_em", { mode: "date" }),
   /** Marca quando cada lembrete baseado em tempo foi disparado — evita duplicar a cada execução do cron. */
@@ -81,6 +93,7 @@ export const criarAgendamentoSchema = z.object({
     .int()
     .min(5, "A duração mínima é de 5 minutos.")
     .max(480, "A duração máxima é de 8 horas."),
+  modalidade: z.enum(modalidadeAtendimento).default("presencial"),
   observacoes: observacoesOpcional,
 });
 
