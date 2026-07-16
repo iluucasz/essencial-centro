@@ -28,6 +28,7 @@ import {
   reshapeResumoEvolucao,
   reshapeSessao,
 } from "./reshape";
+import { buscarClientesInputSchema } from "./tool-schemas";
 
 const dataAAAAMMDDSchema = z
   .string()
@@ -58,15 +59,7 @@ const buscarClientesTool = tool({
     "Busca clientes cadastrados pelo nome ou e-mail para descobrir o clienteId antes de chamar " +
     "qualquer outra ferramenta que peça um cliente. Sempre use esta ferramenta primeiro quando o " +
     "usuário mencionar um cliente pelo nome — nunca invente um ID.",
-  inputSchema: z.object({
-    busca: z
-      .string()
-      .trim()
-      .min(1)
-      .max(100)
-      .optional()
-      .describe("Nome ou parte do nome/e-mail. Vazio lista os clientes cadastrados mais recentes."),
-  }),
+  inputSchema: buscarClientesInputSchema,
   execute: async ({ busca }) => {
     try {
       const clientes = await listarClientes(busca);

@@ -1,12 +1,8 @@
-import { groq } from "@ai-sdk/groq";
-import { generateObject } from "ai";
-import { z } from "zod";
+type ClienteParaSugestao = {
+  nome: string;
+};
 
-import { MODELO_GROQ_PADRAO } from "./config";
-
-const sugestoesSchema = z.object({
-  sugestoes: z.array(z.string().trim().min(1).max(120)).min(2).max(4),
-});
+const LIMITE_SUGESTOES = 4;
 
 /**
  * Quando a resposta do assistente termina em "?", ele mesmo está pedindo uma informação (ex.:
@@ -16,6 +12,25 @@ const sugestoesSchema = z.object({
  */
 export function respostaEhPergunta(resposta: string) {
   return resposta.trim().endsWith("?");
+}
+
+function normalizarTexto(texto: string) {
+  return texto
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+}
+
+export function respostaPedeNomeCliente(resposta: string) {
+  const texto = normalizarTexto(resposta);
+
+  return (
+    texto.includes("qual cliente") ||
+    texto.includes("informe o nome") ||
+    texto.includes("nome ou parte do nome") ||
+    (texto.includes("preciso do nome") && texto.includes("cliente")) ||
+    (texto.includes("gostaria de ver") && texto.includes("cliente"))
+  );
 }
 
 const PALAVRAS_NEGACAO = ["não consigo", "não posso", "não tenho acesso"];
@@ -45,53 +60,86 @@ export function respostaEhRecusaDeEscrita(resposta: string) {
   );
 }
 
+function sugestoesDeClientes(clientes: ClienteParaSugestao[]) {
+  return clientes
+    .map((cliente) => cliente.nome.trim())
+    .filter(Boolean)
+    .slice(0, LIMITE_SUGESTOES);
+}
+
+function sugestoesDeterministicas(pergunta: string, resposta: string) {
+  const texto = normalizarTexto(`${pergunta}\n${resposta}`);
+
+  if (texto.includes("agenda") || texto.includes("atendimento")) {
+    return [
+      "Quantos atendimentos tenho hoje?",
+      "Quais atendimentos estão pendentes?",
+      "Mostre a agenda desta semana",
+    ];
+  }
+
+  if (texto.includes("financeiro") || texto.includes("saldo") || texto.includes("lancamento")) {
+    return [
+      "Qual o saldo financeiro deste mês?",
+      "Quais receitas entraram este mês?",
+      "Quais lançamentos estão pendentes?",
+    ];
+  }
+
+  if (texto.includes("estoque") || texto.includes("produto")) {
+    return [
+      "Quais produtos estão com estoque baixo?",
+      "Mostre o estoque disponível",
+      "Quais produtos precisam de atenção?",
+    ];
+  }
+
+  if (
+    texto.includes("cliente") ||
+    texto.includes("evolucao") ||
+    texto.includes("sessao") ||
+    texto.includes("pacote") ||
+    texto.includes("documento") ||
+    texto.includes("medicamento")
+  ) {
+    return [
+      "Mostre as sessões recentes dessa cliente",
+      "Quais pacotes ativos ela tem?",
+      "Quais medicamentos estão registrados?",
+    ];
+  }
+
+  return [
+    "Quantos atendimentos tenho hoje?",
+    "Qual o saldo financeiro deste mês?",
+    "Quais produtos estão com estoque baixo?",
+  ];
+}
+
 /**
- * Chamada separada e determinística (generateObject, saída estruturada) pra gerar as próximas
- * perguntas — não depende do modelo principal lembrar de chamar uma tool: na prática ele às vezes
- * escrevia as sugestões como texto solto dentro da própria resposta em vez de estruturado, o que
- * aparecia sem formatação nenhuma pra profissional. Nunca lança: se falhar, a conversa continua
- * normalmente, só sem chips nesse turno.
+ * Sugestões de próxima mensagem para chips do widget. Elas são determinísticas de propósito: os
+ * chips nunca podem inventar clientes, então nomes só aparecem quando vierem do banco via
+ * buscarClientesParaSugestao.
  */
 export async function gerarSugestoesAssistente({
+  buscarClientesParaSugestao,
   pergunta,
   resposta,
 }: {
+  buscarClientesParaSugestao?: () => Promise<ClienteParaSugestao[]>;
   pergunta: string;
   resposta: string;
 }): Promise<string[]> {
-  if (respostaEhPergunta(resposta) || respostaEhRecusaDeEscrita(resposta)) return [];
-
   try {
-    const { object } = await generateObject({
-      model: groq(MODELO_GROQ_PADRAO),
-      schema: sugestoesSchema,
-      instructions:
-        "Você gera sugestões de próxima mensagem para uma profissional que está conversando com " +
-        "um assistente de dados SOMENTE LEITURA de uma clínica. As sugestões são frases curtas que " +
-        "a PRÓPRIA PROFISSIONAL enviaria ao assistente — nunca perguntas feitas a ela, nunca " +
-        "repetição do que o assistente acabou de perguntar.\n\n" +
-        "O assistente só consulta dado já registrado (clientes, evolução, sessões, medicamentos já " +
-        "registrados, financeiro, estoque, agenda, pacotes, documentos, relatórios) — ele NUNCA " +
-        "agenda, cria, edita, apaga nem avisa quando algo for concluído. Por isso as sugestões " +
-        "devem ser SEMPRE perguntas de consulta que o assistente pode responder agora — NUNCA um " +
-        'pedido de ação de escrita, NUNCA uma frase como "vou fazer X agora" ou "me avise quando ' +
-        'terminar".\n\n' +
-        'Exemplo 1:\nPergunta da profissional: "busca aí um cliente"\nResposta do assistente: ' +
-        '"Para buscar o cliente preciso do nome (ou parte dele) ou do e-mail."\nSugestões ' +
-        'corretas: ["Busque por Thalia", "O e-mail é thalia@exemplo.com"]\nSugestões erradas ' +
-        '(nunca faça isso): ["Qual o nome completo do cliente?", "Você lembra o e-mail?"] — são ' +
-        "perguntas repetindo o que o assistente já perguntou, não respostas da profissional.\n\n" +
-        'Exemplo 2:\nPergunta da profissional: "registre que a cliente não tem alergias"\n' +
-        'Resposta do assistente: "Não consigo registrar isso — inclua essa observação na tela de ' +
-        'edição do cadastro no painel."\nSugestões corretas: ["Quais medicamentos já estão ' +
-        'registrados para ela?", "Mostre a evolução de tratamento dela", "Quais são os pacotes ' +
-        'ativos dela?"]\nSugestões erradas (nunca faça isso): ["Vou atualizar o cadastro agora", ' +
-        '"Me avise quando a atualização terminar", "Como faço pra editar o campo?"] — nenhuma ' +
-        "dessas é uma pergunta de consulta que o assistente consegue responder.",
-      prompt: `Pergunta da profissional: ${pergunta}\n\nResposta do assistente: ${resposta}`,
-    });
+    if (respostaPedeNomeCliente(resposta)) {
+      const clientes = buscarClientesParaSugestao ? await buscarClientesParaSugestao() : [];
 
-    return object.sugestoes;
+      return sugestoesDeClientes(clientes);
+    }
+
+    if (respostaEhPergunta(resposta) || respostaEhRecusaDeEscrita(resposta)) return [];
+
+    return sugestoesDeterministicas(pergunta, resposta).slice(0, LIMITE_SUGESTOES);
   } catch (erro) {
     console.error("Erro ao gerar sugestões do assistente:", erro);
     return [];

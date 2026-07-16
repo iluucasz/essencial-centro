@@ -42,6 +42,29 @@ describe("montarPromptSistema", () => {
     expect(prompt).toContain("Nunca invente uma url");
   });
 
+  it("instrui a consultar clientes quando a pergunta fala de um cliente sem nome", () => {
+    const prompt = montarPromptSistema({
+      dataAtual: new Date("2026-07-15T12:00:00.000Z"),
+      nomeProfissional: "Ana Souza",
+    });
+
+    expect(prompt).toContain("chame buscar_clientes sem busca");
+    expect(prompt).toContain("Exatamente 1 cliente cadastrado");
+    expect(prompt).toContain("Nunca mostre nomes fictícios");
+  });
+
+  it("descreve a navegação real de medicamentos sem inventar menu de pacientes", () => {
+    const prompt = montarPromptSistema({
+      dataAtual: new Date("2026-07-15T12:00:00.000Z"),
+      nomeProfissional: "Ana Souza",
+    });
+
+    expect(prompt).toContain('Nunca chame o item "Clientes" de "Pacientes"');
+    expect(prompt).toContain("não é um item do menu lateral");
+    expect(prompt).toContain("Medicamentos informados e alertas de segurança");
+    expect(prompt).toContain("menu Clientes");
+  });
+
   it("proíbe a IA de escrever a lista de próximas perguntas dentro da resposta", () => {
     const prompt = montarPromptSistema({
       dataAtual: new Date("2026-07-15T12:00:00.000Z"),
@@ -49,5 +72,6 @@ describe("montarPromptSistema", () => {
     });
 
     expect(prompt).toContain("Nunca termine a resposta com uma lista");
+    expect(prompt).toContain("não termine com frases genéricas de disponibilidade");
   });
 });

@@ -25,6 +25,30 @@ describe("analisarMarkdownSimples", () => {
     ]);
   });
 
+  it("reconhece link mesmo com espaços acidentais em volta da url", () => {
+    expect(analisarMarkdownSimples("Veja [Thalia Eluan] ( /painel/clientes/abc-123 ).")).toEqual([
+      { tipo: "texto", conteudo: "Veja " },
+      { tipo: "link", texto: "Thalia Eluan", url: "/painel/clientes/abc-123" },
+      { tipo: "texto", conteudo: "." },
+    ]);
+  });
+
+  it("reconhece link mesmo quando o modelo coloca negrito em volta", () => {
+    expect(analisarMarkdownSimples("Veja **[Thalia Eluan](/painel/clientes/abc-123)**.")).toEqual([
+      { tipo: "texto", conteudo: "Veja " },
+      { tipo: "link", texto: "Thalia Eluan", url: "/painel/clientes/abc-123" },
+      { tipo: "texto", conteudo: "." },
+    ]);
+  });
+
+  it("remove negrito acidental dentro do texto do link", () => {
+    expect(analisarMarkdownSimples("Veja [**Thalia Eluan**](/painel/clientes/abc-123).")).toEqual([
+      { tipo: "texto", conteudo: "Veja " },
+      { tipo: "link", texto: "Thalia Eluan", url: "/painel/clientes/abc-123" },
+      { tipo: "texto", conteudo: "." },
+    ]);
+  });
+
   it("reconhece negrito e link misturados", () => {
     const saida = analisarMarkdownSimples(
       "**Atenção**: fale com [Thalia Eluan](/painel/clientes/abc-123) hoje.",

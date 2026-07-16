@@ -11,6 +11,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
 import { ErroAutorizacao, autorizarPapel } from "@/modules/auth/rbac";
+import { listarClientes } from "@/modules/clientes/queries";
 import { salvarMensagemAssistente } from "@/modules/assistente/actions";
 import {
   LIMITE_MENSAGENS_CONTEXTO,
@@ -97,6 +98,11 @@ export async function POST(request: Request) {
       await salvarMensagemAssistente("assistente", textoResposta);
 
       const sugestoes = await gerarSugestoesAssistente({
+        buscarClientesParaSugestao: async () => {
+          const clientes = await listarClientes();
+
+          return clientes.slice(0, 4).map((cliente) => ({ nome: cliente.nome }));
+        },
         pergunta: textoUsuario,
         resposta: textoResposta,
       });
