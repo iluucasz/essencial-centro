@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   FilePlus2,
+  Fingerprint,
   FileText,
   ImagePlus,
   NotebookPen,
@@ -14,6 +15,10 @@ import {
 import { ModalFormulario } from "@/components/ui/modal-formulario";
 import { listarAgendamentosDoCliente } from "@/modules/agenda/queries";
 import { exigirUsuarioAtual } from "@/modules/auth/queries";
+import { ListaBiometrias } from "@/modules/biometria/components/lista-biometrias";
+import { FormularioGerarCodigo } from "@/modules/biometria/components/formulario-gerar-codigo";
+import { listarBiometriasDoCliente } from "@/modules/biometria/queries";
+import { registrarConsentimentoBiometria } from "@/modules/clientes/actions";
 import { getCliente } from "@/modules/clientes/queries";
 import { FormularioDocumento } from "@/modules/documentos/components/formulario-documento";
 import { ListaDocumentos } from "@/modules/documentos/components/lista-documentos";
@@ -63,7 +68,11 @@ function LinhaInfo({ label, valor }: { label: string; valor?: Date | string | bo
 export default async function ClienteDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const usuario = await exigirUsuarioAtual(["profissional", "recepcao"]);
-  const [cliente, fichas] = await Promise.all([getCliente(id), listarFichasDoCliente(id)]);
+  const [cliente, fichas, biometrias] = await Promise.all([
+    getCliente(id),
+    listarFichasDoCliente(id),
+    listarBiometriasDoCliente(id),
+  ]);
 
   if (!cliente) {
     notFound();
@@ -144,6 +153,7 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
         <LinhaInfo label="Contraindicações" valor={cliente.contraindicacoes} />
         <LinhaInfo label="Consentimento de dados" valor={cliente.consentimentoDados} />
         <LinhaInfo label="Consentimento de imagem" valor={cliente.consentimentoImagem} />
+        <LinhaInfo label="Consentimento de biometria" valor={cliente.consentimentoBiometria} />
         <LinhaInfo label="Observações internas" valor={observacoesInternas} />
       </dl>
 
@@ -167,6 +177,34 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
           ) : null}
         </div>
         <ListaFichas fichas={fichas} />
+      </section>
+
+      <section className="grid gap-4">
+        <h2 className="text-lg font-semibold text-foreground">Biometria</h2>
+
+        {!cliente.consentimentoBiometria ? (
+          <form action={registrarConsentimentoBiometria} className="flex flex-wrap gap-3">
+            <input name="clienteId" type="hidden" value={id} />
+            <input name="consentimento" type="hidden" value="true" />
+            <button
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-roxo transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+              type="submit"
+            >
+              <Fingerprint className="size-4" aria-hidden="true" />
+              Registrar consentimento de biometria
+            </button>
+          </form>
+        ) : (
+          <ModalFormulario
+            icone={<Fingerprint className="size-4" aria-hidden />}
+            rotuloBotao="Gerar código de cadastro"
+            titulo="Cadastro de digital"
+          >
+            <FormularioGerarCodigo clienteId={id} />
+          </ModalFormulario>
+        )}
+
+        <ListaBiometrias biometrias={biometrias} clienteId={id} />
       </section>
 
       {dadosSessoes ? (

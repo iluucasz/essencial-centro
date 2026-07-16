@@ -42,6 +42,9 @@ export const cliente = pgTable(
     contraindicacoes: text("contraindicacoes"),
     consentimentoDados: boolean("consentimento_dados").notNull().default(false),
     consentimentoImagem: boolean("consentimento_imagem").notNull().default(false),
+    /** Opt-in separado — biometria nunca é condição de atendimento (ver modules/biometria). */
+    consentimentoBiometria: boolean("consentimento_biometria").notNull().default(false),
+    consentimentoBiometriaEm: timestamp("consentimento_biometria_em", { mode: "date" }),
     observacoesInternas: text("observacoes_internas"),
     criadoPorId: uuid("criado_por_id")
       .notNull()

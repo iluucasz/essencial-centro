@@ -155,9 +155,22 @@ Fase 2 concluída — próximo passo é a Fase 3.
   **Limitações conhecidas**: sem rate-limit/teto de custo de chamada à Groq nesta fase; contexto
   enviado ao modelo é limitado às últimas 20 mensagens da conversa.
 
-Restante: biometria (autenticação de presença, ligada a integração de equipamento) · integração
-com equipamentos · prescrição eletrônica (quando juridicamente aplicável) · integrações externas ·
-publicação nas lojas.
+- ✅ Check-in por biometria (impressão digital) — `modules/biometria`, **lado Next.js/web** desta
+  fase (schema, queries, actions, rotas de API pra ponte física em `app/api/biometria/*`, seção
+  "Biometria" em `/painel/clientes/[id]`). Alternativa ao QR Code da Fase 2
+  (`modules/agenda/checkin.ts`), nunca substitui — mesma coluna `agendamento.checkinEm`, mesmo RBAC
+  (`profissional`/`recepcao`). Identificação 1:N restrita a quem tem atendimento marcado hoje; toda
+  tentativa auditada (`tentativa_identificacao_biometrica`); índice único parcial impede cadastros
+  ativos duplicados por dedo; ponte nunca recebe credencial de banco, só um segredo próprio
+  (`BIOMETRIA_BRIDGE_SECRET`, mesmo padrão do `CRON_SECRET`) — ver `06-lgpd-seguranca.md`.
+  **Pendência real**: a ponte física (app desktop C#/.NET que fala com o leitor Futronic) é
+  responsabilidade separada do usuário, reaproveitando parte de um app de referência não
+  relacionado — não foi implementada nem testada nesta sessão (sem leitor físico neste ambiente); só
+  o lado servidor/web está pronto, testado (`pnpm check` verde) e verificado por curl contra o Neon
+  real, cobrindo os 7 resultados possíveis de uma identificação.
+
+Restante: integração com equipamentos (ponte física do leitor biométrico incluída) · prescrição
+eletrônica (quando juridicamente aplicável) · integrações externas · publicação nas lojas.
 
 ## Ordem sugerida de construção (Fase 1)
 

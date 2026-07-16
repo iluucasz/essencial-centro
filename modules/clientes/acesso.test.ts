@@ -23,6 +23,8 @@ const clienteBase: Cliente = {
   contraindicacoes: null,
   consentimentoDados: true,
   consentimentoImagem: false,
+  consentimentoBiometria: false,
+  consentimentoBiometriaEm: null,
   observacoesInternas: "Anotação clínica interna",
   criadoPorId: "22222222-2222-4222-8222-222222222222",
   atualizadoPorId: "22222222-2222-4222-8222-222222222222",

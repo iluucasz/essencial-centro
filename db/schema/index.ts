@@ -21,3 +21,4 @@ export * from "../../modules/documentos/schema";
 export * from "../../modules/estoque/schema";
 export * from "../../modules/medicamentos/schema";
 export * from "../../modules/assistente/schema";
+export * from "../../modules/biometria/schema";

@@ -92,4 +92,30 @@ Repositório está público — **não** commitar dados reais de pacientes nem d
   entre medicamentos. Alerta sempre exige validação de profissional habilitado — `criarMedicamentoInformado`
   (registro) e `confirmarVerificacaoMedicamento` (conferência) são duas ações deliberadamente
   separadas, nunca uma confirmação automática no ato de informar. Restrito a `profissional`.
-- **Biometria**: adiada (Fase 3) por custo/risco; presença via botão/PIN/QR Code no MVP.
+- **Biometria**: check-in por impressão digital (Fase 3, `modules/biometria`) — alternativa ao QR
+  Code, nunca substitui: o cliente pode ser confirmado por QR Code a qualquer momento, mesmo com
+  biometria cadastrada. Só o **template extraído** (binário proprietário do SDK do leitor) é
+  persistido — a imagem crua do dedo nunca é gravada em banco, só existe em memória na ponte física
+  durante a captura, mesmo padrão de "nunca guardar o bruto" já usado em `modules/documentos`
+  (assinatura) e `modules/fotos` (Blob). Identificação 1:N é **restrita aos clientes com
+  agendamento `marcado` de hoje** (nunca a base inteira) — a lição principal de um app de referência
+  de outra organização (sistema de presença por biometria, estudado antes de desenhar este módulo):
+  quanto maior o grupo de candidatos numa busca 1:N, maior o risco composto de falso aceite. Um
+  índice único parcial (`biometria_cliente_ativo_unique`, em `cliente_id + dedo` onde
+  `ativo = true`) impede acúmulo de cadastros ativos duplicados — bug real do app de referência
+  (cadastros chegando a 7 registros ativos simultâneos pro mesmo dedo/pessoa). Toda tentativa de
+  identificação é registrada (`tentativa_identificacao_biometrica`) — sucesso, rejeição ou sem
+  correspondência — com FAR, qualidade e o template envolvido; essa trilha faltava completamente no
+  app de referência, o que inviabilizou lá uma investigação forense real de um possível falso
+  positivo. Duas melhorias de segurança em relação a ele: (1) qualidade da captura é **exigida no
+  cadastro** (o app de referência capturava mas nunca rejeitava com base nisso, então cadastros
+  ruins sempre eram salvos); (2) checagem de **ambiguidade** entre o 1º e 2º colocado do
+  `FTRIdentify` (o app de referência só olhava o candidato de índice 0). A ponte física (app desktop
+  C#/.NET, fora deste repositório — leitor Futronic é hardware x86/Win32) nunca recebe credencial de
+  banco: fala só HTTP com `app/api/biometria/*`, autenticada por um segredo próprio
+  (`BIOMETRIA_BRIDGE_SECRET`, mesmo padrão do `CRON_SECRET`). A ponte é tratada como **relatora não
+  confiável** — toda tentativa que ela reporta é revalidada no servidor (existência/posse do
+  cadastro, FAR/qualidade/ambiguidade contra limiares próprios) antes de gravar
+  `agendamento.checkinEm`. Exige consentimento específico (`cliente.consentimentoBiometria`)
+  registrado antes de qualquer cadastro. Restrito a `profissional`/`recepcao`, igual ao check-in por
+  QR Code.

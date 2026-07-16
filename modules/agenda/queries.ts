@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lt, lte, ne } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, lt, lte, ne } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -88,6 +88,28 @@ export async function listarParadasDomiciliaresDoDia(data: Date) {
       ),
     )
     .orderBy(asc(agendamento.inicio));
+}
+
+/**
+ * Usado pela ponte de biometria (modules/biometria) — quem tem atendimento marcado hoje e ainda
+ * não fez check-in. Espelha em SQL o predicado exato de podeConfirmarPresenca (checkin.ts) — se
+ * essa regra mudar, esta query precisa mudar junto. Sem checagem de role própria: quem chama já
+ * validou o segredo da ponte (BIOMETRIA_BRIDGE_SECRET) na própria rota da API.
+ */
+export async function listarClientesComAgendamentoPendenteHoje() {
+  const { inicioDoDia, inicioDoDiaSeguinte } = limitesDoDia(new Date());
+
+  return db
+    .select({ clienteId: agendamento.clienteId })
+    .from(agendamento)
+    .where(
+      and(
+        eq(agendamento.status, "marcado"),
+        isNull(agendamento.checkinEm),
+        gte(agendamento.inicio, inicioDoDia),
+        lt(agendamento.inicio, inicioDoDiaSeguinte),
+      ),
+    );
 }
 
 /** Usado pelos relatórios — agregado por período, sem os dados de contato do cliente. */

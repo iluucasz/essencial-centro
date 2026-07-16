@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { eq } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -82,4 +83,25 @@ export async function criarCliente(_: EstadoFormularioCliente = estadoInicial, f
     status: "sucesso",
     mensagem: "Cliente cadastrado com sucesso.",
   } satisfies EstadoFormularioCliente;
+}
+
+/** Opt-in separado do cadastro — biometria exige presença física, cadastro de cliente não. */
+export async function registrarConsentimentoBiometria(formData: FormData) {
+  const usuarioAtual = autorizarPapel(await auth(), ["profissional", "recepcao"]);
+
+  const clienteId = getValor(formData, "clienteId");
+  const consentimento = getValor(formData, "consentimento") === "true";
+  if (typeof clienteId !== "string") return;
+
+  await db
+    .update(cliente)
+    .set({
+      consentimentoBiometria: consentimento,
+      consentimentoBiometriaEm: consentimento ? new Date() : null,
+      atualizadoPorId: usuarioAtual.id,
+      atualizadoEm: new Date(),
+    })
+    .where(eq(cliente.id, clienteId));
+
+  revalidatePath(`/painel/clientes/${clienteId}`);
 }
