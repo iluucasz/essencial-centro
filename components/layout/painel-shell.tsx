@@ -246,14 +246,14 @@ export function PainelShell({
 
         <AnimatePresence initial={false} mode="wait">
           <motion.main
-            animate={{ opacity: 1, y: 0 }}
-            className="flex-1 px-4 py-4 md:px-6 md:py-6"
-            exit={reduzirMovimento ? { opacity: 1 } : { opacity: 0, y: -6 }}
-            initial={reduzirMovimento ? { opacity: 1 } : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1 }}
+            className="conteudo-rota-transicao flex-1 px-4 py-4 md:px-6 md:py-6"
+            exit={reduzirMovimento ? { opacity: 1 } : { opacity: 0.98 }}
+            initial={reduzirMovimento ? { opacity: 1 } : { opacity: 0.985 }}
             key={pathname}
             transition={{
-              duration: reduzirMovimento ? 0.01 : 0.18,
-              ease: "easeOut",
+              duration: reduzirMovimento ? 0.01 : 0.28,
+              ease: [0.22, 1, 0.36, 1],
             }}
           >
             {children}

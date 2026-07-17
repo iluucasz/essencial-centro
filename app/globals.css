@@ -1,4 +1,5 @@
 @import "@heroui/react/styles";
+@import "./route-transitions.css";
 
 /*
   Tokens da identidade Essencial Centro.
