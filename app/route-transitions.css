@@ -1,14 +1,12 @@
 @keyframes entrada-bloco-rota {
   from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.997);
-    filter: blur(1.5px);
+    opacity: 0.9;
+    transform: translateY(8px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0);
+    transform: translateY(0);
   }
 }
 
@@ -44,7 +42,6 @@
   .conteudo-rota-transicao > *:not(:has(> :where(header, nav, section, article, form, div))),
   .conteudo-rota-transicao > * > :where(header, nav, section, article, form, div) {
     animation: none;
-    filter: none;
     transform: none;
   }
 }

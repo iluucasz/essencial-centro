@@ -19,7 +19,6 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { MenuUsuario } from "@/modules/auth/components/menu-usuario";
 import type { PapelUsuario } from "@/modules/auth/rbac";
@@ -173,7 +172,6 @@ export function PainelShell({
   const pathname = usePathname();
   const [menuAberto, setMenuAberto] = useState(false);
   const [colapsada, setColapsada] = useState(false);
-  const reduzirMovimento = useReducedMotion();
 
   return (
     <div className="area-interna min-h-screen bg-creme md:flex">
@@ -244,21 +242,7 @@ export function PainelShell({
           />
         </header>
 
-        <AnimatePresence initial={false} mode="wait">
-          <motion.main
-            animate={{ opacity: 1 }}
-            className="conteudo-rota-transicao flex-1 px-4 py-4 md:px-6 md:py-6"
-            exit={reduzirMovimento ? { opacity: 1 } : { opacity: 0.98 }}
-            initial={reduzirMovimento ? { opacity: 1 } : { opacity: 0.985 }}
-            key={pathname}
-            transition={{
-              duration: reduzirMovimento ? 0.01 : 0.28,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-          >
-            {children}
-          </motion.main>
-        </AnimatePresence>
+        <main className="conteudo-rota-transicao flex-1 px-4 py-4 md:px-6 md:py-6">{children}</main>
       </div>
 
       {assistenteDisponivel ? (
