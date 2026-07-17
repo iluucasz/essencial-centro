@@ -25,3 +25,21 @@ export async function listarProfissionaisAtivos() {
     .where(and(eq(usuario.role, "profissional"), eq(usuario.ativo, true)))
     .orderBy(asc(usuario.name));
 }
+
+/** Tela "Usuários" (`/painel/usuarios`) — quem pode criar usuário (`criarUsuario`) também é quem
+ * pode listar/gerenciar. */
+export async function listarUsuarios() {
+  await exigirUsuarioAtual(["profissional"]);
+
+  return db
+    .select({
+      id: usuario.id,
+      name: usuario.name,
+      email: usuario.email,
+      role: usuario.role,
+      ativo: usuario.ativo,
+      criadoEm: usuario.criadoEm,
+    })
+    .from(usuario)
+    .orderBy(asc(usuario.name));
+}

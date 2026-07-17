@@ -2,12 +2,15 @@
 
 import { AuthError } from "next-auth";
 import { revalidatePath } from "next/cache";
+import { eq } from "drizzle-orm";
 
 import { auth, signIn, signOut } from "@/auth";
+import { db } from "@/db";
 
 import { contarUsuarios, criarUsuarioComSenha } from "./credenciais";
+import { podeAlternarAtivoDe } from "./gestao";
 import { autorizarPapel } from "./rbac";
-import { credenciaisEntradaSchema, criarUsuarioSchema } from "./schema";
+import { credenciaisEntradaSchema, criarUsuarioSchema, usuario } from "./schema";
 
 export type EstadoFormularioAuth = {
   status: "inicial" | "erro" | "sucesso";
@@ -117,12 +120,17 @@ export async function criarUsuario(_: EstadoFormularioAuth = estadoInicial, form
   const sessao = await auth();
   autorizarPapel(sessao, ["profissional"]);
 
+  // Campo "Cliente vinculado" só existe no HTML quando role="cliente" (ver
+  // FormularioCriarUsuario) — nos outros casos formData.get() retorna null, não "" nem undefined,
+  // e o schema não aceita null. Normaliza pra "" (que o schema já trata como "não informado").
+  const clienteIdBruto = formData.get("clienteId");
+
   const parsed = criarUsuarioSchema.safeParse({
     nome: formData.get("nome"),
     email: formData.get("email"),
     senha: formData.get("senha"),
     role: formData.get("role"),
-    clienteId: formData.get("clienteId"),
+    clienteId: typeof clienteIdBruto === "string" ? clienteIdBruto : "",
   });
 
   if (!parsed.success) {
@@ -142,10 +150,27 @@ export async function criarUsuario(_: EstadoFormularioAuth = estadoInicial, form
     throw error;
   }
 
-  revalidatePath("/painel");
+  revalidatePath("/painel/usuarios");
 
   return {
     status: "sucesso",
     mensagem: "Usuário criado com sucesso.",
   } satisfies EstadoFormularioAuth;
+}
+
+export async function alternarAtivoUsuario(formData: FormData) {
+  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+
+  const id = formData.get("id");
+  const ativoAtual = formData.get("ativoAtual");
+  if (typeof id !== "string" || typeof ativoAtual !== "string") return;
+
+  if (!podeAlternarAtivoDe(id, usuarioAtual.id)) return;
+
+  await db
+    .update(usuario)
+    .set({ ativo: ativoAtual !== "true" })
+    .where(eq(usuario.id, id));
+
+  revalidatePath("/painel/usuarios");
 }

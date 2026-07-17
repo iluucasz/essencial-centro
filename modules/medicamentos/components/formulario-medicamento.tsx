@@ -3,6 +3,7 @@
 import { useActionState, useEffect } from "react";
 import { LoaderCircle, Pill } from "lucide-react";
 
+import { CampoDataCalendario } from "@/components/ui/calendario-tailgrids";
 import {
   criarMedicamentoInformado,
   type EstadoFormularioMedicamento,
@@ -92,17 +93,11 @@ export function FormularioMedicamento({ clienteId }: { clienteId: string }) {
             name="profissionalPrescritor"
           />
         </div>
-        <div className="grid gap-2">
-          <label className="text-sm font-medium text-foreground" htmlFor="dataInicio">
-            Data de início
-          </label>
-          <input
-            className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
-            id="dataInicio"
-            name="dataInicio"
-            type="date"
-          />
-        </div>
+        <CampoDataCalendario
+          error={state?.campos?.dataInicio}
+          label="Data de início"
+          name="dataInicio"
+        />
       </div>
 
       <div className="grid gap-2">

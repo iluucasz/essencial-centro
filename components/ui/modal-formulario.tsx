@@ -3,6 +3,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { Modal, useOverlayState } from "@heroui/react";
 import { Plus } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 
 /**
  * Wrapper padrão para "formulário de criação" em modal (em vez de página/aside fixo).
@@ -16,6 +17,65 @@ const FecharModalContext = createContext<() => void>(() => {});
 
 export function useFecharModal() {
   return useContext(FecharModalContext);
+}
+
+export function FecharModalProvider({
+  children,
+  value,
+}: {
+  children: ReactNode;
+  value: () => void;
+}) {
+  return <FecharModalContext.Provider value={value}>{children}</FecharModalContext.Provider>;
+}
+
+export function ModalDialogAnimado({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  const reduzirMovimento = useReducedMotion();
+
+  return (
+    <Modal.Dialog className={className}>
+      <motion.div
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        initial={reduzirMovimento ? { opacity: 0 } : { opacity: 0, scale: 0.98, y: 10 }}
+        transition={{
+          duration: reduzirMovimento ? 0.01 : 0.18,
+          ease: "easeOut",
+        }}
+      >
+        {children}
+      </motion.div>
+    </Modal.Dialog>
+  );
+}
+
+export function ParteModalAnimada({
+  children,
+  ordem = 0,
+}: {
+  children: ReactNode;
+  ordem?: number;
+}) {
+  const reduzirMovimento = useReducedMotion();
+
+  return (
+    <motion.div
+      animate={{ opacity: 1, y: 0 }}
+      initial={reduzirMovimento ? { opacity: 0 } : { opacity: 0, y: 8 }}
+      transition={{
+        delay: reduzirMovimento ? 0 : ordem * 0.045,
+        duration: reduzirMovimento ? 0.01 : 0.18,
+        ease: "easeOut",
+      }}
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 export function ModalFormulario({
@@ -39,17 +99,19 @@ export function ModalFormulario({
       </Modal.Trigger>
       <Modal.Backdrop variant="opaque">
         <Modal.Container size="lg">
-          <Modal.Dialog className="max-h-[85vh] overflow-y-auto">
-            <Modal.Header>
-              <Modal.Heading className="text-lg font-semibold text-brand">{titulo}</Modal.Heading>
-            </Modal.Header>
+          <ModalDialogAnimado className="max-h-[85vh] overflow-y-auto">
+            <ParteModalAnimada>
+              <Modal.Header>
+                <Modal.Heading className="text-lg font-semibold text-brand">{titulo}</Modal.Heading>
+              </Modal.Header>
+            </ParteModalAnimada>
             <Modal.CloseTrigger />
-            <Modal.Body>
-              <FecharModalContext.Provider value={state.close}>
-                {children}
-              </FecharModalContext.Provider>
-            </Modal.Body>
-          </Modal.Dialog>
+            <ParteModalAnimada ordem={1}>
+              <Modal.Body>
+                <FecharModalProvider value={state.close}>{children}</FecharModalProvider>
+              </Modal.Body>
+            </ParteModalAnimada>
+          </ModalDialogAnimado>
         </Modal.Container>
       </Modal.Backdrop>
     </Modal>

@@ -3,6 +3,7 @@
 import { useActionState, useEffect } from "react";
 import { LoaderCircle, NotebookPen } from "lucide-react";
 
+import { CampoDataCalendario } from "@/components/ui/calendario-tailgrids";
 import { criarSessao, type EstadoFormularioSessao } from "@/modules/sessoes/actions";
 import { useFecharModal } from "@/components/ui/modal-formulario";
 
@@ -206,11 +207,10 @@ export function FormularioSessao({
           name="escalaDorDepois"
           type="number"
         />
-        <CampoTexto
+        <CampoDataCalendario
           error={state?.campos?.proximaSessaoRecomendada}
           label="Próxima sessão recomendada"
           name="proximaSessaoRecomendada"
-          type="date"
         />
       </div>
 

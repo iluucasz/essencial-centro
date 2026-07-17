@@ -3,6 +3,7 @@
 import { useActionState, useEffect } from "react";
 import { Boxes, LoaderCircle } from "lucide-react";
 
+import { CampoDataCalendario } from "@/components/ui/calendario-tailgrids";
 import { criarLote, type EstadoFormularioEstoque } from "@/modules/estoque/actions";
 import { useFecharModal } from "@/components/ui/modal-formulario";
 
@@ -88,17 +89,11 @@ export function FormularioLote({
             <p className="text-sm text-perigo">{state.campos.quantidadeInicial[0]}</p>
           ) : null}
         </div>
-        <div className="grid gap-2">
-          <label className="text-sm font-medium text-foreground" htmlFor="validade">
-            Validade (opcional)
-          </label>
-          <input
-            className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
-            id="validade"
-            name="validade"
-            type="date"
-          />
-        </div>
+        <CampoDataCalendario
+          error={state?.campos?.validade}
+          label="Validade (opcional)"
+          name="validade"
+        />
         <div className="grid gap-2">
           <label className="text-sm font-medium text-foreground" htmlFor="numeroLote">
             Nº do lote (opcional)

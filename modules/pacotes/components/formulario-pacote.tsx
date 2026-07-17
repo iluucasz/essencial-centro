@@ -3,6 +3,7 @@
 import { useActionState, useEffect } from "react";
 import { LoaderCircle, PackagePlus } from "lucide-react";
 
+import { CampoDataCalendario } from "@/components/ui/calendario-tailgrids";
 import { criarPacote, type EstadoFormularioPacote } from "@/modules/pacotes/actions";
 import { rotulosSituacaoPagamento, situacoesPagamento } from "@/modules/pacotes/schema";
 import { useFecharModal } from "@/components/ui/modal-formulario";
@@ -144,7 +145,7 @@ export function FormularioPacote({ clientes, servicos }: { clientes: Opcao[]; se
           required
           type="number"
         />
-        <CampoTexto error={state?.campos?.validade} label="Validade" name="validade" type="date" />
+        <CampoDataCalendario error={state?.campos?.validade} label="Validade" name="validade" />
         <CampoTexto error={state?.campos?.valorCentavos} label="Valor (R$)" name="valor" />
         <CampoTexto
           error={state?.campos?.formaPagamento}

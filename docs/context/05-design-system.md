@@ -125,14 +125,21 @@ preferem superfície branca + borda sutil, sem sombra; dropdown/overlay: `shadow
   Nas páginas de painel, o título e as ações da seção ficam soltos (`section.grid gap-4`), seguindo
   agenda/financeiro; a borda fica na lista ou nos cards internos, sem um container envolvendo título,
   ação e lista. Quando a listagem for operacional (ex.: clientes), preferir um bloco de tabela com
-  toolbar interna: título/contagem à esquerda, busca/filtro/ação principal à direita, cabeçalho de
-  colunas, coluna de ações à direita. **Sem checkbox de seleção** enquanto não houver ação em massa
-  real (excluir/exportar) implementada — checkbox que não faz nada é código morto. Adicionar
-  paginação seguindo o clone quando as listas crescerem.
+  toolbar interna: título/contagem à esquerda, busca/filtros automáticos à direita, cabeçalho de
+  colunas, coluna de ações à direita. A ação principal de criação pode ficar no cabeçalho da página
+  quando a toolbar da tabela já tiver muitos filtros. Em tabelas de CRUD, a linha inteira deve abrir
+  o registro, e ações secundárias/destrutivas ficam em menu de três pontos com confirmação quando
+  houver risco de perda de dados. **Sem checkbox de seleção** enquanto não houver ação em massa real
+  (excluir/exportar) implementada — checkbox que não faz nada é código morto. Adicionar paginação
+  seguindo o clone quando as listas crescerem.
 - **Perfil**: capa + avatar sobreposto + nome/cargo + ações (`Editar`, `Copiar link`) + bio — útil
   como base do perfil do cliente no portal (`/portal`) e do perfil da profissional.
 - **Formulário**: já seguimos o padrão (label + campo + erro inline) nos módulos `clientes`/`servicos`;
   manter.
+- **Microinterações**: usar `motion` apenas para transições leves e funcionais. Modais usam
+  `components/ui/modal-formulario.tsx` com entrada suave do diálogo e stagger curto entre cabeçalho
+  e corpo, respeitando `prefers-reduced-motion`. Evitar animações decorativas longas em fluxos
+  operacionais.
 
 ## Tipografia
 

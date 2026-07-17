@@ -12,6 +12,10 @@ Isso é requisito de arquitetura, não item opcional.
 - **Consentimentos separados**: atendimento ≠ uso de imagem ≠ contrato. Cada um registrado,
   datado e versionado individualmente. Uso de imagem é opt-in explícito.
 - **Registro de atividades (auditoria)**: quem criou/alterou, quando, e conteúdo anterior.
+- **Exclusão destrutiva de cliente**: restrita ao papel `profissional`, sempre com confirmação
+  explícita na UI. A action do servidor deve apagar/soltar os vínculos clínicos e operacionais
+  associados em transação (agenda, sessões, fichas, medidas, fotos, documentos, medicamentos,
+  pacotes, biometria e financeiro) antes de remover o cadastro.
 - **Fotos e arquivos sensíveis**: no Postgres só a chave/URL, nunca exposta no HTML/UI — acesso
   sempre via proxy autenticado (`app/api/fotos/[id]/imagem`) que reautoriza role+posse a cada
   request. **Ver alerta abaixo — o bucket atual não é privado.**

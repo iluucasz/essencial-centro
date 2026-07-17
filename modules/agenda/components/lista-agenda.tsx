@@ -66,7 +66,7 @@ function BotaoStatus({
 export function ListaAgenda({ agendamentos }: { agendamentos: AgendamentoResumo[] }) {
   if (agendamentos.length === 0) {
     return (
-      <div className="flex items-center gap-3 rounded-lg border border-border bg-surface p-6 text-sm text-muted">
+      <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-6 text-sm text-muted">
         <CalendarClock className="size-4" aria-hidden="true" />
         Nenhum agendamento para este dia.
       </div>
@@ -74,26 +74,38 @@ export function ListaAgenda({ agendamentos }: { agendamentos: AgendamentoResumo[
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+      <div className="hidden grid-cols-[5rem_minmax(0,1.2fr)_minmax(0,1fr)_minmax(18rem,auto)] gap-4 border-b border-border bg-background px-4 py-3 text-xs font-medium text-muted md:grid">
+        <span>Horário</span>
+        <span>Cliente</span>
+        <span>Atendimento</span>
+        <span>Status e ações</span>
+      </div>
       <ul className="divide-y divide-border">
         {agendamentos.map((agendamento) => (
           <li
             key={agendamento.id}
-            className="grid gap-3 p-4 sm:grid-cols-[auto_1fr_auto] sm:items-center"
+            className="grid gap-3 p-4 md:grid-cols-[5rem_minmax(0,1.2fr)_minmax(0,1fr)_minmax(18rem,auto)] md:items-center"
           >
-            <span className="text-sm font-semibold text-foreground">
+            <span className="text-sm font-semibold text-foreground md:text-base">
               {formatarHorario(agendamento.inicio)}
             </span>
 
-            <span>
+            <span className="min-w-0">
               <span className="block font-medium text-foreground">{agendamento.clienteNome}</span>
               <span className="mt-1 block text-sm text-muted">
-                {agendamento.servicoNome} · {agendamento.profissionalNome ?? "Sem profissional"} ·{" "}
-                {agendamento.duracaoMinutos} min
+                {agendamento.profissionalNome ?? "Sem profissional"}
               </span>
             </span>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <span className="min-w-0 text-sm text-muted">
+              <span className="block truncate font-medium text-foreground">
+                {agendamento.servicoNome}
+              </span>
+              <span className="mt-1 block">{agendamento.duracaoMinutos} min</span>
+            </span>
+
+            <div className="flex flex-wrap items-center gap-2 md:justify-end">
               <span
                 className={`rounded-full px-2.5 py-1 text-xs font-medium ${classePorStatus[agendamento.status]}`}
               >

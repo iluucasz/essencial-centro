@@ -3,6 +3,7 @@
 import { useActionState, useEffect } from "react";
 import { CalendarPlus, LoaderCircle } from "lucide-react";
 
+import { CampoDataHoraCalendario } from "@/components/ui/calendario-tailgrids";
 import { criarAgendamento, type EstadoFormularioAgendamento } from "@/modules/agenda/actions";
 import { modalidadeAtendimento, rotulosModalidadeAtendimento } from "@/modules/agenda/schema";
 import { useFecharModal } from "@/components/ui/modal-formulario";
@@ -117,11 +118,13 @@ function CampoTexto({
 
 export function FormularioAgendamento({
   clientes,
+  dataInicial,
   servicos,
   profissionais,
   pacotes,
 }: {
   clientes: Opcao[];
+  dataInicial?: string;
   servicos: Opcao[];
   profissionais: Opcao[];
   pacotes: Opcao[];
@@ -162,13 +165,12 @@ export function FormularioAgendamento({
         required={false}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <CampoTexto
+      <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]">
+        <CampoDataHoraCalendario
+          dataInicial={dataInicial}
           error={state?.campos?.inicio}
           label="Data e horário"
           name="inicio"
-          required
-          type="datetime-local"
         />
         <CampoTexto
           error={state?.campos?.duracaoMinutos}

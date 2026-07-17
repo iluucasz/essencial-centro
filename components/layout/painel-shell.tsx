@@ -14,10 +14,12 @@ import {
   PackageCheck,
   Settings,
   Sparkles,
+  UserCog,
   UsersRound,
   Wallet,
   X,
 } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { MenuUsuario } from "@/modules/auth/components/menu-usuario";
 import type { PapelUsuario } from "@/modules/auth/rbac";
@@ -61,6 +63,13 @@ const itensNavegacao = [
     href: "/painel/estoque",
     label: "Estoque",
     icone: Boxes,
+    exato: false,
+    papeis: ["profissional"],
+  },
+  {
+    href: "/painel/usuarios",
+    label: "Usuários",
+    icone: UserCog,
     exato: false,
     papeis: ["profissional"],
   },
@@ -164,6 +173,7 @@ export function PainelShell({
   const pathname = usePathname();
   const [menuAberto, setMenuAberto] = useState(false);
   const [colapsada, setColapsada] = useState(false);
+  const reduzirMovimento = useReducedMotion();
 
   return (
     <div className="area-interna min-h-screen bg-creme md:flex">
@@ -234,7 +244,21 @@ export function PainelShell({
           />
         </header>
 
-        <main className="flex-1 px-4 py-4 md:px-6 md:py-6">{children}</main>
+        <AnimatePresence initial={false} mode="wait">
+          <motion.main
+            animate={{ opacity: 1, y: 0 }}
+            className="flex-1 px-4 py-4 md:px-6 md:py-6"
+            exit={reduzirMovimento ? { opacity: 1 } : { opacity: 0, y: -6 }}
+            initial={reduzirMovimento ? { opacity: 1 } : { opacity: 0, y: 8 }}
+            key={pathname}
+            transition={{
+              duration: reduzirMovimento ? 0.01 : 0.18,
+              ease: "easeOut",
+            }}
+          >
+            {children}
+          </motion.main>
+        </AnimatePresence>
       </div>
 
       {assistenteDisponivel ? (

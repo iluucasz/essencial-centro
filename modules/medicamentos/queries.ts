@@ -6,6 +6,18 @@ import { autorizarPapel } from "@/modules/auth/rbac";
 import { usuario } from "@/modules/auth/schema";
 
 import { medicamentoInformado } from "./schema";
+import { contarPendentesVerificacao } from "./verificacao";
+
+/** KPI do painel principal — conta em toda a base, não só de um cliente. */
+export async function contarMedicamentosPendentesVerificacao() {
+  autorizarPapel(await auth(), ["profissional"]);
+
+  const medicamentos = await db
+    .select({ verificadoEm: medicamentoInformado.verificadoEm })
+    .from(medicamentoInformado);
+
+  return contarPendentesVerificacao(medicamentos);
+}
 
 export async function listarMedicamentosDoCliente(clienteId: string) {
   autorizarPapel(await auth(), ["profissional"]);

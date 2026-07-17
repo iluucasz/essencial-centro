@@ -21,6 +21,9 @@ function limitesDoDia(data: Date) {
 
 const colunasAgendamento = {
   id: agendamento.id,
+  clienteId: agendamento.clienteId,
+  profissionalId: agendamento.profissionalId,
+  servicoId: agendamento.servicoId,
   inicio: agendamento.inicio,
   duracaoMinutos: agendamento.duracaoMinutos,
   status: agendamento.status,
@@ -58,6 +61,19 @@ export async function listarAgendamentosDoDia(data: Date) {
     .innerJoin(servico, eq(servico.id, agendamento.servicoId))
     .innerJoin(usuario, eq(usuario.id, agendamento.profissionalId))
     .where(and(gte(agendamento.inicio, inicioDoDia), lt(agendamento.inicio, inicioDoDiaSeguinte)))
+    .orderBy(asc(agendamento.inicio));
+}
+
+export async function listarAgendamentosDaAgenda(inicio: Date, fim: Date) {
+  autorizarPapel(await auth(), ["profissional", "recepcao"]);
+
+  return db
+    .select(colunasAgendamento)
+    .from(agendamento)
+    .innerJoin(cliente, eq(cliente.id, agendamento.clienteId))
+    .innerJoin(servico, eq(servico.id, agendamento.servicoId))
+    .innerJoin(usuario, eq(usuario.id, agendamento.profissionalId))
+    .where(and(gte(agendamento.inicio, inicio), lt(agendamento.inicio, fim)))
     .orderBy(asc(agendamento.inicio));
 }
 

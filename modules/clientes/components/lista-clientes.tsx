@@ -1,165 +1,161 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Eye, Search, SlidersHorizontal, UserRound } from "lucide-react";
+import { CalendarDays, Mail, Phone } from "lucide-react";
 
 import type { FiltroCliente } from "@/modules/clientes/filtro";
 
-type ClienteResumo = {
-  id: string;
-  nome: string;
-  email: string | null;
-  telefone: string | null;
-  dataNascimento: Date;
-  objetivoTratamento: string | null;
+import { FiltrosClientes } from "./filtros-clientes";
+import { MenuAcoesCliente } from "./menu-acoes-cliente";
+import type { ClienteFormulario } from "./formulario-cliente";
+
+type ClienteResumo = ClienteFormulario & {
   criadoEm: Date;
 };
 
-const opcoesFiltro: Array<{ valor: FiltroCliente; rotulo: string }> = [
-  { valor: "todos", rotulo: "Todos" },
-  { valor: "com-contato", rotulo: "Com contato" },
-  { valor: "sem-contato", rotulo: "Sem contato" },
-  { valor: "com-objetivo", rotulo: "Com objetivo" },
-  { valor: "sem-objetivo", rotulo: "Sem objetivo" },
-];
-
 const formatadorData = new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" });
+
+function getIniciais(nome: string) {
+  const partes = nome.trim().split(/\s+/).filter(Boolean).slice(0, 2);
+
+  return partes.map((parte) => parte[0]?.toUpperCase()).join("") || "CL";
+}
+
+function getContato(cliente: ClienteResumo) {
+  if (cliente.email && cliente.telefone) return `${cliente.email} · ${cliente.telefone}`;
+  if (cliente.email) return cliente.email;
+  if (cliente.telefone) return cliente.telefone;
+
+  return "Sem contato cadastrado";
+}
+
+function CelulaLink({
+  children,
+  href,
+  className = "",
+}: {
+  children: ReactNode;
+  href: string;
+  className?: string;
+}) {
+  return (
+    <Link
+      className={`block h-full px-5 py-4 transition group-hover:bg-creme ${className}`}
+      href={href}
+    >
+      {children}
+    </Link>
+  );
+}
 
 export function ListaClientes({
   clientes,
   busca,
   filtro,
   total,
-  acao,
+  podeExcluir,
 }: {
   clientes: ClienteResumo[];
   busca?: string;
   filtro: FiltroCliente;
   total: number;
-  acao: ReactNode;
+  podeExcluir: boolean;
 }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-surface">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
+    <section className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+      <div className="flex flex-col gap-4 border-b border-border pb-5 xl:flex-row xl:items-center xl:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">Clientes cadastrados</h2>
+          <h2 className="text-base font-semibold text-foreground">Clientes cadastrados</h2>
           <p className="mt-1 text-sm text-muted">
-            {clientes.length} de {total} {total === 1 ? "registro" : "registros"}
+            {clientes.length} de {total} {total === 1 ? "cliente" : "clientes"}
           </p>
         </div>
 
-        <div className="flex w-full flex-wrap items-center justify-end gap-2 lg:w-auto">
-          <form
-            className="flex w-full flex-wrap items-center gap-2 lg:w-auto"
-            action="/painel/clientes"
-          >
-            <label className="sr-only" htmlFor="busca">
-              Buscar cliente
-            </label>
-            <div className="relative min-w-56 flex-1 lg:w-80 lg:flex-none">
-              <Search
-                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted"
-                aria-hidden="true"
-              />
-              <input
-                className="h-10 w-full rounded-lg border border-border bg-surface pr-3 pl-9 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
-                defaultValue={busca}
-                id="busca"
-                name="busca"
-                placeholder="Buscar cliente"
-              />
-            </div>
-
-            <label className="sr-only" htmlFor="filtro">
-              Filtrar clientes
-            </label>
-            <select
-              className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
-              defaultValue={filtro}
-              id="filtro"
-              name="filtro"
-            >
-              {opcoesFiltro.map((opcao) => (
-                <option key={opcao.valor} value={opcao.valor}>
-                  {opcao.rotulo}
-                </option>
-              ))}
-            </select>
-
-            <button
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
-              type="submit"
-            >
-              <SlidersHorizontal className="size-4" aria-hidden="true" />
-              Filtrar
-            </button>
-          </form>
-
-          {acao}
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+          <FiltrosClientes busca={busca} filtro={filtro} />
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[920px] text-left text-sm">
-          <thead className="border-b border-border text-xs font-medium text-muted">
+      <div className="relative">
+        <table className="w-full table-fixed border-collapse text-left text-sm">
+          <thead className="border-b border-border text-xs font-semibold tracking-wide text-muted uppercase">
             <tr>
-              <th className="px-4 py-3 font-medium">Cliente</th>
-              <th className="px-4 py-3 font-medium">Contato</th>
-              <th className="px-4 py-3 font-medium">Objetivo</th>
-              <th className="px-4 py-3 font-medium">Cadastro</th>
-              <th className="w-28 px-4 py-3 font-medium">Ações</th>
+              <th className="w-[24%] px-5 py-4 font-semibold">Cliente</th>
+              <th className="w-[28%] px-5 py-4 font-semibold">Contato</th>
+              <th className="w-[28%] px-5 py-4 font-semibold">Objetivo</th>
+              <th className="w-[14%] px-5 py-4 font-semibold">Cadastro</th>
+              <th className="w-[6%] px-5 py-4 text-right font-semibold">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {clientes.length === 0 ? (
               <tr>
-                <td className="px-4 py-8 text-center text-muted" colSpan={5}>
+                <td className="px-5 py-10 text-center text-muted" colSpan={5}>
                   Nenhum cliente encontrado.
                 </td>
               </tr>
             ) : (
-              clientes.map((cliente) => (
-                <tr key={cliente.id} className="transition hover:bg-creme">
-                  <td className="px-4 py-4 align-middle">
-                    <div className="flex items-center gap-3">
-                      <span className="flex size-9 items-center justify-center rounded-lg bg-lilas/35 text-roxo">
-                        <UserRound className="size-4" aria-hidden="true" />
-                      </span>
-                      <span>
-                        <span className="block font-medium text-foreground">{cliente.nome}</span>
-                        <span className="mt-0.5 block text-xs text-muted">
-                          Nasc. {formatadorData.format(cliente.dataNascimento)}
+              clientes.map((cliente) => {
+                const href = `/painel/clientes/${cliente.id}`;
+                const temContato = Boolean(cliente.email || cliente.telefone);
+
+                return (
+                  <tr key={cliente.id} className="group">
+                    <td className="align-middle">
+                      <CelulaLink href={href}>
+                        <span className="flex items-center gap-3">
+                          <span className="bg-menta flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-brand">
+                            {getIniciais(cliente.nome)}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block truncate font-semibold text-foreground">
+                              {cliente.nome}
+                            </span>
+                            <span className="mt-1 block text-xs text-muted">
+                              Nasc. {formatadorData.format(cliente.dataNascimento)}
+                            </span>
+                          </span>
                         </span>
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 align-middle text-muted">
-                    {[cliente.email, cliente.telefone].filter(Boolean).join(" · ") ||
-                      "Sem contato cadastrado"}
-                  </td>
-                  <td className="max-w-xs px-4 py-4 align-middle text-muted">
-                    <span className="line-clamp-2">
-                      {cliente.objetivoTratamento ?? "Sem objetivo registrado"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 align-middle text-muted">
-                    {formatadorData.format(cliente.criadoEm)}
-                  </td>
-                  <td className="px-4 py-4 align-middle">
-                    <Link
-                      className="inline-flex size-9 items-center justify-center rounded-lg text-muted transition hover:bg-creme hover:text-roxo focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
-                      href={`/painel/clientes/${cliente.id}`}
-                      title="Abrir cadastro"
-                    >
-                      <Eye className="size-4" aria-hidden="true" />
-                      <span className="sr-only">Abrir cadastro de {cliente.nome}</span>
-                    </Link>
-                  </td>
-                </tr>
-              ))
+                      </CelulaLink>
+                    </td>
+                    <td className="align-middle">
+                      <CelulaLink className="text-muted" href={href}>
+                        <span className="flex min-w-0 items-center gap-2">
+                          {temContato ? (
+                            cliente.email ? (
+                              <Mail className="size-4 shrink-0 text-roxo" aria-hidden="true" />
+                            ) : (
+                              <Phone className="size-4 shrink-0 text-roxo" aria-hidden="true" />
+                            )
+                          ) : null}
+                          <span className="truncate">{getContato(cliente)}</span>
+                        </span>
+                      </CelulaLink>
+                    </td>
+                    <td className="align-middle">
+                      <CelulaLink className="text-muted" href={href}>
+                        <span className="line-clamp-2 max-w-xs">
+                          {cliente.objetivoTratamento ?? "Sem objetivo registrado"}
+                        </span>
+                      </CelulaLink>
+                    </td>
+                    <td className="align-middle">
+                      <CelulaLink className="text-muted" href={href}>
+                        <span className="inline-flex items-center gap-2">
+                          <CalendarDays className="size-4 text-roxo" aria-hidden="true" />
+                          {formatadorData.format(cliente.criadoEm)}
+                        </span>
+                      </CelulaLink>
+                    </td>
+                    <td className="px-5 py-4 text-right align-middle">
+                      <MenuAcoesCliente cliente={cliente} podeExcluir={podeExcluir} />
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
   );
 }

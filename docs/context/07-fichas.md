@@ -8,11 +8,15 @@ vinculados ao prontuário do cliente. Não são cópias duras do papel — **rea
 Infraestrutura genérica pronta (`modules/fichas/`): tabela `ficha` (JSONB `respostas` + `tipo` +
 `status` + versionamento via `versaoAnteriorId`), separação relato/avaliação profissional/
 compartilhada, filtro de acesso do cliente (`acesso.ts`), consentimento de imagem separado do
-atendimento. **Só o tipo `estetica_corporal` tem schema de respostas + formulário implementados**
-(prova do padrão de campos inteligentes). Os outros 10 tipos do catálogo abaixo entram um de cada
-vez: novo `respostasSchema` + entrada em `respostasPorTipo` (`schema.ts`) + formulário próprio —
-sem migração de tabela. Editar/gerar nova versão de uma ficha já assinada ainda não tem UI/action
-(coluna `versaoAnteriorId` existe, mas não é escrita ainda).
+atendimento. **`estetica_corporal` e `extensao_cilios` têm schema de respostas + formulário
+implementados** — o segundo prova que o padrão de `estetica_corporal` (campos inteligentes via
+`.superRefine`) se repete sem atrito. Os outros 9 tipos do catálogo abaixo entram um de cada vez:
+novo `respostasSchema` + entrada em `respostasPorTipo` (`schema.ts`) + action própria em
+`actions.ts` + formulário próprio + botão em `app/painel/clientes/[id]/page.tsx` — sem migração de
+tabela. Ainda não existe vínculo `servico → tipoFicha`: a escolha do tipo é manual (um botão "Nova
+ficha" por tipo implementado), não automática ao abrir um atendimento — o fluxo abaixo descreve a
+intenção original, não o estado atual. Editar/gerar nova versão de uma ficha já assinada ainda não
+tem UI/action (coluna `versaoAnteriorId` existe, mas não é escrita ainda).
 
 ## Fluxo
 

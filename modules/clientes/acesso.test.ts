@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { ErroAutorizacao, type UsuarioSessao } from "@/modules/auth/rbac";
 
-import { filtrarClienteParaUsuario, removerCamposInternos } from "./acesso";
+import { filtrarClienteParaUsuario, podeExcluirClientes, removerCamposInternos } from "./acesso";
 import type { Cliente } from "./schema";
 
 const clienteBase: Cliente = {
@@ -35,6 +35,12 @@ const clienteBase: Cliente = {
 const profissional: UsuarioSessao = {
   id: "22222222-2222-4222-8222-222222222222",
   role: "profissional",
+  ativo: true,
+};
+
+const recepcao: UsuarioSessao = {
+  id: "66666666-6666-4666-8666-666666666666",
+  role: "recepcao",
   ativo: true,
 };
 
@@ -72,5 +78,11 @@ describe("acesso de clientes", () => {
 
   it("bloqueia cliente tentando acessar cadastro de outra pessoa", () => {
     expect(() => filtrarClienteParaUsuario(clienteBase, outroCliente)).toThrow(ErroAutorizacao);
+  });
+
+  it("restringe exclusão de cliente ao perfil profissional", () => {
+    expect(podeExcluirClientes(profissional)).toBe(true);
+    expect(podeExcluirClientes(recepcao)).toBe(false);
+    expect(podeExcluirClientes(clienteDono)).toBe(false);
   });
 });

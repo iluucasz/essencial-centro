@@ -4,7 +4,11 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { autorizarPapel } from "@/modules/auth/rbac";
 
-import { calcularQuantidadeDisponivel, deveAvisarEstoqueBaixo } from "./disponibilidade";
+import {
+  calcularQuantidadeDisponivel,
+  calcularStatusValidade,
+  deveAvisarEstoqueBaixo,
+} from "./disponibilidade";
 import { lote, movimentacaoEstoque, produto } from "./schema";
 
 export async function listarProdutos() {
@@ -49,6 +53,36 @@ export async function listarProdutos() {
       avisoEstoqueBaixo: deveAvisarEstoqueBaixo(disponivel, p.estoqueMinimo),
     };
   });
+}
+
+/** KPI do painel principal — conta lotes com estoque disponível que já venceram ou vencem nos
+ * próximos 30 dias (mesmo limiar de `calcularStatusValidade`). Lote zerado não conta: não há mais
+ * o que descartar/alertar sobre ele. */
+export async function contarLotesProximosDoVencimento() {
+  autorizarPapel(await auth(), ["profissional"]);
+
+  const [lotes, saidas] = await Promise.all([
+    db
+      .select({ id: lote.id, quantidadeInicial: lote.quantidadeInicial, validade: lote.validade })
+      .from(lote),
+    db
+      .select({ loteId: movimentacaoEstoque.loteId, total: sum(movimentacaoEstoque.quantidade) })
+      .from(movimentacaoEstoque)
+      .groupBy(movimentacaoEstoque.loteId),
+  ]);
+
+  const saidaPorLote = new Map(saidas.map((s) => [s.loteId, Number(s.total ?? 0)]));
+
+  return lotes.filter((l) => {
+    const disponivel = calcularQuantidadeDisponivel(
+      l.quantidadeInicial,
+      saidaPorLote.get(l.id) ?? 0,
+    );
+    if (disponivel <= 0) return false;
+
+    const status = calcularStatusValidade(l.validade);
+    return status === "vencido" || status === "proximo_vencimento";
+  }).length;
 }
 
 export async function listarProdutosParaSelecao() {

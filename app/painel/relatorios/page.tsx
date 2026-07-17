@@ -1,5 +1,6 @@
 import { ArrowUpCircle, CalendarCheck, Scale, UserPlus, UsersRound, Wallet } from "lucide-react";
 
+import { CampoDataCalendario } from "@/components/ui/calendario-tailgrids";
 import { CardKpi } from "@/components/ui/card-kpi";
 import { primeiroDiaDoMes, ultimoDiaDoMes } from "@/lib/utils";
 import { rotulosStatusAgendamento, statusAgendamento } from "@/modules/agenda/schema";
@@ -50,26 +51,21 @@ export default async function RelatoriosPage({
           </p>
         </div>
 
-        <form className="flex flex-wrap items-center gap-2" action="/painel/relatorios">
-          <label className="sr-only" htmlFor="inicio">
-            De
-          </label>
-          <input
-            className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
+        <form
+          className="grid gap-2 sm:grid-cols-[12rem_12rem_auto] sm:items-end"
+          action="/painel/relatorios"
+        >
+          <CampoDataCalendario
             defaultValue={paraDataInputValue(inicio)}
-            id="inicio"
+            label="De"
             name="inicio"
-            type="date"
+            required
           />
-          <label className="sr-only" htmlFor="fim">
-            Até
-          </label>
-          <input
-            className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
+          <CampoDataCalendario
             defaultValue={paraDataInputValue(fim)}
-            id="fim"
+            label="Até"
             name="fim"
-            type="date"
+            required
           />
           <button
             className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"

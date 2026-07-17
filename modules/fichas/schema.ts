@@ -186,9 +186,86 @@ export const respostasEsteticaCorporalSchema = z.object({
 
 export type RespostasEsteticaCorporal = z.infer<typeof respostasEsteticaCorporalSchema>;
 
+/** "Extensão de cílios" — segundo tipo do catálogo (docs/context/07-fichas.md), mesmo padrão de
+ * três áreas + campos inteligentes via `.superRefine` que `estetica_corporal` estabeleceu. */
+export const respostasExtensaoCiliosSchema = z.object({
+  relato: z
+    .object({
+      objetivoProcedimento: textoObrigatorio("Descreva o objetivo do procedimento."),
+      jaFezExtensaoCilios: z.boolean(),
+      teveReacaoAdesivo: z.boolean(),
+      reacaoAdesivoDetalhe: textoOpcional,
+      usaLentesContato: z.boolean(),
+      temProblemaOcular: z.boolean(),
+      problemaOcularDetalhe: textoOpcional,
+      temAlergia: z.boolean(),
+      alergiaDetalhe: textoOpcional,
+      gestanteOuLactante: z.boolean(),
+      realizouCirurgiaOcularRecente: z.boolean(),
+      cirurgiaOcularDetalhe: textoOpcional,
+      aceiteInformacoesVerdadeiras: z
+        .boolean()
+        .refine(Boolean, "É preciso confirmar que as informações são verdadeiras."),
+    })
+    .superRefine((relato, ctx) => {
+      if (relato.teveReacaoAdesivo && !relato.reacaoAdesivoDetalhe) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["reacaoAdesivoDetalhe"],
+          message: "Descreva a reação apresentada.",
+        });
+      }
+      if (relato.temProblemaOcular && !relato.problemaOcularDetalhe) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["problemaOcularDetalhe"],
+          message: "Descreva a condição ocular.",
+        });
+      }
+      if (relato.temAlergia && !relato.alergiaDetalhe) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["alergiaDetalhe"],
+          message: "Informe qual substância e qual reação.",
+        });
+      }
+      if (relato.realizouCirurgiaOcularRecente && !relato.cirurgiaOcularDetalhe) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["cirurgiaOcularDetalhe"],
+          message: "Informe o tipo e a data da cirurgia ocular.",
+        });
+      }
+    }),
+  avaliacaoProfissional: z
+    .object({
+      tecnicaAplicada: textoOpcional,
+      curvaturaEspessuraFios: textoOpcional,
+      observacoesInternas: textoOpcional,
+      contraindicacaoImportante: z.boolean(),
+      contraindicacaoDetalhe: textoOpcional,
+    })
+    .superRefine((avaliacao, ctx) => {
+      if (avaliacao.contraindicacaoImportante && !avaliacao.contraindicacaoDetalhe) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["contraindicacaoDetalhe"],
+          message: "Descreva a contraindicação identificada.",
+        });
+      }
+    }),
+  compartilhado: z.object({
+    resumoProcedimento: textoOpcional,
+    orientacoes: textoOpcional,
+  }),
+});
+
+export type RespostasExtensaoCilios = z.infer<typeof respostasExtensaoCiliosSchema>;
+
 /** Mapa tipo → schema de respostas. Novo tipo = nova entrada aqui, sem migração de tabela. */
 export const respostasPorTipo = {
   estetica_corporal: respostasEsteticaCorporalSchema,
+  extensao_cilios: respostasExtensaoCiliosSchema,
 } satisfies Partial<Record<TipoFicha, z.ZodType>>;
 
 export type TipoFichaImplementado = keyof typeof respostasPorTipo;
@@ -209,6 +286,14 @@ export const criarFichaEsteticaCorporalSchema = z.object({
   respostas: respostasEsteticaCorporalSchema,
 });
 
+export const criarFichaExtensaoCiliosSchema = z.object({
+  clienteId: z.string().uuid("Selecione um cliente."),
+  servicoId: servicoIdOpcional,
+  autorizacaoImagem: z.boolean(),
+  respostas: respostasExtensaoCiliosSchema,
+});
+
 export type Ficha = typeof ficha.$inferSelect;
 export type NovaFicha = typeof ficha.$inferInsert;
 export type CriarFichaEsteticaCorporalInput = z.infer<typeof criarFichaEsteticaCorporalSchema>;
+export type CriarFichaExtensaoCiliosInput = z.infer<typeof criarFichaExtensaoCiliosSchema>;

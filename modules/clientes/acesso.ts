@@ -10,6 +10,10 @@ export function podeGerenciarClientes(usuario: UsuarioSessao) {
   return usuario.role === "profissional" || usuario.role === "recepcao";
 }
 
+export function podeExcluirClientes(usuario: UsuarioSessao) {
+  return usuario.role === "profissional";
+}
+
 export function removerCamposInternos(cliente: Cliente): ClienteSemInternos {
   const { observacoesInternas: _observacoesInternas, ...clienteSemInternos } = cliente;
 
