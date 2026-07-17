@@ -1,0 +1,8 @@
+.area-interna {
+  --surface-hover: color-mix(in oklab, var(--brand) 7%, var(--surface) 93%);
+}
+
+.area-interna .hover\:bg-creme:hover,
+.area-interna .group:hover .group-hover\:bg-creme {
+  background-color: var(--surface-hover);
+}

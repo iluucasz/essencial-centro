@@ -1,5 +1,6 @@
 @import "@heroui/react/styles";
 @import "./route-transitions.css";
+@import "./interaction-states.css";
 
 /*
   Tokens da identidade Essencial Centro.
@@ -18,6 +19,7 @@
   --surface-secondary-foreground: var(--foreground);
   --surface-tertiary: color-mix(in oklab, var(--background) 82%, var(--salvia) 18%);
   --surface-tertiary-foreground: var(--foreground);
+  --surface-hover: color-mix(in oklab, var(--brand) 8%, var(--surface) 92%);
   --overlay: var(--surface);
   --overlay-foreground: var(--foreground);
 

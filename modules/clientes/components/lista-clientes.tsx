@@ -39,7 +39,7 @@ function CelulaLink({
 }) {
   return (
     <Link
-      className={`block h-full px-5 py-4 transition group-hover:bg-creme ${className}`}
+      className={`block h-full px-5 py-4 transition focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-roxo ${className}`}
       href={href}
     >
       {children}
@@ -75,8 +75,8 @@ export function ListaClientes({
         </div>
       </div>
 
-      <div className="relative">
-        <table className="w-full table-fixed border-collapse text-left text-sm">
+      <div className="relative overflow-x-auto">
+        <table className="w-full min-w-[980px] table-fixed border-collapse text-left text-sm">
           <thead className="border-b border-border text-xs font-semibold tracking-wide text-muted uppercase">
             <tr>
               <th className="w-[24%] px-5 py-4 font-semibold">Cliente</th>
@@ -99,7 +99,10 @@ export function ListaClientes({
                 const temContato = Boolean(cliente.email || cliente.telefone);
 
                 return (
-                  <tr key={cliente.id} className="group">
+                  <tr
+                    key={cliente.id}
+                    className="group transition-colors focus-within:bg-[var(--surface-hover)] hover:bg-[var(--surface-hover)]"
+                  >
                     <td className="align-middle">
                       <CelulaLink href={href}>
                         <span className="flex items-center gap-3">
