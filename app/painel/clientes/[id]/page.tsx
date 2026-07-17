@@ -36,6 +36,8 @@ import { FormularioFichaExtensaoCilios } from "@/modules/fichas/components/formu
 import { listarFichasDoCliente } from "@/modules/fichas/queries";
 import { FormularioFoto } from "@/modules/fotos/components/formulario-foto";
 import { GaleriaFotos } from "@/modules/fotos/components/galeria-fotos";
+import { MenuFotoCliente } from "@/modules/fotos/components/menu-foto-cliente";
+import { obterFotoPerfilCliente } from "@/modules/fotos/perfil-queries";
 import { listarFotosDoCliente } from "@/modules/fotos/queries";
 import { FormularioMedida } from "@/modules/medidas/components/formulario-medida";
 import {
@@ -1011,8 +1013,9 @@ export default async function ClienteDetalhePage({
   const [{ id }, { aba }] = await Promise.all([params, searchParams]);
   const usuario = await exigirUsuarioAtual(["profissional", "recepcao"]);
   const profissional = usuario.role === "profissional";
-  const [cliente, fichas, biometrias, pacotes] = await Promise.all([
+  const [cliente, fotoPerfil, fichas, biometrias, pacotes] = await Promise.all([
     getCliente(id),
+    obterFotoPerfilCliente(id),
     listarFichasDoCliente(id),
     listarBiometriasDoCliente(id),
     listarPacotesDoCliente(id),
@@ -1103,9 +1106,27 @@ export default async function ClienteDetalhePage({
       <section className="overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
         <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-center">
           <div className="flex min-w-0 flex-col gap-5 md:flex-row md:items-center">
-            <span className="flex size-20 shrink-0 items-center justify-center rounded-3xl bg-brand text-2xl font-semibold text-brand-foreground">
-              {getIniciais(cliente.nome)}
-            </span>
+            <div className="relative size-20 shrink-0">
+              {fotoPerfil ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- imagem privada servida via rota autenticada, sem otimização estática do Next */}
+                  <img
+                    alt={`Foto de ${cliente.nome}`}
+                    className="size-20 rounded-3xl object-cover"
+                    src={`/api/clientes/${id}/foto-perfil`}
+                  />
+                </>
+              ) : (
+                <span className="flex size-20 items-center justify-center rounded-3xl bg-brand text-2xl font-semibold text-brand-foreground">
+                  {getIniciais(cliente.nome)}
+                </span>
+              )}
+              <MenuFotoCliente
+                clienteId={id}
+                clienteNome={cliente.nome}
+                temFoto={Boolean(fotoPerfil)}
+              />
+            </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-3xl font-semibold text-foreground">{cliente.nome}</h1>

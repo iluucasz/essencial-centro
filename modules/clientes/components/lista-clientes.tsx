@@ -10,6 +10,7 @@ import type { ClienteFormulario } from "./formulario-cliente";
 
 type ClienteResumo = ClienteFormulario & {
   criadoEm: Date;
+  fotoPerfilId: string | null;
 };
 
 const formatadorData = new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" });
@@ -106,8 +107,19 @@ export function ListaClientes({
                     <td className="align-middle">
                       <CelulaLink href={href}>
                         <span className="flex items-center gap-3">
-                          <span className="bg-menta flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-brand">
-                            {getIniciais(cliente.nome)}
+                          <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand text-base font-semibold text-brand-foreground">
+                            {cliente.fotoPerfilId ? (
+                              <>
+                                {/* eslint-disable-next-line @next/next/no-img-element -- imagem privada servida via rota autenticada, sem otimização estática do Next */}
+                                <img
+                                  alt={`Foto de ${cliente.nome}`}
+                                  className="size-full object-cover"
+                                  src={`/api/clientes/${cliente.id}/foto-perfil?v=${cliente.fotoPerfilId}`}
+                                />
+                              </>
+                            ) : (
+                              getIniciais(cliente.nome)
+                            )}
                           </span>
                           <span className="min-w-0">
                             <span className="block truncate font-semibold text-foreground">

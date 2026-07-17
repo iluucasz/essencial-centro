@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { fotoPerfilSchema } from "./perfil-schema";
 import { criarFotoSchema, TAMANHO_MAXIMO_BYTES } from "./schema";
 
 const clienteId = "b1f6f2a0-1c1a-4a9a-9f1a-1c1a4a9a9f1a";
@@ -50,6 +51,35 @@ describe("criarFotoSchema", () => {
       clienteId,
       regiao: "Abdômen",
       arquivo: arquivoFake("vazio.jpg", "image/jpeg", 0),
+    });
+
+    expect(resultado.success).toBe(false);
+  });
+});
+
+describe("fotoPerfilSchema", () => {
+  it("aceita uma imagem de perfil PNG dentro do limite", () => {
+    const resultado = fotoPerfilSchema.safeParse({
+      id: clienteId,
+      arquivo: arquivoFake("perfil.png", "image/png", 1024),
+    });
+
+    expect(resultado.success).toBe(true);
+  });
+
+  it("recusa imagem de perfil sem registro válido", () => {
+    const resultado = fotoPerfilSchema.safeParse({
+      id: "cliente-invalido",
+      arquivo: arquivoFake("perfil.png", "image/png", 1024),
+    });
+
+    expect(resultado.success).toBe(false);
+  });
+
+  it("recusa formato não suportado para imagem de perfil", () => {
+    const resultado = fotoPerfilSchema.safeParse({
+      id: clienteId,
+      arquivo: arquivoFake("perfil.gif", "image/gif", 1024),
     });
 
     expect(resultado.success).toBe(false);

@@ -1,17 +1,15 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 
-import { auth } from "@/auth";
-import { autorizarPapel, ErroAutorizacao } from "@/modules/auth/rbac";
+import { ErroAutorizacao } from "@/modules/auth/rbac";
+import { exigirUsuarioAtualComImagem } from "@/modules/auth/queries";
 import { groqConfigurado } from "@/modules/assistente/config";
 import { listarHistoricoAssistente } from "@/modules/assistente/queries";
 import { PainelShell } from "@/components/layout/painel-shell";
 
 async function autorizar() {
   try {
-    const sessao = await auth();
-
-    return autorizarPapel(sessao, ["profissional", "recepcao"]);
+    return exigirUsuarioAtualComImagem(["profissional", "recepcao"]);
   } catch (error) {
     if (error instanceof ErroAutorizacao) {
       redirect("/entrar");

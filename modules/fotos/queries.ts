@@ -1,10 +1,11 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { autorizarClienteDono, autorizarPapel, ErroAutorizacao } from "@/modules/auth/rbac";
 
 import { foto } from "./schema";
+import { FOTO_PERFIL_CLIENTE_REGIAO } from "./perfil-schema";
 
 const colunasListagem = {
   id: foto.id,
@@ -19,7 +20,7 @@ export async function listarFotosDoCliente(clienteId: string) {
   return db
     .select(colunasListagem)
     .from(foto)
-    .where(eq(foto.clienteId, clienteId))
+    .where(and(eq(foto.clienteId, clienteId), ne(foto.regiao, FOTO_PERFIL_CLIENTE_REGIAO)))
     .orderBy(desc(foto.dataFoto));
 }
 
@@ -39,7 +40,7 @@ export async function listarMinhasFotos() {
   return db
     .select(colunasListagem)
     .from(foto)
-    .where(eq(foto.clienteId, usuario.clienteId))
+    .where(and(eq(foto.clienteId, usuario.clienteId), ne(foto.regiao, FOTO_PERFIL_CLIENTE_REGIAO)))
     .orderBy(desc(foto.dataFoto));
 }
 

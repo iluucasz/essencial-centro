@@ -16,6 +16,27 @@ export async function exigirUsuarioAtual(papeisPermitidos: readonly PapelUsuario
   return autorizarPapel(sessao, papeisPermitidos);
 }
 
+export async function exigirUsuarioAtualComImagem(papeisPermitidos: readonly PapelUsuario[]) {
+  const usuarioAtual = await exigirUsuarioAtual(papeisPermitidos);
+
+  const [registro] = await db
+    .select({
+      name: usuario.name,
+      email: usuario.email,
+      image: usuario.image,
+    })
+    .from(usuario)
+    .where(eq(usuario.id, usuarioAtual.id))
+    .limit(1);
+
+  return {
+    ...usuarioAtual,
+    name: registro?.name ?? usuarioAtual.name,
+    email: registro?.email ?? usuarioAtual.email,
+    image: registro?.image ?? null,
+  };
+}
+
 export async function listarProfissionaisAtivos() {
   await exigirUsuarioAtual(["profissional", "recepcao"]);
 
@@ -36,6 +57,7 @@ export async function listarUsuarios() {
       id: usuario.id,
       name: usuario.name,
       email: usuario.email,
+      image: usuario.image,
       role: usuario.role,
       ativo: usuario.ativo,
       criadoEm: usuario.criadoEm,

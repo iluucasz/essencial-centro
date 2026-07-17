@@ -1,8 +1,10 @@
-import { eq, ilike, or, desc } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, or } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { autorizarClienteDono, autorizarPapel, ErroAutorizacao } from "@/modules/auth/rbac";
+import { FOTO_PERFIL_CLIENTE_REGIAO } from "@/modules/fotos/perfil-schema";
+import { foto } from "@/modules/fotos/schema";
 
 import { filtrarClienteParaUsuario } from "./acesso";
 import { cliente } from "./schema";
@@ -12,7 +14,7 @@ export async function listarClientes(busca?: string) {
 
   const termo = busca?.trim();
 
-  return db
+  const registros = await db
     .select({
       id: cliente.id,
       nome: cliente.nome,
@@ -39,6 +41,48 @@ export async function listarClientes(busca?: string) {
       termo ? or(ilike(cliente.nome, `%${termo}%`), ilike(cliente.email, `%${termo}%`)) : undefined,
     )
     .orderBy(desc(cliente.criadoEm));
+
+  type ClienteListado = (typeof registros)[number] & {
+    fotoPerfilId: string | null;
+    fotoPerfilData: Date | null;
+  };
+
+  if (registros.length === 0) return [] as ClienteListado[];
+
+  const fotosPerfil = await db
+    .select({
+      id: foto.id,
+      clienteId: foto.clienteId,
+      dataFoto: foto.dataFoto,
+    })
+    .from(foto)
+    .where(
+      and(
+        inArray(
+          foto.clienteId,
+          registros.map((registro) => registro.id),
+        ),
+        eq(foto.regiao, FOTO_PERFIL_CLIENTE_REGIAO),
+      ),
+    )
+    .orderBy(desc(foto.dataFoto));
+
+  const fotoMaisRecentePorCliente = new Map<string, (typeof fotosPerfil)[number]>();
+  for (const fotoPerfil of fotosPerfil) {
+    if (!fotoMaisRecentePorCliente.has(fotoPerfil.clienteId)) {
+      fotoMaisRecentePorCliente.set(fotoPerfil.clienteId, fotoPerfil);
+    }
+  }
+
+  return registros.map((registro): ClienteListado => {
+    const fotoPerfil = fotoMaisRecentePorCliente.get(registro.id);
+
+    return {
+      ...registro,
+      fotoPerfilId: fotoPerfil?.id ?? null,
+      fotoPerfilData: fotoPerfil?.dataFoto ?? null,
+    };
+  });
 }
 
 export async function getCliente(id: string) {

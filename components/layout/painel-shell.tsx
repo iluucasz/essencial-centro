@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   BarChart3,
   Boxes,
@@ -26,8 +27,10 @@ import { WidgetAssistente } from "@/modules/assistente/components/widget-assiste
 import type { PapelMensagemAssistente } from "@/modules/assistente/schema";
 
 type UsuarioShell = {
+  id: string;
   name?: string | null;
   email?: string | null;
+  image?: string | null;
   role: PapelUsuario;
 };
 
@@ -170,6 +173,7 @@ export function PainelShell({
   usuario: UsuarioShell;
 }) {
   const pathname = usePathname();
+  const reduzirMovimento = useReducedMotion();
   const [menuAberto, setMenuAberto] = useState(false);
   const [colapsada, setColapsada] = useState(false);
 
@@ -237,12 +241,28 @@ export function PainelShell({
 
           <MenuUsuario
             email={usuario.email ?? null}
+            imagem={usuario.image ?? null}
             nome={usuario.name ?? "Usuário"}
             papel={usuario.role}
+            usuarioId={usuario.id}
           />
         </header>
 
-        <main className="conteudo-rota-transicao flex-1 px-4 py-4 md:px-6 md:py-6">{children}</main>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.main
+            animate={{ opacity: 1, y: 0 }}
+            className="flex-1 px-4 py-4 md:px-6 md:py-6"
+            exit={reduzirMovimento ? { opacity: 0 } : { opacity: 0, y: 6 }}
+            initial={reduzirMovimento ? { opacity: 0 } : { opacity: 0, y: -12 }}
+            key={pathname}
+            transition={{
+              duration: reduzirMovimento ? 0.01 : 0.36,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+          >
+            {children}
+          </motion.main>
+        </AnimatePresence>
       </div>
 
       {assistenteDisponivel ? (
