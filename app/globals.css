@@ -19,7 +19,7 @@
   --surface-secondary-foreground: var(--foreground);
   --surface-tertiary: color-mix(in oklab, var(--background) 82%, var(--salvia) 18%);
   --surface-tertiary-foreground: var(--foreground);
-  --surface-hover: color-mix(in oklab, var(--brand) 8%, var(--surface) 92%);
+  --surface-hover: color-mix(in oklab, var(--roxo) 14%, var(--surface) 86%);
   --overlay: var(--surface);
   --overlay-foreground: var(--foreground);
 

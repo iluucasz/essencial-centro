@@ -1,5 +1,5 @@
 .area-interna {
-  --surface-hover: color-mix(in oklab, var(--brand) 7%, var(--surface) 93%);
+  --surface-hover: color-mix(in oklab, var(--roxo) 15%, var(--surface) 85%);
 }
 
 .area-interna .hover\:bg-creme:hover,

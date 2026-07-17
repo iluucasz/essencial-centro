@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import Link from "next/link";
 import {
+  ArrowUpRight,
   CalendarClock,
   CalendarX,
   CheckCircle2,
@@ -108,8 +109,9 @@ function MetricaPainel({
           <span className="text-muted">{tendencia.rotulo}</span>
         </span>
       ) : (
-        <span className="mt-auto text-xs font-medium text-roxo opacity-0 transition group-hover:opacity-100">
-          Abrir
+        <span className="mt-auto inline-flex size-8 items-center justify-center rounded-full bg-lilas/30 text-roxo opacity-0 transition group-hover:bg-roxo group-hover:text-white group-hover:opacity-100">
+          <ArrowUpRight className="size-4" aria-hidden={true} />
+          <span className="sr-only">Abrir</span>
         </span>
       )}
     </Link>
