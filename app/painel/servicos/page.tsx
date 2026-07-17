@@ -1,5 +1,6 @@
 import { ModalFormulario } from "@/components/ui/modal-formulario";
 import { exigirUsuarioAtual } from "@/modules/auth/queries";
+import { podeGerenciarServicos } from "@/modules/servicos/acesso";
 import { FormularioServico } from "@/modules/servicos/components/formulario-servico";
 import { ListaServicos } from "@/modules/servicos/components/lista-servicos";
 import { listarServicos } from "@/modules/servicos/queries";
@@ -7,6 +8,7 @@ import { listarServicos } from "@/modules/servicos/queries";
 export default async function ServicosPage() {
   const usuario = await exigirUsuarioAtual(["profissional", "recepcao"]);
   const servicos = await listarServicos();
+  const podeGerenciar = podeGerenciarServicos(usuario);
 
   return (
     <div className="grid gap-8">
@@ -20,13 +22,13 @@ export default async function ServicosPage() {
       <section className="grid gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-foreground">Cadastrados</h2>
-          {usuario.role === "profissional" ? (
+          {podeGerenciar ? (
             <ModalFormulario rotuloBotao="Novo serviço" titulo="Novo serviço">
               <FormularioServico />
             </ModalFormulario>
           ) : null}
         </div>
-        <ListaServicos servicos={servicos} />
+        <ListaServicos podeGerenciar={podeGerenciar} servicos={servicos} />
       </section>
     </div>
   );

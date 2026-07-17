@@ -6,6 +6,10 @@ import { LoaderCircle, Wallet } from "lucide-react";
 import { CampoDataCalendario } from "@/components/ui/calendario-tailgrids";
 import { criarLancamento, type EstadoFormularioLancamento } from "@/modules/financeiro/actions";
 import {
+  categoriasLancamento,
+  formasPagamentoLancamento,
+  rotulosCategoriaLancamento,
+  rotulosFormaPagamentoLancamento,
   rotulosSituacaoLancamento,
   rotulosTipoLancamento,
   situacoesLancamento,
@@ -147,13 +151,25 @@ export function FormularioLancamento({
       />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <CampoTexto error={state?.campos?.categoria} label="Categoria" name="categoria" required />
+        <CampoSelect
+          error={state?.campos?.categoria}
+          label="Categoria"
+          name="categoria"
+          opcoes={categoriasLancamento.map((categoria) => ({
+            id: categoria,
+            nome: rotulosCategoriaLancamento[categoria],
+          }))}
+        />
         <CampoTexto error={state?.campos?.valorCentavos} label="Valor (R$)" name="valor" required />
         <CampoDataCalendario error={state?.campos?.data} label="Data" name="data" required />
-        <CampoTexto
+        <CampoSelect
           error={state?.campos?.formaPagamento}
           label="Forma de pagamento"
           name="formaPagamento"
+          opcoes={formasPagamentoLancamento.map((forma) => ({
+            id: forma,
+            nome: rotulosFormaPagamentoLancamento[forma],
+          }))}
         />
       </div>
 

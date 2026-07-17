@@ -29,6 +29,52 @@ export const rotulosSituacaoLancamento: Record<SituacaoLancamento, string> = {
   cancelado: "Cancelado",
 };
 
+export const formasPagamentoLancamento = [
+  "debito",
+  "credito",
+  "pix",
+  "link_pagamento",
+  "voucher",
+] as const;
+
+export type FormaPagamentoLancamento = (typeof formasPagamentoLancamento)[number];
+
+export const rotulosFormaPagamentoLancamento: Record<FormaPagamentoLancamento, string> = {
+  debito: "Débito",
+  credito: "Crédito",
+  pix: "Pix",
+  link_pagamento: "Link de pagamento",
+  voucher: "Voucher",
+};
+
+export const categoriasLancamento = [
+  "atendimento",
+  "pacote",
+  "produto",
+  "estoque",
+  "aluguel",
+  "salarios_comissoes",
+  "impostos_taxas",
+  "equipamentos",
+  "marketing",
+  "outros",
+] as const;
+
+export type CategoriaLancamento = (typeof categoriasLancamento)[number];
+
+export const rotulosCategoriaLancamento: Record<CategoriaLancamento, string> = {
+  atendimento: "Atendimento avulso",
+  pacote: "Pacote",
+  produto: "Produto",
+  estoque: "Estoque e insumos",
+  aluguel: "Aluguel e estrutura",
+  salarios_comissoes: "Salários e comissões",
+  impostos_taxas: "Impostos e taxas",
+  equipamentos: "Equipamentos",
+  marketing: "Marketing",
+  outros: "Outros",
+};
+
 export const lancamentoFinanceiro = pgTable("lancamento_financeiro", {
   id: uuid("id").defaultRandom().primaryKey(),
   tipo: tipoLancamentoEnum("tipo").notNull(),
@@ -78,11 +124,11 @@ const dataSchema = z.preprocess((value) => {
 
 export const criarLancamentoSchema = z.object({
   tipo: z.enum(tiposLancamento, "Selecione o tipo do lançamento."),
-  categoria: z.string().trim().min(2, "Informe a categoria.").max(120),
+  categoria: z.enum(categoriasLancamento, "Selecione uma categoria."),
   descricao: textoCurtoOpcional,
   valorCentavos: valorSchema,
   data: dataSchema,
-  formaPagamento: textoCurtoOpcional,
+  formaPagamento: z.enum(formasPagamentoLancamento, "Selecione uma forma de pagamento."),
   situacao: z.enum(situacoesLancamento).default("pendente"),
   clienteId: idOpcional,
   pacoteId: idOpcional,

@@ -1,4 +1,6 @@
 import { ModalFormulario } from "@/components/ui/modal-formulario";
+import { exigirUsuarioAtual } from "@/modules/auth/queries";
+import { podeExcluirPacotes } from "@/modules/pacotes/acesso";
 import { FormularioPacote } from "@/modules/pacotes/components/formulario-pacote";
 import { ListaPacotes } from "@/modules/pacotes/components/lista-pacotes";
 import { listarPacotes } from "@/modules/pacotes/queries";
@@ -6,11 +8,14 @@ import { listarClientes } from "@/modules/clientes/queries";
 import { listarServicos } from "@/modules/servicos/queries";
 
 export default async function PacotesPage() {
+  const usuario = await exigirUsuarioAtual(["profissional", "recepcao"]);
   const [pacotes, clientes, servicos] = await Promise.all([
     listarPacotes(),
     listarClientes(),
     listarServicos(),
   ]);
+  const clientesSelecao = clientes.map((c) => ({ id: c.id, nome: c.nome }));
+  const servicosSelecao = servicos.map((s) => ({ id: s.id, nome: s.nome }));
 
   return (
     <div className="grid gap-8">
@@ -25,13 +30,15 @@ export default async function PacotesPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-foreground">Cadastrados</h2>
           <ModalFormulario rotuloBotao="Novo pacote" titulo="Novo pacote">
-            <FormularioPacote
-              clientes={clientes.map((c) => ({ id: c.id, nome: c.nome }))}
-              servicos={servicos.map((s) => ({ id: s.id, nome: s.nome }))}
-            />
+            <FormularioPacote clientes={clientesSelecao} servicos={servicosSelecao} />
           </ModalFormulario>
         </div>
-        <ListaPacotes pacotes={pacotes} />
+        <ListaPacotes
+          clientes={clientesSelecao}
+          pacotes={pacotes}
+          podeExcluir={podeExcluirPacotes(usuario)}
+          servicos={servicosSelecao}
+        />
       </section>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { eq, sum } from "drizzle-orm";
+import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -24,19 +25,35 @@ export type EstadoFormularioEstoque = {
 };
 
 const estadoInicial: EstadoFormularioEstoque = { status: "inicial" };
+const produtoIdSchema = z.string().uuid("Produto inválido.");
+
+export type EstadoExclusaoEstoque = {
+  status: "inicial" | "erro" | "sucesso";
+  mensagem?: string;
+};
+
+const estadoInicialExclusao: EstadoExclusaoEstoque = { status: "inicial" };
 
 function getValor(formData: FormData, nome: string) {
   return formData.get(nome);
 }
 
-export async function criarProduto(_: EstadoFormularioEstoque = estadoInicial, formData: FormData) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+function checkboxAtivo(value: FormDataEntryValue | null) {
+  return value === "on" || value === "true";
+}
 
-  const parsed = criarProdutoSchema.safeParse({
+function parseFormularioProduto(formData: FormData) {
+  return criarProdutoSchema.safeParse({
     nome: getValor(formData, "nome"),
     unidade: getValor(formData, "unidade"),
     estoqueMinimo: getValor(formData, "estoqueMinimo"),
   });
+}
+
+export async function criarProduto(_: EstadoFormularioEstoque = estadoInicial, formData: FormData) {
+  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+
+  const parsed = parseFormularioProduto(formData);
 
   if (!parsed.success) {
     return {
@@ -58,6 +75,107 @@ export async function criarProduto(_: EstadoFormularioEstoque = estadoInicial, f
     status: "sucesso",
     mensagem: "Produto cadastrado com sucesso.",
   } satisfies EstadoFormularioEstoque;
+}
+
+export async function atualizarProduto(
+  _: EstadoFormularioEstoque = estadoInicial,
+  formData: FormData,
+) {
+  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const produtoId = produtoIdSchema.safeParse(getValor(formData, "id"));
+  const parsed = parseFormularioProduto(formData);
+
+  if (!produtoId.success) {
+    return {
+      status: "erro",
+      mensagem: "Produto inválido.",
+      campos: { id: produtoId.error.flatten().formErrors },
+    } satisfies EstadoFormularioEstoque;
+  }
+
+  if (!parsed.success) {
+    return {
+      status: "erro",
+      mensagem: "Revise os dados do produto.",
+      campos: parsed.error.flatten().fieldErrors,
+    } satisfies EstadoFormularioEstoque;
+  }
+
+  const atualizados = await db
+    .update(produto)
+    .set({
+      ...parsed.data,
+      ativo: checkboxAtivo(getValor(formData, "ativo")),
+      atualizadoPorId: usuarioAtual.id,
+      atualizadoEm: new Date(),
+    })
+    .where(eq(produto.id, produtoId.data))
+    .returning({ id: produto.id });
+
+  if (atualizados.length === 0) {
+    return {
+      status: "erro",
+      mensagem: "Produto não encontrado.",
+    } satisfies EstadoFormularioEstoque;
+  }
+
+  revalidatePath("/painel/estoque");
+  revalidatePath(`/painel/estoque/${produtoId.data}`);
+
+  return {
+    status: "sucesso",
+    mensagem: "Produto atualizado com sucesso.",
+  } satisfies EstadoFormularioEstoque;
+}
+
+export async function excluirProduto(
+  _: EstadoExclusaoEstoque = estadoInicialExclusao,
+  formData: FormData,
+) {
+  autorizarPapel(await auth(), ["profissional"]);
+  const produtoId = produtoIdSchema.safeParse(getValor(formData, "produtoId"));
+  const exclusaoConfirmada = checkboxAtivo(getValor(formData, "confirmarExclusao"));
+
+  if (!produtoId.success) {
+    return {
+      status: "erro",
+      mensagem: "Produto inválido.",
+    } satisfies EstadoExclusaoEstoque;
+  }
+
+  if (!exclusaoConfirmada) {
+    return {
+      status: "erro",
+      mensagem: "Confirme que entende a exclusão antes de continuar.",
+    } satisfies EstadoExclusaoEstoque;
+  }
+
+  try {
+    const excluidos = await db
+      .delete(produto)
+      .where(eq(produto.id, produtoId.data))
+      .returning({ id: produto.id });
+
+    if (excluidos.length === 0) {
+      return {
+        status: "erro",
+        mensagem: "Produto não encontrado.",
+      } satisfies EstadoExclusaoEstoque;
+    }
+  } catch {
+    return {
+      status: "erro",
+      mensagem:
+        "Não foi possível excluir este produto porque ele pode estar vinculado a lotes ou movimentações de estoque.",
+    } satisfies EstadoExclusaoEstoque;
+  }
+
+  revalidatePath("/painel/estoque");
+
+  return {
+    status: "sucesso",
+    mensagem: "Produto excluído com sucesso.",
+  } satisfies EstadoExclusaoEstoque;
 }
 
 export async function criarLote(_: EstadoFormularioEstoque = estadoInicial, formData: FormData) {

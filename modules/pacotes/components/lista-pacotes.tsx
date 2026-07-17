@@ -3,16 +3,24 @@ import { PackageCheck } from "lucide-react";
 import { rotulosSituacaoPagamento, type SituacaoPagamento } from "@/modules/pacotes/schema";
 import type { ProgressoPacote } from "@/modules/pacotes/progresso";
 
+import { MenuAcoesPacote } from "./menu-acoes-pacote";
+
 type PacoteResumo = {
   id: string;
+  clienteId: string;
+  servicoId: string;
   clienteNome: string;
   servicoNome: string;
+  quantidadeSessoes: number;
   validade: Date | null;
   valorCentavos: number | null;
+  formaPagamento: string | null;
   situacaoPagamento: SituacaoPagamento;
   ativo: boolean;
   progresso: ProgressoPacote;
 };
+
+type Opcao = { id: string; nome: string };
 
 const formatadorMoeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -26,7 +34,17 @@ const classePorSituacao: Record<SituacaoPagamento, string> = {
   pago: "bg-brand/15 text-brand",
 };
 
-export function ListaPacotes({ pacotes }: { pacotes: PacoteResumo[] }) {
+export function ListaPacotes({
+  clientes,
+  pacotes,
+  podeExcluir = false,
+  servicos,
+}: {
+  clientes?: Opcao[];
+  pacotes: PacoteResumo[];
+  podeExcluir?: boolean;
+  servicos?: Opcao[];
+}) {
   if (pacotes.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-surface p-6 text-sm text-muted">
@@ -53,10 +71,20 @@ export function ListaPacotes({ pacotes }: { pacotes: PacoteResumo[] }) {
               </span>
             </span>
 
-            <span
-              className={`rounded-full px-2.5 py-1 text-xs font-medium ${classePorSituacao[pacote.situacaoPagamento]}`}
-            >
-              {rotulosSituacaoPagamento[pacote.situacaoPagamento]}
+            <span className="flex items-center gap-2">
+              <span
+                className={`rounded-full px-2.5 py-1 text-xs font-medium ${classePorSituacao[pacote.situacaoPagamento]}`}
+              >
+                {rotulosSituacaoPagamento[pacote.situacaoPagamento]}
+              </span>
+              {clientes && servicos ? (
+                <MenuAcoesPacote
+                  clientes={clientes}
+                  pacote={pacote}
+                  podeExcluir={podeExcluir}
+                  servicos={servicos}
+                />
+              ) : null}
             </span>
           </div>
 

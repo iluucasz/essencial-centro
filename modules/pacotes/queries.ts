@@ -15,9 +15,12 @@ async function buscarPacotesComProgresso(clienteId?: string) {
     db
       .select({
         id: pacote.id,
+        clienteId: pacote.clienteId,
+        servicoId: pacote.servicoId,
         quantidadeSessoes: pacote.quantidadeSessoes,
         validade: pacote.validade,
         valorCentavos: pacote.valorCentavos,
+        formaPagamento: pacote.formaPagamento,
         situacaoPagamento: pacote.situacaoPagamento,
         ativo: pacote.ativo,
         clienteNome: cliente.nome,

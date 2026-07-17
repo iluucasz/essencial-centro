@@ -3,10 +3,22 @@
 import { useActionState, useEffect } from "react";
 import { LoaderCircle, PackagePlus } from "lucide-react";
 
-import { criarProduto, type EstadoFormularioEstoque } from "@/modules/estoque/actions";
 import { useFecharModal } from "@/components/ui/modal-formulario";
+import {
+  atualizarProduto,
+  criarProduto,
+  type EstadoFormularioEstoque,
+} from "@/modules/estoque/actions";
 
 const estadoInicial: EstadoFormularioEstoque = { status: "inicial" };
+
+export type ProdutoFormulario = {
+  id: string;
+  nome: string;
+  unidade: string | null;
+  estoqueMinimo: number | null;
+  ativo: boolean;
+};
 
 function MensagemFormulario({ state }: { state: EstadoFormularioEstoque | undefined }) {
   if (!state?.mensagem) return null;
@@ -25,8 +37,55 @@ function MensagemFormulario({ state }: { state: EstadoFormularioEstoque | undefi
   );
 }
 
-export function FormularioProduto() {
-  const [state, formAction, pending] = useActionState(criarProduto, estadoInicial);
+function CampoTexto({
+  defaultValue,
+  error,
+  label,
+  name,
+  placeholder,
+  required,
+  type = "text",
+}: {
+  defaultValue?: string | number;
+  error?: string[];
+  label: string;
+  name: string;
+  placeholder?: string;
+  required?: boolean;
+  type?: string;
+}) {
+  const errorId = `${name}-erro`;
+
+  return (
+    <div className="grid gap-2">
+      <label className="text-sm font-medium text-foreground" htmlFor={name}>
+        {label}
+      </label>
+      <input
+        aria-describedby={error?.length ? errorId : undefined}
+        aria-invalid={error?.length ? true : undefined}
+        className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
+        defaultValue={defaultValue}
+        id={name}
+        name={name}
+        placeholder={placeholder}
+        required={required}
+        type={type}
+      />
+      {error?.length ? (
+        <p className="text-sm text-perigo" id={errorId}>
+          {error[0]}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+export function FormularioProduto({ produto }: { produto?: ProdutoFormulario }) {
+  const [state, formAction, pending] = useActionState(
+    produto ? atualizarProduto : criarProduto,
+    estadoInicial,
+  );
   const fecharModal = useFecharModal();
 
   useEffect(() => {
@@ -35,46 +94,46 @@ export function FormularioProduto() {
 
   return (
     <form action={formAction} className="grid gap-4">
-      <div className="grid gap-2">
-        <label className="text-sm font-medium text-foreground" htmlFor="nome">
-          Nome do produto
-        </label>
-        <input
-          className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
-          id="nome"
-          name="nome"
-          placeholder="Ex.: Óleo de massagem"
-          required
-        />
-        {state?.campos?.nome?.length ? (
-          <p className="text-sm text-perigo">{state.campos.nome[0]}</p>
-        ) : null}
-      </div>
+      {produto ? <input name="id" type="hidden" value={produto.id} /> : null}
+
+      <CampoTexto
+        defaultValue={produto?.nome}
+        error={state?.campos?.nome}
+        label="Nome do produto"
+        name="nome"
+        placeholder="Ex.: Óleo de massagem"
+        required
+      />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid gap-2">
-          <label className="text-sm font-medium text-foreground" htmlFor="unidade">
-            Unidade (opcional)
-          </label>
-          <input
-            className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
-            id="unidade"
-            name="unidade"
-            placeholder="Ex.: ml, un, kg"
-          />
-        </div>
-        <div className="grid gap-2">
-          <label className="text-sm font-medium text-foreground" htmlFor="estoqueMinimo">
-            Estoque mínimo (opcional)
-          </label>
-          <input
-            className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
-            id="estoqueMinimo"
-            name="estoqueMinimo"
-            type="number"
-          />
-        </div>
+        <CampoTexto
+          defaultValue={produto?.unidade ?? undefined}
+          error={state?.campos?.unidade}
+          label="Unidade (opcional)"
+          name="unidade"
+          placeholder="Ex.: ml, un, kg"
+        />
+        <CampoTexto
+          defaultValue={produto?.estoqueMinimo ?? undefined}
+          error={state?.campos?.estoqueMinimo}
+          label="Estoque mínimo (opcional)"
+          name="estoqueMinimo"
+          type="number"
+        />
       </div>
+
+      {produto ? (
+        <label className="flex items-start gap-3 rounded-lg bg-creme p-3 text-sm text-foreground">
+          <input
+            className="mt-1 size-4 rounded border-border text-brand focus:ring-roxo"
+            defaultChecked={produto.ativo}
+            name="ativo"
+            type="checkbox"
+            value="true"
+          />
+          <span>Produto ativo para novos lotes e movimentações.</span>
+        </label>
+      ) : null}
 
       <MensagemFormulario state={state} />
 
@@ -88,7 +147,7 @@ export function FormularioProduto() {
         ) : (
           <PackagePlus className="size-4" />
         )}
-        Cadastrar produto
+        {produto ? "Atualizar produto" : "Cadastrar produto"}
       </button>
     </form>
   );

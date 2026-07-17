@@ -2,12 +2,20 @@ import { Sparkles } from "lucide-react";
 
 import { rotulosGrupoServico, type GrupoServico } from "@/modules/servicos/schema";
 
+import { MenuAcoesServico } from "./menu-acoes-servico";
+
 type ServicoResumo = {
   id: string;
   nome: string;
   grupo: GrupoServico;
+  descricao: string | null;
+  indicacao: string | null;
+  contraindicacoes: string | null;
   duracaoMinutos: number;
   valorCentavos: number | null;
+  periodicidade: string | null;
+  preparo: string | null;
+  cuidadosPosteriores: string | null;
   ativo: boolean;
 };
 
@@ -22,7 +30,13 @@ function formatarValor(valorCentavos: number | null) {
   return formatadorMoeda.format(valorCentavos / 100);
 }
 
-export function ListaServicos({ servicos }: { servicos: ServicoResumo[] }) {
+export function ListaServicos({
+  podeGerenciar,
+  servicos,
+}: {
+  podeGerenciar: boolean;
+  servicos: ServicoResumo[];
+}) {
   if (servicos.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-surface p-6 text-sm text-muted">
@@ -35,7 +49,7 @@ export function ListaServicos({ servicos }: { servicos: ServicoResumo[] }) {
     <div className="overflow-hidden rounded-lg border border-border bg-surface">
       <ul className="divide-y divide-border">
         {servicos.map((servico) => (
-          <li key={servico.id} className="grid gap-2 p-4 md:grid-cols-[1fr_auto]">
+          <li key={servico.id} className="grid gap-3 p-4 md:grid-cols-[1fr_auto_auto]">
             <span className="flex items-start gap-3">
               <span className="mt-0.5 rounded-lg bg-lilas/35 p-2 text-roxo">
                 <Sparkles className="size-4" aria-hidden="true" />
@@ -51,6 +65,7 @@ export function ListaServicos({ servicos }: { servicos: ServicoResumo[] }) {
             <span className="text-sm font-medium text-foreground">
               {formatarValor(servico.valorCentavos)}
             </span>
+            {podeGerenciar ? <MenuAcoesServico servico={servico} /> : null}
           </li>
         ))}
       </ul>

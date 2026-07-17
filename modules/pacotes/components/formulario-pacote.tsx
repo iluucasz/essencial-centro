@@ -4,13 +4,49 @@ import { useActionState, useEffect } from "react";
 import { LoaderCircle, PackagePlus } from "lucide-react";
 
 import { CampoDataCalendario } from "@/components/ui/calendario-tailgrids";
-import { criarPacote, type EstadoFormularioPacote } from "@/modules/pacotes/actions";
-import { rotulosSituacaoPagamento, situacoesPagamento } from "@/modules/pacotes/schema";
 import { useFecharModal } from "@/components/ui/modal-formulario";
+import {
+  atualizarPacote,
+  criarPacote,
+  type EstadoFormularioPacote,
+} from "@/modules/pacotes/actions";
+import {
+  rotulosSituacaoPagamento,
+  situacoesPagamento,
+  type SituacaoPagamento,
+} from "@/modules/pacotes/schema";
 
 const estadoInicial: EstadoFormularioPacote = { status: "inicial" };
 
 type Opcao = { id: string; nome: string };
+
+export type PacoteFormulario = {
+  id: string;
+  clienteId: string;
+  servicoId: string;
+  quantidadeSessoes: number;
+  validade: Date | null;
+  valorCentavos: number | null;
+  formaPagamento: string | null;
+  situacaoPagamento: SituacaoPagamento;
+  ativo: boolean;
+};
+
+function formatarDataInput(data?: Date | null) {
+  if (!data) return undefined;
+
+  const ano = data.getUTCFullYear();
+  const mes = String(data.getUTCMonth() + 1).padStart(2, "0");
+  const dia = String(data.getUTCDate()).padStart(2, "0");
+
+  return `${ano}-${mes}-${dia}`;
+}
+
+function formatarValor(valorCentavos?: number | null) {
+  if (valorCentavos === null || valorCentavos === undefined) return undefined;
+
+  return String(valorCentavos / 100).replace(".", ",");
+}
 
 function MensagemFormulario({ state }: { state: EstadoFormularioPacote | undefined }) {
   if (!state?.mensagem) return null;
@@ -77,12 +113,14 @@ function CampoSelect({
 }
 
 function CampoTexto({
+  defaultValue,
   error,
   label,
   name,
   required,
   type = "text",
 }: {
+  defaultValue?: string | number;
   error?: string[];
   label: string;
   name: string;
@@ -100,6 +138,7 @@ function CampoTexto({
         aria-describedby={error?.length ? errorId : undefined}
         aria-invalid={error?.length ? true : undefined}
         className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
+        defaultValue={defaultValue}
         id={name}
         name={name}
         required={required}
@@ -114,8 +153,19 @@ function CampoTexto({
   );
 }
 
-export function FormularioPacote({ clientes, servicos }: { clientes: Opcao[]; servicos: Opcao[] }) {
-  const [state, formAction, pending] = useActionState(criarPacote, estadoInicial);
+export function FormularioPacote({
+  clientes,
+  pacote,
+  servicos,
+}: {
+  clientes: Opcao[];
+  pacote?: PacoteFormulario;
+  servicos: Opcao[];
+}) {
+  const [state, formAction, pending] = useActionState(
+    pacote ? atualizarPacote : criarPacote,
+    estadoInicial,
+  );
   const fecharModal = useFecharModal();
 
   useEffect(() => {
@@ -124,13 +174,17 @@ export function FormularioPacote({ clientes, servicos }: { clientes: Opcao[]; se
 
   return (
     <form action={formAction} className="grid gap-6">
+      {pacote ? <input name="id" type="hidden" value={pacote.id} /> : null}
+
       <CampoSelect
+        defaultValue={pacote?.clienteId}
         error={state?.campos?.clienteId}
         label="Cliente"
         name="clienteId"
         opcoes={clientes}
       />
       <CampoSelect
+        defaultValue={pacote?.servicoId}
         error={state?.campos?.servicoId}
         label="Serviço"
         name="servicoId"
@@ -139,15 +193,27 @@ export function FormularioPacote({ clientes, servicos }: { clientes: Opcao[]; se
 
       <div className="grid gap-4 sm:grid-cols-2">
         <CampoTexto
+          defaultValue={pacote?.quantidadeSessoes}
           error={state?.campos?.quantidadeSessoes}
           label="Quantidade de sessões"
           name="quantidadeSessoes"
           required
           type="number"
         />
-        <CampoDataCalendario error={state?.campos?.validade} label="Validade" name="validade" />
-        <CampoTexto error={state?.campos?.valorCentavos} label="Valor (R$)" name="valor" />
+        <CampoDataCalendario
+          defaultValue={formatarDataInput(pacote?.validade)}
+          error={state?.campos?.validade}
+          label="Validade"
+          name="validade"
+        />
         <CampoTexto
+          defaultValue={formatarValor(pacote?.valorCentavos)}
+          error={state?.campos?.valorCentavos}
+          label="Valor (R$)"
+          name="valor"
+        />
+        <CampoTexto
+          defaultValue={pacote?.formaPagamento ?? undefined}
           error={state?.campos?.formaPagamento}
           label="Forma de pagamento"
           name="formaPagamento"
@@ -155,12 +221,25 @@ export function FormularioPacote({ clientes, servicos }: { clientes: Opcao[]; se
       </div>
 
       <CampoSelect
-        defaultValue="pendente"
+        defaultValue={pacote?.situacaoPagamento ?? "pendente"}
         error={state?.campos?.situacaoPagamento}
         label="Situação do pagamento"
         name="situacaoPagamento"
         opcoes={situacoesPagamento.map((s) => ({ id: s, nome: rotulosSituacaoPagamento[s] }))}
       />
+
+      {pacote ? (
+        <label className="flex items-start gap-3 rounded-lg bg-creme p-3 text-sm text-foreground">
+          <input
+            className="mt-1 size-4 rounded border-border text-brand focus:ring-roxo"
+            defaultChecked={pacote.ativo}
+            name="ativo"
+            type="checkbox"
+            value="true"
+          />
+          <span>Pacote ativo para novos agendamentos.</span>
+        </label>
+      ) : null}
 
       <MensagemFormulario state={state} />
 
@@ -174,7 +253,7 @@ export function FormularioPacote({ clientes, servicos }: { clientes: Opcao[]; se
         ) : (
           <PackagePlus className="size-4" />
         )}
-        Salvar pacote
+        {pacote ? "Atualizar pacote" : "Salvar pacote"}
       </button>
     </form>
   );
