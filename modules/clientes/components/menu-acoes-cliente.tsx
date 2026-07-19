@@ -65,7 +65,7 @@ export function MenuAcoesCliente({
 
         {menuAberto ? (
           <div
-            className={`absolute right-0 z-20 w-56 rounded-xl border border-border bg-surface p-1 shadow-md ${abrirParaCima ? "bottom-10" : "top-10"}`}
+            className={`absolute right-0 z-40 w-56 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-surface p-1 shadow-md ${abrirParaCima ? "bottom-10" : "top-10"}`}
             role="menu"
           >
             <Link
@@ -114,7 +114,7 @@ export function MenuAcoesCliente({
 
       <Modal state={modalEdicao}>
         <Modal.Backdrop variant="opaque">
-          <Modal.Container size="lg">
+          <Modal.Container className="w-[calc(100vw-1rem)] sm:w-full" size="lg">
             <ConteudoModal titulo="Atualizar cliente">
               <FecharModalProvider value={modalEdicao.close}>
                 <FormularioCliente cliente={cliente} />
@@ -126,7 +126,7 @@ export function MenuAcoesCliente({
 
       <Modal state={modalExclusao}>
         <Modal.Backdrop variant="opaque">
-          <Modal.Container size="sm">
+          <Modal.Container className="w-[calc(100vw-1rem)] sm:w-full" size="sm">
             <ConteudoModal corTitulo="text-perigo" titulo="Excluir cliente">
               <form action={formAction} className="grid gap-4">
                 <input name="clienteId" type="hidden" value={cliente.id} />
@@ -158,9 +158,9 @@ export function MenuAcoesCliente({
                 ) : null}
 
                 <ParteModalAnimada ordem={4}>
-                  <div className="flex flex-wrap justify-end gap-2">
+                  <div className="grid gap-2 sm:flex sm:flex-wrap sm:justify-end">
                     <button
-                      className="inline-flex h-10 items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+                      className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo sm:w-auto"
                       onClick={() => {
                         setConfirmado(false);
                         modalExclusao.close();
@@ -170,7 +170,7 @@ export function MenuAcoesCliente({
                       Cancelar
                     </button>
                     <button
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-perigo px-4 text-sm font-semibold text-white transition hover:bg-perigo/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-perigo disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-perigo px-4 text-sm font-semibold text-white transition hover:bg-perigo/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-perigo disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                       disabled={!confirmado || pending}
                       type="submit"
                     >

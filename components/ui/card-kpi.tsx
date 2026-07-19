@@ -26,12 +26,12 @@ export function CardKpi({
 }) {
   return (
     <div className="flex h-full min-h-36 flex-col rounded-2xl border border-border bg-surface p-4 sm:p-5">
-      <span className={`flex items-center gap-1.5 text-sm ${coresIcone[cor]}`}>
+      <span className={`flex min-w-0 items-center gap-1.5 text-sm ${coresIcone[cor]}`}>
         <Icone className="size-4 shrink-0" aria-hidden={true} />
-        <span className="text-muted">{label}</span>
+        <span className="min-w-0 text-muted">{label}</span>
       </span>
       <span
-        className={`mt-4 text-2xl leading-none font-semibold sm:text-3xl ${destaque === "positivo" ? "text-brand" : "text-foreground"}`}
+        className={`mt-4 min-w-0 text-2xl leading-tight font-semibold break-words sm:text-3xl ${destaque === "positivo" ? "text-brand" : "text-foreground"}`}
       >
         {valor}
       </span>

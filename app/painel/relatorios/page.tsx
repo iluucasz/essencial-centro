@@ -6,7 +6,7 @@ import { agoraBrasilia, primeiroDiaDoMes, ultimoDiaDoMes } from "@/lib/utils";
 import { rotulosStatusAgendamento, statusAgendamento } from "@/modules/agenda/schema";
 import { obterRelatorioPeriodo } from "@/modules/relatorios/queries";
 
-const formatadorMoeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const formatadorMoeda = new Intl.NumberFormat("pt-BR", { currency: "BRL", style: "currency" });
 
 function paraDataInputValue(data: Date) {
   return data.toISOString().slice(0, 10);
@@ -33,7 +33,7 @@ export default async function RelatoriosPage({
 }: {
   searchParams: Promise<{ inicio?: string; fim?: string }>;
 }) {
-  const { inicio: inicioParam, fim: fimParam } = await searchParams;
+  const { fim: fimParam, inicio: inicioParam } = await searchParams;
 
   const hoje = agoraBrasilia();
   const inicio = parseDataInicio(inicioParam, primeiroDiaDoMes(hoje));
@@ -42,9 +42,9 @@ export default async function RelatoriosPage({
   const relatorio = await obterRelatorioPeriodo(inicio, fim);
 
   return (
-    <div className="grid gap-8">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+    <div className="grid min-w-0 gap-6 sm:gap-8">
+      <header className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold text-brand">Relatórios</h1>
           <p className="mt-2 max-w-2xl text-sm text-foreground">
             Visão consolidada de agenda, clientes e financeiro no período.
@@ -52,8 +52,8 @@ export default async function RelatoriosPage({
         </div>
 
         <form
-          className="grid gap-2 sm:grid-cols-[12rem_12rem_auto] sm:items-end"
           action="/painel/relatorios"
+          className="grid w-full min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end lg:w-auto lg:grid-cols-[12rem_12rem_auto]"
         >
           <CampoDataCalendario
             defaultValue={paraDataInputValue(inicio)}
@@ -68,7 +68,7 @@ export default async function RelatoriosPage({
             required
           />
           <button
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+            className="inline-flex h-11 items-center justify-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
             type="submit"
           >
             Ver período
@@ -107,7 +107,7 @@ export default async function RelatoriosPage({
 
       <section className="grid gap-4">
         <h2 className="text-lg font-semibold text-foreground">Agendamentos por status</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
           {statusAgendamento.map((status) => (
             <div key={status} className="rounded-lg border border-border bg-surface p-4">
               <p className="text-sm text-muted">{rotulosStatusAgendamento[status]}</p>
@@ -131,10 +131,10 @@ export default async function RelatoriosPage({
               {relatorio.rankingServicos.map((item) => (
                 <li
                   key={item.servicoNome}
-                  className="flex items-center justify-between gap-3 p-4 text-sm"
+                  className="grid gap-1 p-4 text-sm sm:flex sm:items-center sm:justify-between sm:gap-3"
                 >
-                  <span className="font-medium text-foreground">{item.servicoNome}</span>
-                  <span className="text-muted">{item.total} atendimentos</span>
+                  <span className="min-w-0 font-medium text-foreground">{item.servicoNome}</span>
+                  <span className="shrink-0 text-muted">{item.total} atendimentos</span>
                 </li>
               ))}
             </ul>

@@ -458,12 +458,12 @@ function GraficoMedidas({ medidas }: { medidas: MedidaPerfil[] }) {
   const y = (valor: number) => margem.cima + ((maximo - valor) / intervalo) * alturaPlot;
 
   return (
-    <article className="rounded-3xl border border-border bg-surface p-6">
+    <article className="min-w-0 rounded-3xl border border-border bg-surface p-4 sm:p-6">
       <h3 className="text-base font-semibold text-foreground">Evolução das medidas (cm)</h3>
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-4 overflow-hidden">
         <svg
           aria-label="Gráfico de evolução das medidas"
-          className="min-w-[640px]"
+          className="h-auto w-full min-w-0"
           viewBox={`0 0 ${largura} ${altura}`}
         >
           {[0, 1, 2, 3].map((linha) => {
@@ -563,7 +563,7 @@ function CardsEvolucao({ evolucao }: { evolucao: EvolucaoAgrupada[] }) {
   if (destaques.length === 0) return null;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(13rem,1fr))] gap-4">
       {destaques.map((item) => (
         <article
           className="rounded-3xl border border-border bg-surface p-5 text-center"
@@ -939,7 +939,7 @@ export default async function ClienteDetalhePage({
     abaDestino === "resumo" ? `/painel/clientes/${id}` : `/painel/clientes/${id}?aba=${abaDestino}`;
 
   return (
-    <div className="grid gap-7">
+    <div className="grid min-w-0 gap-6 sm:gap-7">
       <BreadcrumbCliente nome={cliente.nome} />
 
       <section className="overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">

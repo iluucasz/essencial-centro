@@ -15,9 +15,9 @@ export default async function ServicosPage() {
   const podeGerenciar = podeGerenciarServicos(usuario);
 
   return (
-    <div className="grid gap-8">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+    <div className="grid min-w-0 gap-6 sm:gap-8">
+      <header className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold text-brand">Serviços</h1>
           <p className="mt-2 max-w-2xl text-sm text-foreground">
             Catálogo usado por agenda, pacotes e fichas de avaliação.

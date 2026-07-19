@@ -193,7 +193,7 @@ function ItemMedida({ medida, sessoes }: { medida: MedidaLista; sessoes: Opcao[]
 
       <Modal state={modalVisualizacao}>
         <Modal.Backdrop variant="opaque">
-          <Modal.Container className="w-[calc(100vw-2rem)] sm:w-full" size="lg">
+          <Modal.Container className="w-[calc(100vw-1rem)] sm:w-full" size="lg">
             <ConteudoModal titulo={titulo}>
               <DetalhesMedida medida={medida} sessoes={sessoes} />
             </ConteudoModal>
@@ -203,7 +203,7 @@ function ItemMedida({ medida, sessoes }: { medida: MedidaLista; sessoes: Opcao[]
 
       <Modal state={modalEdicao}>
         <Modal.Backdrop variant="opaque">
-          <Modal.Container className="w-[calc(100vw-2rem)] sm:w-full" size="lg">
+          <Modal.Container className="w-[calc(100vw-1rem)] sm:w-full" size="lg">
             <ConteudoModal titulo={`Editar ${titulo}`}>
               <FecharModalProvider value={modalEdicao.close}>
                 <FormularioMedida clienteId={medida.clienteId} medida={medida} sessoes={sessoes} />

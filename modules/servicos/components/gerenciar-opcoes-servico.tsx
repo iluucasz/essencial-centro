@@ -68,7 +68,7 @@ export function AdicionarOpcaoServico({
         Adicionar novo
       </Popover.Trigger>
       <Popover.Content placement="bottom end">
-        <Popover.Dialog className="grid w-64 gap-2 p-3">
+        <Popover.Dialog className="grid w-64 max-w-[calc(100vw-2rem)] gap-2 p-3">
           <form className="grid gap-2" onSubmit={aoEnviar}>
             <input
               autoFocus
@@ -147,7 +147,7 @@ export function GerenciarOpcoesServico({
 
       <Modal state={modal}>
         <Modal.Backdrop variant="opaque">
-          <Modal.Container size="sm">
+          <Modal.Container className="w-[calc(100vw-1rem)] sm:w-full" size="sm">
             <ConteudoModal titulo={titulo}>
               {opcoes.length === 0 ? (
                 <p className="text-sm text-muted">Nenhuma opção cadastrada ainda.</p>

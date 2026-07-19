@@ -104,19 +104,19 @@ export function ConteudoModal({
 }) {
   return (
     <ModalDialogAnimado
-      className="max-h-[min(86vh,44rem)] w-[calc(100vw-2rem)] max-w-[44rem] overflow-hidden rounded-3xl"
-      conteudoClassName="flex max-h-[min(86vh,44rem)] min-h-0 flex-col"
+      className="max-h-[min(92dvh,44rem)] w-[calc(100vw-1rem)] max-w-[44rem] overflow-hidden rounded-2xl sm:w-[calc(100vw-2rem)] sm:rounded-3xl"
+      conteudoClassName="flex max-h-[min(92dvh,44rem)] min-h-0 flex-col"
     >
       <ParteModalAnimada className="shrink-0">
-        <Modal.Header className="shrink-0 border-b border-border/70 px-6 pt-6 pr-14 pb-4">
+        <Modal.Header className="shrink-0 border-b border-border/70 px-4 pt-5 pr-12 pb-4 sm:px-6 sm:pt-6 sm:pr-14">
           <Modal.Heading className={cn("text-lg font-semibold", corTitulo)}>{titulo}</Modal.Heading>
         </Modal.Header>
       </ParteModalAnimada>
-      <Modal.CloseTrigger className="top-5 right-5 bg-muted/10 text-muted transition hover:bg-roxo/10 hover:text-roxo" />
+      <Modal.CloseTrigger className="top-4 right-4 bg-muted/10 text-muted transition hover:bg-roxo/10 hover:text-roxo sm:top-5 sm:right-5" />
       <ParteModalAnimada className="min-h-0 flex-1" ordem={1}>
         <Modal.Body
           className={cn(
-            "h-full min-h-0 [scrollbar-gutter:stable] overflow-x-hidden overflow-y-auto px-6 pt-5 pb-6",
+            "h-full min-h-0 [scrollbar-gutter:stable] overflow-x-hidden overflow-y-auto px-4 pt-5 pb-5 sm:px-6 sm:pb-6",
             "[&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted/35 [&::-webkit-scrollbar-track]:bg-transparent",
           )}
         >
@@ -142,12 +142,12 @@ export function ModalFormulario({
 
   return (
     <Modal state={state}>
-      <Modal.Trigger className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo">
+      <Modal.Trigger className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo sm:w-auto">
         {icone}
         {rotuloBotao}
       </Modal.Trigger>
       <Modal.Backdrop variant="opaque">
-        <Modal.Container className="w-[calc(100vw-2rem)] sm:w-full" size="lg">
+        <Modal.Container className="w-[calc(100vw-1rem)] sm:w-full" size="lg">
           <ConteudoModal titulo={titulo}>
             <FecharModalProvider value={state.close}>{children}</FecharModalProvider>
           </ConteudoModal>

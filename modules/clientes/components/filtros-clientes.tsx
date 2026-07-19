@@ -37,11 +37,11 @@ export function FiltrosClientes({ busca, filtro }: { busca?: string; filtro: Fil
   return (
     <form
       action="/painel/clientes"
-      className="grid w-full gap-3 sm:grid-cols-[minmax(18rem,24rem)_13rem]"
+      className="grid w-full min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_12rem] xl:w-auto xl:grid-cols-[minmax(18rem,24rem)_13rem]"
       method="get"
       ref={formRef}
     >
-      <div>
+      <div className="min-w-0">
         <label className="sr-only" htmlFor="busca">
           Buscar cliente
         </label>
@@ -51,7 +51,7 @@ export function FiltrosClientes({ busca, filtro }: { busca?: string; filtro: Fil
             aria-hidden="true"
           />
           <input
-            className="h-11 w-full rounded-full border border-border bg-creme pr-4 pl-10 text-sm text-foreground transition outline-none placeholder:text-muted focus:border-roxo focus:bg-surface focus:ring-2 focus:ring-roxo/20"
+            className="h-11 w-full min-w-0 rounded-full border border-border bg-creme pr-4 pl-10 text-sm text-foreground transition outline-none placeholder:text-muted focus:border-roxo focus:bg-surface focus:ring-2 focus:ring-roxo/20"
             defaultValue={busca}
             id="busca"
             name="busca"
@@ -65,7 +65,7 @@ export function FiltrosClientes({ busca, filtro }: { busca?: string; filtro: Fil
         Filtrar clientes
       </label>
       <select
-        className="h-11 w-full rounded-full border border-border bg-surface px-4 text-sm font-semibold text-brand transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
+        className="h-11 w-full min-w-0 rounded-full border border-border bg-surface px-4 text-sm font-semibold text-brand transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
         defaultValue={filtro}
         id="filtro"
         name="filtro"

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { CalendarDays, Mail, Phone } from "lucide-react";
+import { CalendarDays, Mail, Phone, Target } from "lucide-react";
 
 import type { FiltroCliente } from "@/modules/clientes/filtro";
 
@@ -48,6 +48,23 @@ function CelulaLink({
   );
 }
 
+function LinhaMobile({
+  children,
+  className = "",
+  icone,
+}: {
+  children: ReactNode;
+  className?: string;
+  icone: ReactNode;
+}) {
+  return (
+    <span className="flex min-w-0 items-start gap-2 text-sm text-muted">
+      {icone}
+      <span className={`min-w-0 flex-1 break-words ${className}`}>{children}</span>
+    </span>
+  );
+}
+
 export function ListaClientes({
   clientes,
   busca,
@@ -62,21 +79,115 @@ export function ListaClientes({
   podeExcluir: boolean;
 }) {
   return (
-    <section className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
-      <div className="flex flex-col gap-4 border-b border-border pb-5 xl:flex-row xl:items-center xl:justify-between">
-        <div>
+    <section className="min-w-0">
+      <div className="grid gap-4 rounded-3xl border border-border bg-surface p-4 shadow-sm sm:p-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+        <div className="min-w-0">
           <h2 className="text-base font-semibold text-foreground">Clientes cadastrados</h2>
           <p className="mt-1 text-sm text-muted">
             {clientes.length} de {total} {total === 1 ? "cliente" : "clientes"}
           </p>
         </div>
 
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+        <div className="min-w-0">
           <FiltrosClientes busca={busca} filtro={filtro} />
         </div>
       </div>
 
-      <div className="relative overflow-x-auto">
+      <div className="mt-4 grid gap-3 md:hidden">
+        {clientes.length === 0 ? (
+          <div className="rounded-2xl border border-border bg-surface p-6 text-center text-sm text-muted">
+            Nenhum cliente encontrado.
+          </div>
+        ) : (
+          clientes.map((cliente) => {
+            const href = `/painel/clientes/${cliente.id}`;
+            const temContato = Boolean(cliente.email || cliente.telefone);
+
+            return (
+              <article
+                className="relative rounded-3xl border border-border bg-surface p-4 shadow-sm"
+                key={cliente.id}
+              >
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <Link
+                    className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+                    href={href}
+                  >
+                    <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand text-sm font-semibold text-brand-foreground">
+                      {cliente.fotoPerfilId ? (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element -- imagem privada servida via rota autenticada, sem otimização estática do Next */}
+                          <img
+                            alt={`Foto de ${cliente.nome}`}
+                            className="size-full object-cover"
+                            src={`/api/clientes/${cliente.id}/foto-perfil?v=${cliente.fotoPerfilId}`}
+                          />
+                        </>
+                      ) : (
+                        getIniciais(cliente.nome)
+                      )}
+                    </span>
+                    <span className="grid min-w-0 flex-1 gap-1">
+                      <span className="block truncate font-semibold text-foreground">
+                        {cliente.nome}
+                      </span>
+                      <span className="block text-xs text-muted">
+                        Nasc. {formatadorData.format(cliente.dataNascimento)}
+                      </span>
+                    </span>
+                  </Link>
+
+                  <MenuAcoesCliente cliente={cliente} podeExcluir={podeExcluir} />
+                </div>
+
+                <Link
+                  className="mt-4 grid gap-2 border-t border-border pt-4 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+                  href={href}
+                >
+                  {cliente.email ? (
+                    <LinhaMobile
+                      className="break-all"
+                      icone={<Mail className="mt-0.5 size-4 shrink-0 text-roxo" aria-hidden />}
+                    >
+                      {cliente.email}
+                    </LinhaMobile>
+                  ) : null}
+                  {cliente.telefone ? (
+                    <LinhaMobile
+                      icone={<Phone className="mt-0.5 size-4 shrink-0 text-roxo" aria-hidden />}
+                    >
+                      {cliente.telefone}
+                    </LinhaMobile>
+                  ) : null}
+                  {!temContato ? (
+                    <LinhaMobile
+                      icone={<Mail className="mt-0.5 size-4 shrink-0 text-roxo" aria-hidden />}
+                    >
+                      Sem contato cadastrado
+                    </LinhaMobile>
+                  ) : null}
+                  <LinhaMobile
+                    className="line-clamp-2 text-foreground"
+                    icone={<Target className="mt-0.5 size-4 shrink-0 text-roxo" aria-hidden />}
+                  >
+                    {cliente.objetivoTratamento ?? "Sem objetivo registrado"}
+                  </LinhaMobile>
+                  <LinhaMobile
+                    className="text-xs"
+                    icone={
+                      <CalendarDays className="mt-0.5 size-4 shrink-0 text-roxo" aria-hidden />
+                    }
+                  >
+                    Cadastro em {formatadorData.format(cliente.criadoEm)}
+                  </LinhaMobile>
+                </Link>
+              </article>
+            );
+          })
+        )}
+      </div>
+
+      <div className="relative mt-4 hidden overflow-x-auto rounded-3xl border border-border bg-surface p-5 shadow-sm md:block">
         <table className="w-full min-w-[980px] table-fixed border-collapse text-left text-sm">
           <thead className="border-b border-border text-xs font-semibold tracking-wide text-muted uppercase">
             <tr>

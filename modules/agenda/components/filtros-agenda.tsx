@@ -22,10 +22,10 @@ function SelectFiltro({
   value: string;
 }) {
   return (
-    <label className="grid gap-1.5 text-xs font-medium text-muted">
+    <label className="grid min-w-0 gap-1.5 text-xs font-medium text-muted">
       {label}
       <select
-        className="h-10 rounded-lg border border-border bg-surface px-3 text-sm font-normal text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
+        className="h-10 w-full min-w-0 rounded-lg border border-border bg-surface px-3 text-sm font-normal text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
         name={name}
         onChange={(event) => onChange(name, event.target.value)}
         value={value}
@@ -121,20 +121,20 @@ export function FiltrosAgenda({
   }, []);
 
   return (
-    <section className="rounded-2xl border border-border bg-surface p-4">
+    <section className="rounded-2xl border border-border bg-surface p-3 sm:p-4">
       <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
         <SlidersHorizontal className="size-4 text-roxo" aria-hidden="true" />
         Filtros da agenda
       </div>
       <form
         action="/painel/agenda"
-        className="grid gap-3 lg:grid-cols-[1.3fr_repeat(5,1fr)_auto]"
+        className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-[1.3fr_repeat(5,1fr)_auto]"
         method="get"
         ref={formRef}
       >
         <input name="data" type="hidden" value={data} />
         <input name="visualizacao" type="hidden" value={visualizacao} />
-        <label className="grid gap-1.5 text-xs font-medium text-muted">
+        <label className="grid min-w-0 gap-1.5 text-xs font-medium text-muted">
           Busca
           <span className="relative">
             <Search
@@ -188,9 +188,9 @@ export function FiltrosAgenda({
           opcoes={modalidades}
           value={valores.modalidade}
         />
-        <div className="flex items-end">
+        <div className="flex items-end md:col-span-2 xl:col-span-1">
           <Link
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+            className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo xl:w-auto"
             href={limparHref}
             onClick={limparFiltrosVisiveis}
           >

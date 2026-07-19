@@ -19,11 +19,11 @@ export default async function ClientesPage({
   const clientesFiltrados = aplicarFiltroCliente(clientes, filtroAtual);
 
   return (
-    <div className="grid gap-8">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold text-foreground">Clientes</h1>
-          <p className="mt-2 max-w-2xl text-sm text-foreground">
+    <div className="grid min-w-0 gap-6 sm:gap-8">
+      <header className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">Clientes</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted sm:text-foreground">
             Gerencie prontuários, fichas e evolução de cada cliente.
           </p>
         </div>

@@ -639,9 +639,9 @@ export function FormularioCliente({ cliente }: { cliente?: ClienteFormulario }) 
 
       <MensagemFormulario state={state} />
 
-      <div className="flex justify-end border-t border-border/70 pt-4">
+      <div className="flex border-t border-border/70 pt-4 sm:justify-end">
         <button
-          className="inline-flex h-11 min-w-40 items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex h-11 w-full min-w-40 items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
           disabled={pending}
           type="submit"
         >

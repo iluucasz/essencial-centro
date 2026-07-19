@@ -250,6 +250,88 @@ function EventoCalendario({ agendamento }: { agendamento: AgendamentoDaAgenda })
   );
 }
 
+function DiasAgendaMobile({
+  agendamentosPorDia,
+  busca,
+  cliente,
+  dataSelecionada,
+  dias,
+  modalidade,
+  profissional,
+  servico,
+  status,
+  visualizacao,
+}: {
+  agendamentosPorDia: Map<string, AgendamentoDaAgenda[]>;
+  busca: string;
+  cliente: string;
+  dataSelecionada: Date;
+  dias: Date[];
+  modalidade: string;
+  profissional: string;
+  servico: string;
+  status: string;
+  visualizacao: VisualizacaoAgenda;
+}) {
+  const diaSelecionado = formatarDataParam(dataSelecionada);
+
+  return (
+    <div className="grid gap-2 border-t border-border p-3 md:hidden">
+      {dias.map((dia) => {
+        const iso = formatarDataParam(dia);
+        const agendamentos = agendamentosPorDia.get(iso) ?? [];
+        const selecionado = iso === diaSelecionado;
+
+        return (
+          <Link
+            className={cn(
+              "grid gap-3 rounded-2xl border border-border bg-surface p-3 transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
+              selecionado && "border-roxo bg-lilas/15",
+            )}
+            href={hrefAgenda({
+              busca,
+              cliente,
+              data: iso,
+              modalidade,
+              profissional,
+              servico,
+              status,
+              visualizacao,
+            })}
+            key={iso}
+          >
+            <span className="flex min-w-0 items-center justify-between gap-3">
+              <span className="truncate text-sm font-semibold text-foreground">
+                {formatadorDiaSemana.format(dia)}
+              </span>
+              <span className="shrink-0 rounded-full bg-brand/15 px-2.5 py-1 text-xs font-semibold text-brand">
+                {agendamentos.length}
+              </span>
+            </span>
+
+            <span className="grid gap-1.5">
+              {agendamentos.length === 0 ? (
+                <span className="text-sm text-muted">Livre</span>
+              ) : (
+                agendamentos
+                  .slice(0, 3)
+                  .map((agendamento) => (
+                    <EventoCalendario agendamento={agendamento} key={agendamento.id} />
+                  ))
+              )}
+              {agendamentos.length > 3 ? (
+                <span className="text-xs font-medium text-muted">
+                  +{agendamentos.length - 3} agendamentos
+                </span>
+              ) : null}
+            </span>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 function GradeMensal({
   agendamentosPorDia,
   busca,
@@ -273,62 +355,77 @@ function GradeMensal({
 }) {
   const inicio = inicioDaGradeMensal(dataSelecionada);
   const dias = montarDias(inicio, 42);
+  const diasDoMes = dias.filter((dia) => dia.getUTCMonth() === dataSelecionada.getUTCMonth());
   const mesSelecionado = dataSelecionada.getUTCMonth();
   const diaSelecionado = formatarDataParam(dataSelecionada);
 
   return (
-    <div className="overflow-x-auto">
-      <div className="min-w-[980px]">
-        <div className="grid grid-cols-7 border-y border-border bg-background text-xs font-medium text-muted">
-          {diasSemana.map((dia) => (
-            <div key={dia} className="px-4 py-4">
-              {dia}
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7">
-          {dias.map((dia) => {
-            const iso = formatarDataParam(dia);
-            const agendamentos = agendamentosPorDia.get(iso) ?? [];
-            const selecionado = iso === diaSelecionado;
-            const foraDoMes = dia.getUTCMonth() !== mesSelecionado;
+    <>
+      <DiasAgendaMobile
+        agendamentosPorDia={agendamentosPorDia}
+        busca={busca}
+        cliente={cliente}
+        dataSelecionada={dataSelecionada}
+        dias={diasDoMes}
+        modalidade={modalidade}
+        profissional={profissional}
+        servico={servico}
+        status={status}
+        visualizacao={visualizacao}
+      />
+      <div className="hidden overflow-x-auto md:block">
+        <div className="min-w-[980px]">
+          <div className="grid grid-cols-7 border-y border-border bg-background text-xs font-medium text-muted">
+            {diasSemana.map((dia) => (
+              <div key={dia} className="px-4 py-4">
+                {dia}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7">
+            {dias.map((dia) => {
+              const iso = formatarDataParam(dia);
+              const agendamentos = agendamentosPorDia.get(iso) ?? [];
+              const selecionado = iso === diaSelecionado;
+              const foraDoMes = dia.getUTCMonth() !== mesSelecionado;
 
-            return (
-              <Link
-                key={iso}
-                className={cn(
-                  "min-h-36 border-r border-b border-border p-3 transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
-                  foraDoMes && "text-muted/60",
-                  selecionado && "bg-lilas/15 ring-1 ring-roxo/30",
-                )}
-                href={hrefAgenda({
-                  busca,
-                  cliente,
-                  data: iso,
-                  modalidade,
-                  profissional,
-                  servico,
-                  status,
-                  visualizacao,
-                })}
-              >
-                <span className="text-sm font-semibold text-foreground">{dia.getUTCDate()}</span>
-                <span className="mt-3 grid gap-1">
-                  {agendamentos.slice(0, 3).map((agendamento) => (
-                    <EventoCalendario agendamento={agendamento} key={agendamento.id} />
-                  ))}
-                  {agendamentos.length > 3 ? (
-                    <span className="text-xs font-medium text-muted">
-                      +{agendamentos.length - 3} agendamentos
-                    </span>
-                  ) : null}
-                </span>
-              </Link>
-            );
-          })}
+              return (
+                <Link
+                  key={iso}
+                  className={cn(
+                    "min-h-36 border-r border-b border-border p-3 transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
+                    foraDoMes && "text-muted/60",
+                    selecionado && "bg-lilas/15 ring-1 ring-roxo/30",
+                  )}
+                  href={hrefAgenda({
+                    busca,
+                    cliente,
+                    data: iso,
+                    modalidade,
+                    profissional,
+                    servico,
+                    status,
+                    visualizacao,
+                  })}
+                >
+                  <span className="text-sm font-semibold text-foreground">{dia.getUTCDate()}</span>
+                  <span className="mt-3 grid gap-1">
+                    {agendamentos.slice(0, 3).map((agendamento) => (
+                      <EventoCalendario agendamento={agendamento} key={agendamento.id} />
+                    ))}
+                    {agendamentos.length > 3 ? (
+                      <span className="text-xs font-medium text-muted">
+                        +{agendamentos.length - 3} agendamentos
+                      </span>
+                    ) : null}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -357,47 +454,61 @@ function GradeSemana({
   const diaSelecionado = formatarDataParam(dataSelecionada);
 
   return (
-    <div className="overflow-x-auto">
-      <div className="grid min-w-[980px] grid-cols-7 divide-x divide-border border-t border-border">
-        {dias.map((dia) => {
-          const iso = formatarDataParam(dia);
-          const agendamentos = agendamentosPorDia.get(iso) ?? [];
+    <>
+      <DiasAgendaMobile
+        agendamentosPorDia={agendamentosPorDia}
+        busca={busca}
+        cliente={cliente}
+        dataSelecionada={dataSelecionada}
+        dias={dias}
+        modalidade={modalidade}
+        profissional={profissional}
+        servico={servico}
+        status={status}
+        visualizacao={visualizacao}
+      />
+      <div className="hidden overflow-x-auto md:block">
+        <div className="grid min-w-[980px] grid-cols-7 divide-x divide-border border-t border-border">
+          {dias.map((dia) => {
+            const iso = formatarDataParam(dia);
+            const agendamentos = agendamentosPorDia.get(iso) ?? [];
 
-          return (
-            <Link
-              key={iso}
-              className={cn(
-                "min-h-96 p-4 transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
-                iso === diaSelecionado && "bg-lilas/15",
-              )}
-              href={hrefAgenda({
-                busca,
-                cliente,
-                data: iso,
-                modalidade,
-                profissional,
-                servico,
-                status,
-                visualizacao,
-              })}
-            >
-              <span className="text-xs font-medium text-muted">
-                {formatadorDiaSemana.format(dia)}
-              </span>
-              <span className="mt-3 grid gap-1.5">
-                {agendamentos.length === 0 ? (
-                  <span className="text-xs text-muted">Livre</span>
-                ) : (
-                  agendamentos.map((agendamento) => (
-                    <EventoCalendario agendamento={agendamento} key={agendamento.id} />
-                  ))
+            return (
+              <Link
+                key={iso}
+                className={cn(
+                  "min-h-96 p-4 transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
+                  iso === diaSelecionado && "bg-lilas/15",
                 )}
-              </span>
-            </Link>
-          );
-        })}
+                href={hrefAgenda({
+                  busca,
+                  cliente,
+                  data: iso,
+                  modalidade,
+                  profissional,
+                  servico,
+                  status,
+                  visualizacao,
+                })}
+              >
+                <span className="text-xs font-medium text-muted">
+                  {formatadorDiaSemana.format(dia)}
+                </span>
+                <span className="mt-3 grid gap-1.5">
+                  {agendamentos.length === 0 ? (
+                    <span className="text-xs text-muted">Livre</span>
+                  ) : (
+                    agendamentos.map((agendamento) => (
+                      <EventoCalendario agendamento={agendamento} key={agendamento.id} />
+                    ))
+                  )}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -465,9 +576,9 @@ export default async function AgendaPage({
         : formatadorMesAno.format(dataSelecionada);
 
   return (
-    <div className="grid gap-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+    <div className="grid min-w-0 gap-6">
+      <header className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
           <p className="flex items-center gap-2 text-sm font-medium text-muted">
             <CalendarClock className="size-4" aria-hidden="true" />
             Agenda
@@ -523,9 +634,9 @@ export default async function AgendaPage({
         visualizacao={visualizacao}
       />
 
-      <section className="overflow-hidden rounded-2xl border border-border bg-surface">
-        <div className="flex flex-wrap items-center justify-between gap-3 p-4">
-          <div className="flex items-center gap-2">
+      <section className="min-w-0 overflow-hidden rounded-2xl border border-border bg-surface">
+        <div className="flex flex-col gap-3 p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:p-4">
+          <div className="flex w-full items-center gap-2 sm:w-auto">
             <Link
               className="inline-flex size-10 items-center justify-center rounded-lg border border-border bg-surface text-muted transition hover:bg-creme hover:text-roxo focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
               href={hrefAgenda({
@@ -559,7 +670,7 @@ export default async function AgendaPage({
               <span className="sr-only">Próximo</span>
             </Link>
             <Link
-              className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+              className="inline-flex h-10 flex-1 items-center justify-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo sm:flex-none"
               href={hrefAgenda({
                 busca,
                 cliente: clienteFiltro,
@@ -575,16 +686,16 @@ export default async function AgendaPage({
             </Link>
           </div>
 
-          <div className="order-first w-full text-center sm:order-none sm:w-auto">
+          <div className="order-first min-w-0 text-center sm:order-none sm:w-auto">
             <p className="text-xs font-semibold tracking-wide text-muted uppercase">Agenda</p>
             <h2 className="mt-1 text-lg font-semibold text-brand">{tituloPeriodoAgenda}</h2>
           </div>
 
-          <div className="flex rounded-lg bg-background p-1">
+          <div className="grid w-full grid-cols-3 rounded-lg bg-background p-1 sm:flex sm:w-auto">
             {visualizacoesAgenda.map((item) => (
               <Link
                 className={cn(
-                  "inline-flex h-9 items-center justify-center rounded-md px-4 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
+                  "inline-flex h-9 min-w-0 items-center justify-center rounded-md px-3 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo sm:px-4",
                   visualizacao === item
                     ? "bg-surface text-roxo shadow-sm"
                     : "text-muted hover:text-foreground",

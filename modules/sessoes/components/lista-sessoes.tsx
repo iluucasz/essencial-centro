@@ -299,7 +299,7 @@ function ItemSessao({
 
       <Modal state={modalVisualizacao}>
         <Modal.Backdrop variant="opaque">
-          <Modal.Container className="w-[calc(100vw-2rem)] sm:w-full" size="lg">
+          <Modal.Container className="w-[calc(100vw-1rem)] sm:w-full" size="lg">
             <ConteudoModal titulo={`Sessão ${numeroSessao}`}>
               <DetalhesSessao
                 agendamentos={agendamentos}
@@ -314,7 +314,7 @@ function ItemSessao({
 
       <Modal state={modalEdicao}>
         <Modal.Backdrop variant="opaque">
-          <Modal.Container className="w-[calc(100vw-2rem)] sm:w-full" size="lg">
+          <Modal.Container className="w-[calc(100vw-1rem)] sm:w-full" size="lg">
             <ConteudoModal titulo={`Editar sessão ${numeroSessao}`}>
               <FecharModalProvider value={modalEdicao.close}>
                 <FormularioSessao

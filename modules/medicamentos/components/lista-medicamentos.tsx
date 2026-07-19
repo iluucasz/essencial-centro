@@ -286,7 +286,7 @@ function ItemMedicamento({
 
       <Modal state={modalVisualizacao}>
         <Modal.Backdrop variant="opaque">
-          <Modal.Container className="w-[calc(100vw-2rem)] sm:w-full" size="lg">
+          <Modal.Container className="w-[calc(100vw-1rem)] sm:w-full" size="lg">
             <ConteudoModal titulo={medicamento.nome}>
               <DetalhesMedicamento medicamento={medicamento} />
             </ConteudoModal>
@@ -296,7 +296,7 @@ function ItemMedicamento({
 
       <Modal state={modalEdicao}>
         <Modal.Backdrop variant="opaque">
-          <Modal.Container className="w-[calc(100vw-2rem)] sm:w-full" size="lg">
+          <Modal.Container className="w-[calc(100vw-1rem)] sm:w-full" size="lg">
             <ConteudoModal titulo={`Editar ${medicamento.nome}`}>
               <FecharModalProvider value={modalEdicao.close}>
                 <FormularioMedicamento clienteId={clienteId} medicamento={medicamento} />
