@@ -8,10 +8,10 @@ import { agendamento } from "./schema";
 
 function limitesDoDia(data: Date) {
   const inicioDoDia = new Date(data);
-  inicioDoDia.setHours(0, 0, 0, 0);
+  inicioDoDia.setUTCHours(0, 0, 0, 0);
 
   const inicioDoDiaSeguinte = new Date(inicioDoDia);
-  inicioDoDiaSeguinte.setDate(inicioDoDiaSeguinte.getDate() + 1);
+  inicioDoDiaSeguinte.setUTCDate(inicioDoDiaSeguinte.getUTCDate() + 1);
 
   return { inicioDoDia, inicioDoDiaSeguinte };
 }

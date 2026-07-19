@@ -13,7 +13,7 @@ import { listarPacotesDoCliente } from "@/modules/pacotes/queries";
 import { obterRelatorioPeriodo } from "@/modules/relatorios/queries";
 import { listarSessoesDoCliente } from "@/modules/sessoes/queries";
 import { listarProdutos } from "@/modules/estoque/queries";
-import { primeiroDiaDoMes, ultimoDiaDoMes } from "@/lib/utils";
+import { agoraBrasilia, primeiroDiaDoMes, ultimoDiaDoMes } from "@/lib/utils";
 
 import { LIMITE_RESULTADOS_BUSCA_CLIENTE, LIMITE_SESSOES_RETORNADAS } from "./config";
 import {
@@ -118,12 +118,12 @@ const lancamentosFinanceirosTool = tool({
   }),
   execute: async ({ inicio, fim }) => {
     try {
-      const hoje = new Date();
+      const hoje = agoraBrasilia();
       const periodo = {
         inicio: inicio ? parseDataAAAAMMDD(inicio) : primeiroDiaDoMes(hoje),
         fim: fim ? parseDataAAAAMMDD(fim) : ultimoDiaDoMes(hoje),
       };
-      const lancamentos = await listarLancamentos(periodo);
+      const lancamentos = await listarLancamentos({ periodo });
 
       return {
         resumo: calcularResumoFinanceiro(lancamentos),
@@ -213,7 +213,7 @@ const relatorioPeriodoTool = tool({
   }),
   execute: async ({ inicio, fim }) => {
     try {
-      const hoje = new Date();
+      const hoje = agoraBrasilia();
       const relatorio = await obterRelatorioPeriodo(
         inicio ? parseDataAAAAMMDD(inicio) : primeiroDiaDoMes(hoje),
         fim ? parseDataAAAAMMDD(fim) : ultimoDiaDoMes(hoje),

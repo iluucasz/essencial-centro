@@ -141,6 +141,27 @@
       "when": 1784211174249,
       "tag": "0019_acoustic_kate_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1784232942675,
+      "tag": "0020_modern_sentinel",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1784337925630,
+      "tag": "0021_complex_toxin",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1784337960204,
+      "tag": "0022_flawless_lifeguard",
+      "breakpoints": true
     }
   ]
 }

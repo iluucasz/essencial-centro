@@ -12,7 +12,12 @@ import { obterProgressoPacote } from "@/modules/pacotes/queries";
 import { servico } from "@/modules/servicos/schema";
 
 import { listarAgendamentosDoProfissionalNoDia } from "./queries";
-import { agendamento, atualizarStatusAgendamentoSchema, criarAgendamentoSchema } from "./schema";
+import {
+  agendamento,
+  atualizarAgendamentoSchema,
+  atualizarStatusAgendamentoSchema,
+  criarAgendamentoSchema,
+} from "./schema";
 import { encontrarConflito } from "./sobreposicao";
 
 export type EstadoFormularioAgendamento = {
@@ -21,7 +26,13 @@ export type EstadoFormularioAgendamento = {
   campos?: Record<string, string[] | undefined>;
 };
 
+export type EstadoExclusaoAgendamento = {
+  status: "inicial" | "erro" | "sucesso";
+  mensagem?: string;
+};
+
 const estadoInicial: EstadoFormularioAgendamento = { status: "inicial" };
+const estadoInicialExclusao: EstadoExclusaoAgendamento = { status: "inicial" };
 
 function getValor(formData: FormData, nome: string) {
   return formData.get(nome);
@@ -104,11 +115,134 @@ export async function criarAgendamento(
   });
 
   revalidatePath("/painel/agenda");
+  revalidatePath(`/painel/clientes/${clienteId}`);
 
   return {
     status: "sucesso",
     mensagem: "Agendamento criado com sucesso.",
   } satisfies EstadoFormularioAgendamento;
+}
+
+export async function atualizarAgendamento(
+  _: EstadoFormularioAgendamento = estadoInicial,
+  formData: FormData,
+) {
+  const usuarioAtual = autorizarPapel(await auth(), ["profissional", "recepcao"]);
+
+  const parsed = atualizarAgendamentoSchema.safeParse({
+    id: getValor(formData, "id"),
+    clienteId: getValor(formData, "clienteId"),
+    servicoId: getValor(formData, "servicoId"),
+    profissionalId: getValor(formData, "profissionalId"),
+    pacoteId: getValor(formData, "pacoteId"),
+    inicio: getValor(formData, "inicio"),
+    duracaoMinutos: getValor(formData, "duracaoMinutos"),
+    modalidade: getValor(formData, "modalidade") || undefined,
+    observacoes: getValor(formData, "observacoes"),
+  });
+
+  if (!parsed.success) {
+    return {
+      status: "erro",
+      mensagem: "Revise os dados do agendamento.",
+      campos: parsed.error.flatten().fieldErrors,
+    } satisfies EstadoFormularioAgendamento;
+  }
+
+  const { id, clienteId, servicoId, profissionalId, pacoteId, inicio, duracaoMinutos } =
+    parsed.data;
+
+  const agendamentosDoDia = await listarAgendamentosDoProfissionalNoDia(profissionalId, inicio);
+  const conflito = encontrarConflito(
+    { inicio, duracaoMinutos },
+    agendamentosDoDia.filter((item) => item.id !== id),
+  );
+
+  if (conflito) {
+    return {
+      status: "erro",
+      mensagem: "A profissional já tem um agendamento marcado nesse horário.",
+    } satisfies EstadoFormularioAgendamento;
+  }
+
+  const atualizados = await db
+    .update(agendamento)
+    .set({
+      clienteId,
+      servicoId,
+      profissionalId,
+      pacoteId,
+      inicio,
+      duracaoMinutos,
+      modalidade: parsed.data.modalidade,
+      observacoes: parsed.data.observacoes,
+      atualizadoPorId: usuarioAtual.id,
+      atualizadoEm: new Date(),
+    })
+    .where(eq(agendamento.id, id))
+    .returning({ id: agendamento.id });
+
+  if (atualizados.length === 0) {
+    return {
+      status: "erro",
+      mensagem: "Agendamento não encontrado.",
+    } satisfies EstadoFormularioAgendamento;
+  }
+
+  revalidatePath("/painel/agenda");
+  revalidatePath(`/painel/clientes/${clienteId}`);
+
+  return {
+    status: "sucesso",
+    mensagem: "Agendamento atualizado com sucesso.",
+  } satisfies EstadoFormularioAgendamento;
+}
+
+export async function excluirAgendamento(
+  _: EstadoExclusaoAgendamento = estadoInicialExclusao,
+  formData: FormData,
+) {
+  autorizarPapel(await auth(), ["profissional", "recepcao"]);
+
+  const id = getValor(formData, "id");
+  const clienteId = getValor(formData, "clienteId");
+  const exclusaoConfirmada = getValor(formData, "confirmarExclusao");
+
+  if (typeof id !== "string") {
+    return {
+      status: "erro",
+      mensagem: "Agendamento inválido.",
+    } satisfies EstadoExclusaoAgendamento;
+  }
+
+  if (exclusaoConfirmada !== "true") {
+    return {
+      status: "erro",
+      mensagem: "Confirme que entende a exclusão antes de continuar.",
+    } satisfies EstadoExclusaoAgendamento;
+  }
+
+  const excluidos = await db
+    .delete(agendamento)
+    .where(eq(agendamento.id, id))
+    .returning({ id: agendamento.id });
+
+  if (excluidos.length === 0) {
+    return {
+      status: "erro",
+      mensagem: "Agendamento não encontrado.",
+    } satisfies EstadoExclusaoAgendamento;
+  }
+
+  revalidatePath("/painel/agenda");
+  if (typeof clienteId === "string") {
+    revalidatePath(`/painel/clientes/${clienteId}`);
+  }
+
+  return {
+    status: "sucesso",
+    mensagem: "Agendamento excluído com sucesso.",
+  } satisfies EstadoExclusaoAgendamento;
 }
 
 export async function atualizarStatusAgendamento(formData: FormData) {
@@ -129,7 +263,7 @@ export async function atualizarStatusAgendamento(formData: FormData) {
       atualizadoEm: new Date(),
     })
     .where(eq(agendamento.id, parsed.data.id))
-    .returning({ pacoteId: agendamento.pacoteId });
+    .returning({ pacoteId: agendamento.pacoteId, clienteId: agendamento.clienteId });
 
   if (parsed.data.status === "realizado" && atualizado?.pacoteId) {
     const info = await obterProgressoPacote(atualizado.pacoteId);
@@ -150,6 +284,9 @@ export async function atualizarStatusAgendamento(formData: FormData) {
   }
 
   revalidatePath("/painel/agenda");
+  if (atualizado?.clienteId) {
+    revalidatePath(`/painel/clientes/${atualizado.clienteId}`);
+  }
 }
 
 /** Confirma presença (chegada na clínica) — destino do QR Code mostrado ao cliente no portal. */

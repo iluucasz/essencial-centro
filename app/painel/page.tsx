@@ -17,7 +17,13 @@ import {
   Wallet,
 } from "lucide-react";
 
-import { cn, calcularVariacaoPercentual, primeiroDiaDoMes, ultimoDiaDoMes } from "@/lib/utils";
+import {
+  agoraBrasilia,
+  cn,
+  calcularVariacaoPercentual,
+  primeiroDiaDoMes,
+  ultimoDiaDoMes,
+} from "@/lib/utils";
 import { GraficoAtendimentos } from "@/modules/agenda/components/grafico-atendimentos";
 import { listarAgendamentosDoDia, listarAgendamentosUltimosDias } from "@/modules/agenda/queries";
 import type { StatusAgendamento } from "@/modules/agenda/schema";
@@ -122,10 +128,9 @@ async function obterTendenciaFaturamento(hoje: Date) {
   const mesAnteriorRef = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() - 1, 1));
 
   const [lancamentosMesAtual, lancamentosMesAnterior] = await Promise.all([
-    listarLancamentos({ inicio: primeiroDiaDoMes(hoje), fim: ultimoDiaDoMes(hoje) }),
+    listarLancamentos({ periodo: { inicio: primeiroDiaDoMes(hoje), fim: ultimoDiaDoMes(hoje) } }),
     listarLancamentos({
-      inicio: primeiroDiaDoMes(mesAnteriorRef),
-      fim: ultimoDiaDoMes(mesAnteriorRef),
+      periodo: { inicio: primeiroDiaDoMes(mesAnteriorRef), fim: ultimoDiaDoMes(mesAnteriorRef) },
     }),
   ]);
 
@@ -152,7 +157,7 @@ async function obterAlertasOperacionais() {
 
 export default async function PainelPage() {
   const usuario = await exigirUsuarioAtual(["profissional", "recepcao"]);
-  const hoje = new Date();
+  const hoje = agoraBrasilia();
 
   const [agendamentosHoje, clientes, pacotes, agendamentosPeriodo] = await Promise.all([
     listarAgendamentosDoDia(hoje),

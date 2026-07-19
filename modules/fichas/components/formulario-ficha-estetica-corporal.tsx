@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle, Save } from "lucide-react";
 import type { z } from "zod";
 
-import { criarFichaEsteticaCorporal } from "@/modules/fichas/actions";
+import { criarFichaEsteticaCorporal, editarFichaEsteticaCorporal } from "@/modules/fichas/actions";
 import {
   criarFichaEsteticaCorporalSchema,
   type CriarFichaEsteticaCorporalInput,
@@ -20,6 +20,13 @@ import { useFecharModal } from "@/components/ui/modal-formulario";
  * `z.input<>` aqui e recebe `CriarFichaEsteticaCorporalInput` (saída) só no `onSubmit`, via 3º genérico.
  */
 type EntradaFormulario = z.input<typeof criarFichaEsteticaCorporalSchema>;
+
+export type FichaEsteticaCorporalEdicao = {
+  id: string;
+  servicoId: string | null;
+  autorizacaoImagemEm: Date | null;
+  respostas: CriarFichaEsteticaCorporalInput["respostas"];
+};
 
 const valoresIniciais: EntradaFormulario = {
   clienteId: "",
@@ -67,7 +74,7 @@ function Campo({
   htmlFor: string;
 }) {
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 gap-2">
       <label className="text-sm font-medium text-foreground" htmlFor={htmlFor}>
         {label}
       </label>
@@ -78,19 +85,70 @@ function Campo({
 }
 
 const classeInput =
-  "h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20";
+  "h-11 w-full min-w-0 rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition outline-none placeholder:text-muted/70 focus:border-roxo focus:ring-2 focus:ring-roxo/20";
 const classeArea =
-  "min-h-20 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20";
+  "min-h-24 w-full min-w-0 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground transition outline-none placeholder:text-muted/70 focus:border-roxo focus:ring-2 focus:ring-roxo/20";
 const classeCheckbox =
   "flex items-center gap-2 text-sm text-foreground [&>input]:size-4 [&>input]:rounded [&>input]:border-border [&>input]:text-brand [&>input]:focus:ring-roxo";
+
+function clonarValoresIniciais(clienteId: string): EntradaFormulario {
+  return {
+    clienteId,
+    servicoId: undefined,
+    autorizacaoImagem: false,
+    respostas: {
+      relato: { ...valoresIniciais.respostas.relato },
+      avaliacaoProfissional: {
+        ...valoresIniciais.respostas.avaliacaoProfissional,
+        medidas: { ...valoresIniciais.respostas.avaliacaoProfissional.medidas },
+      },
+      compartilhado: { ...valoresIniciais.respostas.compartilhado },
+    },
+  };
+}
+
+function montarValoresFormulario(
+  clienteId: string,
+  ficha?: FichaEsteticaCorporalEdicao,
+): EntradaFormulario {
+  const base = clonarValoresIniciais(clienteId);
+
+  if (!ficha) return base;
+
+  return {
+    ...base,
+    servicoId: ficha.servicoId ?? undefined,
+    autorizacaoImagem: Boolean(ficha.autorizacaoImagemEm),
+    respostas: {
+      relato: {
+        ...base.respostas.relato,
+        ...ficha.respostas.relato,
+      },
+      avaliacaoProfissional: {
+        ...base.respostas.avaliacaoProfissional,
+        ...ficha.respostas.avaliacaoProfissional,
+        medidas: {
+          ...base.respostas.avaliacaoProfissional.medidas,
+          ...ficha.respostas.avaliacaoProfissional.medidas,
+        },
+      },
+      compartilhado: {
+        ...base.respostas.compartilhado,
+        ...ficha.respostas.compartilhado,
+      },
+    },
+  };
+}
 
 export function FormularioFichaEsteticaCorporal({
   clienteId,
   clienteNome,
+  ficha,
   servicos,
 }: {
   clienteId: string;
   clienteNome: string;
+  ficha?: FichaEsteticaCorporalEdicao;
   servicos: { id: string; nome: string }[];
 }) {
   const router = useRouter();
@@ -104,7 +162,7 @@ export function FormularioFichaEsteticaCorporal({
     formState: { errors, isSubmitting },
   } = useForm<EntradaFormulario, unknown, CriarFichaEsteticaCorporalInput>({
     resolver: zodResolver(criarFichaEsteticaCorporalSchema),
-    defaultValues: { ...valoresIniciais, clienteId },
+    defaultValues: montarValoresFormulario(clienteId, ficha),
   });
 
   const relato = watch("respostas.relato");
@@ -112,7 +170,9 @@ export function FormularioFichaEsteticaCorporal({
 
   async function onSubmit(dados: CriarFichaEsteticaCorporalInput) {
     setErroEnvio(null);
-    const resultado = await criarFichaEsteticaCorporal(dados);
+    const resultado = ficha
+      ? await editarFichaEsteticaCorporal({ ...dados, id: ficha.id })
+      : await criarFichaEsteticaCorporal(dados);
 
     if (resultado.status === "erro") {
       setErroEnvio(resultado.mensagem);
@@ -126,8 +186,13 @@ export function FormularioFichaEsteticaCorporal({
   const erros = errors.respostas;
 
   return (
-    <form className="grid gap-8" onSubmit={handleSubmit(onSubmit)}>
-      <p className="text-sm text-muted">Cliente: {clienteNome}</p>
+    <form className="grid min-w-0 gap-8" onSubmit={handleSubmit(onSubmit)}>
+      <p className="rounded-xl bg-lilas/15 px-3 py-2 text-sm text-roxo">Cliente: {clienteNome}</p>
+      {ficha ? (
+        <p className="rounded-xl bg-creme px-3 py-2 text-sm text-muted">
+          Ao salvar, uma nova versão será registrada para preservar a ficha assinada.
+        </p>
+      ) : null}
 
       {servicos.length > 0 ? (
         <Campo htmlFor="servicoId" label="Serviço (opcional)">
@@ -153,6 +218,7 @@ export function FormularioFichaEsteticaCorporal({
           <textarea
             className={classeArea}
             id="objetivoTratamento"
+            placeholder="Ex.: reduzir medidas abdominais e melhorar a textura da pele"
             {...register("respostas.relato.objetivoTratamento")}
           />
         </Campo>
@@ -165,12 +231,18 @@ export function FormularioFichaEsteticaCorporal({
           <textarea
             className={classeArea}
             id="queixaPrincipal"
+            placeholder="Ex.: gordura localizada, retenção de líquido ou celulite"
             {...register("respostas.relato.queixaPrincipal")}
           />
         </Campo>
 
         <Campo htmlFor="habitos" label="Hábitos (opcional)">
-          <textarea className={classeArea} id="habitos" {...register("respostas.relato.habitos")} />
+          <textarea
+            className={classeArea}
+            id="habitos"
+            placeholder="Ex.: rotina alimentar, hidratação, sono e atividade física"
+            {...register("respostas.relato.habitos")}
+          />
         </Campo>
 
         <label className={classeCheckbox}>
@@ -186,6 +258,7 @@ export function FormularioFichaEsteticaCorporal({
             <input
               className={classeInput}
               id="medicamentoDetalhe"
+              placeholder="Ex.: anticoncepcional oral, 1x ao dia"
               {...register("respostas.relato.medicamentoDetalhe")}
             />
           </Campo>
@@ -204,6 +277,7 @@ export function FormularioFichaEsteticaCorporal({
             <input
               className={classeInput}
               id="cirurgiaDetalhe"
+              placeholder="Ex.: cesárea em 2020, região abdominal"
               {...register("respostas.relato.cirurgiaDetalhe")}
             />
           </Campo>
@@ -222,6 +296,7 @@ export function FormularioFichaEsteticaCorporal({
             <input
               className={classeInput}
               id="semanasGestacao"
+              placeholder="Ex.: 12"
               type="number"
               {...register("respostas.relato.semanasGestacao")}
             />
@@ -241,6 +316,7 @@ export function FormularioFichaEsteticaCorporal({
             <input
               className={classeInput}
               id="alergiaDetalhe"
+              placeholder="Ex.: alergia a dipirona, causa urticária"
               {...register("respostas.relato.alergiaDetalhe")}
             />
           </Campo>
@@ -262,6 +338,7 @@ export function FormularioFichaEsteticaCorporal({
           <textarea
             className={classeArea}
             id="diagnosticoEstetico"
+            placeholder="Ex.: edema leve, flacidez e adiposidade localizada"
             {...register("respostas.avaliacaoProfissional.diagnosticoEstetico")}
           />
         </Campo>
@@ -270,6 +347,7 @@ export function FormularioFichaEsteticaCorporal({
           <textarea
             className={classeArea}
             id="procedimentosIndicados"
+            placeholder="Ex.: drenagem linfática, radiofrequência e orientações domiciliares"
             {...register("respostas.avaliacaoProfissional.procedimentosIndicados")}
           />
         </Campo>
@@ -291,6 +369,7 @@ export function FormularioFichaEsteticaCorporal({
               <input
                 className={classeInput}
                 id="contraindicacaoDetalhe"
+                placeholder="Ex.: evitar procedimento térmico em área sensibilizada"
                 {...register("respostas.avaliacaoProfissional.contraindicacaoDetalhe")}
               />
             </Campo>
@@ -317,6 +396,7 @@ export function FormularioFichaEsteticaCorporal({
                 <input
                   className={classeInput}
                   id={campo}
+                  placeholder="Ex.: 82,5"
                   step="0.1"
                   type="number"
                   {...register(`respostas.avaliacaoProfissional.medidas.${campo}`)}
@@ -333,6 +413,7 @@ export function FormularioFichaEsteticaCorporal({
           <textarea
             className={classeArea}
             id="observacoesInternas"
+            placeholder="Anotações internas para a equipe, não visíveis ao cliente"
             {...register("respostas.avaliacaoProfissional.observacoesInternas")}
           />
         </Campo>
@@ -345,6 +426,7 @@ export function FormularioFichaEsteticaCorporal({
           <textarea
             className={classeArea}
             id="resumoTratamento"
+            placeholder="Resumo claro do plano para exibição no portal do cliente"
             {...register("respostas.compartilhado.resumoTratamento")}
           />
         </Campo>
@@ -353,6 +435,7 @@ export function FormularioFichaEsteticaCorporal({
           <textarea
             className={classeArea}
             id="orientacoes"
+            placeholder="Ex.: beber água, evitar exposição solar e seguir cuidados combinados"
             {...register("respostas.compartilhado.orientacoes")}
           />
         </Campo>
@@ -366,23 +449,28 @@ export function FormularioFichaEsteticaCorporal({
       </div>
 
       {erroEnvio ? (
-        <p className="text-sm font-medium text-perigo" role="alert">
+        <p
+          className="rounded-xl bg-perigo/10 px-3 py-2 text-sm font-medium text-perigo"
+          role="alert"
+        >
           {erroEnvio}
         </p>
       ) : null}
 
-      <button
-        className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo disabled:cursor-not-allowed disabled:opacity-70"
-        disabled={isSubmitting}
-        type="submit"
-      >
-        {isSubmitting ? (
-          <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-        ) : (
-          <Save className="size-4" />
-        )}
-        Salvar ficha
-      </button>
+      <div className="flex justify-end border-t border-border/70 pt-4">
+        <button
+          className="inline-flex h-11 min-w-36 items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo disabled:cursor-not-allowed disabled:opacity-70"
+          disabled={isSubmitting}
+          type="submit"
+        >
+          {isSubmitting ? (
+            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Save className="size-4" />
+          )}
+          {ficha ? "Salvar nova versão" : "Salvar ficha"}
+        </button>
+      </div>
     </form>
   );
 }

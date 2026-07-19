@@ -1,8 +1,9 @@
 import { UserRound } from "lucide-react";
 
-import { alternarAtivoUsuario } from "@/modules/auth/actions";
 import { rotulosPapelUsuario, type PapelUsuario } from "@/modules/auth/rbac";
 import { MenuFotoUsuario } from "@/modules/fotos/components/menu-foto-usuario";
+
+import { MenuAcoesUsuario } from "./menu-acoes-usuario";
 
 type UsuarioResumo = {
   id: string;
@@ -10,6 +11,8 @@ type UsuarioResumo = {
   email: string;
   image: string | null;
   role: PapelUsuario;
+  clienteId: string | null;
+  clienteFotoPerfilId: string | null;
   ativo: boolean;
   criadoEm: Date;
 };
@@ -29,9 +32,11 @@ function getIniciais(nome: string) {
 }
 
 export function ListaUsuarios({
+  clientes,
   usuarios,
   usuarioAtualId,
 }: {
+  clientes: { id: string; nome: string }[];
   usuarios: UsuarioResumo[];
   usuarioAtualId: string;
 }) {
@@ -48,6 +53,11 @@ export function ListaUsuarios({
     <ul className="grid gap-3">
       {usuarios.map((u) => {
         const nome = u.name ?? u.email;
+        const fotoSrc = u.image
+          ? `/api/usuarios/${u.id}/foto?v=${encodeURIComponent(u.image)}`
+          : u.clienteFotoPerfilId
+            ? `/api/clientes/${u.clienteId}/foto-perfil?v=${encodeURIComponent(u.clienteFotoPerfilId)}`
+            : null;
 
         return (
           <li
@@ -57,13 +67,13 @@ export function ListaUsuarios({
             <span className="flex min-w-0 items-center gap-3">
               <span className="relative flex size-14 shrink-0">
                 <span className="flex size-14 items-center justify-center overflow-hidden rounded-full bg-brand text-base font-semibold text-brand-foreground">
-                  {u.image ? (
+                  {fotoSrc ? (
                     <>
                       {/* eslint-disable-next-line @next/next/no-img-element -- imagem privada servida via rota autenticada, sem otimização estática do Next */}
                       <img
                         alt={`Foto de ${nome}`}
                         className="size-full object-cover"
-                        src={`/api/usuarios/${u.id}/foto?v=${encodeURIComponent(u.image)}`}
+                        src={fotoSrc}
                       />
                     </>
                   ) : (
@@ -100,18 +110,18 @@ export function ListaUsuarios({
                 {u.ativo ? "Ativo" : "Inativo"}
               </span>
 
-              {u.id === usuarioAtualId ? null : (
-                <form action={alternarAtivoUsuario}>
-                  <input name="id" type="hidden" value={u.id} />
-                  <input name="ativoAtual" type="hidden" value={String(u.ativo)} />
-                  <button
-                    className="rounded-lg border border-border bg-surface px-2.5 py-1 text-xs font-medium text-foreground transition hover:bg-creme"
-                    type="submit"
-                  >
-                    {u.ativo ? "Desativar" : "Ativar"}
-                  </button>
-                </form>
-              )}
+              <MenuAcoesUsuario
+                clientes={clientes}
+                usuario={{
+                  id: u.id,
+                  nome,
+                  email: u.email,
+                  role: u.role,
+                  clienteId: u.clienteId,
+                  ativo: u.ativo,
+                }}
+                usuarioAtualId={usuarioAtualId}
+              />
             </span>
           </li>
         );

@@ -3,8 +3,9 @@ import { NextResponse } from "next/server";
 import { autorizarSegredoBridge, finalizarCadastro } from "@/modules/biometria/bridge";
 import { finalizarCadastroSchema } from "@/modules/biometria/schema";
 
-/** Finaliza um cadastro de digital iniciado por um código gerado no painel. Revalida qualidade e
- * consentimento de novo aqui — nunca confia só na checagem feita quando o código foi gerado. */
+/** Finaliza um cadastro de digital — a ponte já resolveu o cliente via GET /api/biometria/clientes
+ * e o dedo foi escolhido pela operadora. Revalida qualidade e consentimento aqui, nunca confia só
+ * na checagem feita no momento da busca. */
 export async function POST(request: Request) {
   if (!autorizarSegredoBridge(request)) {
     return NextResponse.json({ erro: "Não autorizado." }, { status: 401 });
@@ -20,8 +21,8 @@ export async function POST(request: Request) {
   const resultado = await finalizarCadastro(parsed.data);
 
   switch (resultado.tipo) {
-    case "codigo_invalido":
-      return NextResponse.json({ erro: "Código inválido ou expirado." }, { status: 404 });
+    case "cliente_invalido":
+      return NextResponse.json({ erro: "Cliente não encontrado." }, { status: 404 });
     case "qualidade_insuficiente":
       return NextResponse.json(
         { erro: "Qualidade da captura abaixo do mínimo exigido." },
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
       );
     case "sem_consentimento":
       return NextResponse.json(
-        { erro: "Consentimento de biometria não está mais registrado para este cliente." },
+        { erro: "Consentimento de biometria não está registrado para este cliente." },
         { status: 409 },
       );
     case "sucesso":

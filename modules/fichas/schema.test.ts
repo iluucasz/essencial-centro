@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { criarFichaEsteticaCorporalSchema, criarFichaExtensaoCiliosSchema } from "./schema";
+import {
+  criarFichaEsteticaCorporalSchema,
+  criarFichaExtensaoCiliosSchema,
+  editarFichaEsteticaCorporalSchema,
+} from "./schema";
 
 const base = {
   clienteId: "b1f6f2a0-1c1a-4a9a-9f1a-1c1a4a9a9f1a",
@@ -98,6 +102,19 @@ describe("criarFichaEsteticaCorporalSchema", () => {
     });
 
     expect(resultado.success).toBe(false);
+  });
+});
+
+describe("editarFichaEsteticaCorporalSchema", () => {
+  it("exige o id da ficha para edição/versionamento", () => {
+    const semId = editarFichaEsteticaCorporalSchema.safeParse(base);
+    const comId = editarFichaEsteticaCorporalSchema.safeParse({
+      ...base,
+      id: "3c10b9ff-0e1b-468a-a9b0-a888ee0e44b1",
+    });
+
+    expect(semId.success).toBe(false);
+    expect(comId.success).toBe(true);
   });
 });
 

@@ -293,7 +293,19 @@ export const criarFichaExtensaoCiliosSchema = z.object({
   respostas: respostasExtensaoCiliosSchema,
 });
 
+const fichaIdSchema = z.string().uuid("Ficha inválida.");
+
+export const editarFichaEsteticaCorporalSchema = criarFichaEsteticaCorporalSchema.extend({
+  id: fichaIdSchema,
+});
+
+export const editarFichaExtensaoCiliosSchema = criarFichaExtensaoCiliosSchema.extend({
+  id: fichaIdSchema,
+});
+
 export type Ficha = typeof ficha.$inferSelect;
 export type NovaFicha = typeof ficha.$inferInsert;
 export type CriarFichaEsteticaCorporalInput = z.infer<typeof criarFichaEsteticaCorporalSchema>;
 export type CriarFichaExtensaoCiliosInput = z.infer<typeof criarFichaExtensaoCiliosSchema>;
+export type EditarFichaEsteticaCorporalInput = z.infer<typeof editarFichaEsteticaCorporalSchema>;
+export type EditarFichaExtensaoCiliosInput = z.infer<typeof editarFichaExtensaoCiliosSchema>;

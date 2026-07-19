@@ -106,6 +106,11 @@ export const atualizarStatusAgendamentoSchema = z.object({
   ] as const satisfies readonly StatusAgendamento[]),
 });
 
+export const atualizarAgendamentoSchema = criarAgendamentoSchema.extend({
+  id: z.string().uuid("Agendamento inválido."),
+});
+
 export type Agendamento = typeof agendamento.$inferSelect;
 export type NovoAgendamento = typeof agendamento.$inferInsert;
 export type CriarAgendamentoInput = z.infer<typeof criarAgendamentoSchema>;
+export type AtualizarAgendamentoInput = z.infer<typeof atualizarAgendamentoSchema>;

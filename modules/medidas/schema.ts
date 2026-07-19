@@ -100,6 +100,11 @@ export const criarMedidaSchema = z
     }
   });
 
+export const editarMedidaSchema = criarMedidaSchema.extend({
+  id: z.string().uuid("Medida inválida."),
+});
+
 export type Medida = typeof medida.$inferSelect;
 export type NovaMedida = typeof medida.$inferInsert;
 export type CriarMedidaInput = z.infer<typeof criarMedidaSchema>;
+export type EditarMedidaInput = z.infer<typeof editarMedidaSchema>;

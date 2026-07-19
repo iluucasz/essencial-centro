@@ -43,6 +43,17 @@ describe("decidirResultadoIdentificacao", () => {
     ).toBe("rejeitado_qualidade");
   });
 
+  it("aceita qualidade 0 — o SDK não reporta esse valor no Identify, não é leitura ruim", () => {
+    expect(
+      decidirResultadoIdentificacao({
+        situacao: "claim_valida",
+        qualidade: 0,
+        farAtingido: 0,
+        farSegundoColocado: null,
+      }),
+    ).toBe("confirmado");
+  });
+
   it("aceita qualidade exatamente no limiar mínimo", () => {
     expect(
       decidirResultadoIdentificacao({

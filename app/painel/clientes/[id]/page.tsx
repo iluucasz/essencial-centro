@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   Activity,
+  CalendarClock,
   CheckCircle2,
   ChevronRight,
   ClipboardList,
@@ -23,8 +24,12 @@ import {
 } from "lucide-react";
 
 import { ModalFormulario } from "@/components/ui/modal-formulario";
+import { agoraBrasilia } from "@/lib/utils";
+import { FormularioAgendamento } from "@/modules/agenda/components/formulario-agendamento";
+import { MenuAcoesAgendamento } from "@/modules/agenda/components/menu-acoes-agendamento";
 import { listarAgendamentosDoCliente } from "@/modules/agenda/queries";
-import { exigirUsuarioAtual } from "@/modules/auth/queries";
+import { rotulosStatusAgendamento, type StatusAgendamento } from "@/modules/agenda/schema";
+import { exigirUsuarioAtual, listarProfissionaisAtivos } from "@/modules/auth/queries";
 import { desativarBiometria } from "@/modules/biometria/actions";
 import { listarBiometriasDoCliente } from "@/modules/biometria/queries";
 import { registrarConsentimentoBiometria } from "@/modules/clientes/actions";
@@ -33,12 +38,17 @@ import { FormularioDocumento } from "@/modules/documentos/components/formulario-
 import { listarDocumentosDoCliente } from "@/modules/documentos/queries";
 import { FormularioFichaEsteticaCorporal } from "@/modules/fichas/components/formulario-ficha-estetica-corporal";
 import { FormularioFichaExtensaoCilios } from "@/modules/fichas/components/formulario-ficha-extensao-cilios";
+import { ListaFichas, type FichaLista } from "@/modules/fichas/components/lista-fichas";
 import { listarFichasDoCliente } from "@/modules/fichas/queries";
 import { FormularioFoto } from "@/modules/fotos/components/formulario-foto";
 import { GaleriaFotos } from "@/modules/fotos/components/galeria-fotos";
 import { MenuFotoCliente } from "@/modules/fotos/components/menu-foto-cliente";
 import { obterFotoPerfilCliente } from "@/modules/fotos/perfil-queries";
 import { listarFotosDoCliente } from "@/modules/fotos/queries";
+import {
+  HistoricoMedidas as HistoricoMedidasGerenciavel,
+  type MedidaLista,
+} from "@/modules/medidas/components/historico-medidas";
 import { FormularioMedida } from "@/modules/medidas/components/formulario-medida";
 import {
   listarEvolucaoDoCliente,
@@ -51,23 +61,23 @@ import {
   type LadoMedida,
   type RegiaoMedida,
 } from "@/modules/medidas/schema";
-import { confirmarVerificacaoMedicamento } from "@/modules/medicamentos/actions";
 import { FormularioMedicamento } from "@/modules/medicamentos/components/formulario-medicamento";
+import {
+  ListaMedicamentos as ListaMedicamentosGerenciavel,
+  type MedicamentoLista,
+} from "@/modules/medicamentos/components/lista-medicamentos";
 import { listarMedicamentosDoCliente } from "@/modules/medicamentos/queries";
 import { listarPacotesDoCliente, listarPacotesParaSelecao } from "@/modules/pacotes/queries";
 import { rotulosSituacaoPagamento, type SituacaoPagamento } from "@/modules/pacotes/schema";
 import { listarServicos } from "@/modules/servicos/queries";
 import { FormularioSessao } from "@/modules/sessoes/components/formulario-sessao";
+import {
+  ListaSessoes as ListaSessoesGerenciavel,
+  type SessaoLista,
+} from "@/modules/sessoes/components/lista-sessoes";
 import { listarSessoesDoCliente } from "@/modules/sessoes/queries";
 import { rotulosStatusDocumento, rotulosTipoDocumento } from "@/modules/documentos/schema";
-import {
-  rotulosStatusFicha,
-  rotulosTipoFicha,
-  type StatusFicha,
-  type TipoFicha,
-} from "@/modules/fichas/schema";
 import { rotulosDedoBiometria, type DedoBiometria } from "@/modules/biometria/schema";
-import { precisaVerificacao } from "@/modules/medicamentos/verificacao";
 import type { StatusDocumento, TipoDocumento } from "@/modules/documentos/schema";
 import type { ProgressoPacote } from "@/modules/pacotes/progresso";
 
@@ -88,6 +98,7 @@ type ValorInfo = Date | string | boolean | null | undefined;
 type AbaCliente =
   | "resumo"
   | "fichas"
+  | "agendamentos"
   | "sessoes"
   | "medidas"
   | "pacotes"
@@ -110,7 +121,7 @@ function formatarTexto(valor: ValorInfo) {
 }
 
 function formatarIdade(dataNascimento: Date) {
-  const hoje = new Date();
+  const hoje = agoraBrasilia();
   let idade = hoje.getUTCFullYear() - dataNascimento.getUTCFullYear();
   const aindaNaoFezAniversario =
     hoje.getUTCMonth() < dataNascimento.getUTCMonth() ||
@@ -288,129 +299,89 @@ function PainelVazio({ icone, texto }: { icone: React.ReactNode; texto: string }
   );
 }
 
-const classeFicha: Record<StatusFicha, string> = {
-  rascunho: "bg-creme text-muted",
-  preenchida: "bg-lilas/25 text-roxo",
-  revisada: "bg-dourado/20 text-dourado",
-  assinada: "bg-brand/15 text-brand",
+const classeStatusAgendamento: Record<StatusAgendamento, string> = {
+  marcado: "bg-lilas/25 text-roxo",
+  realizado: "bg-brand/15 text-brand",
+  falta: "bg-dourado/20 text-dourado",
+  cancelado: "bg-perigo/10 text-perigo",
 };
 
-function ListaFichasPerfil({
-  fichas,
+type AgendamentoPerfil = {
+  id: string;
+  clienteId: string;
+  servicoId: string;
+  profissionalId: string;
+  pacoteId: string | null;
+  inicio: Date;
+  duracaoMinutos: number;
+  status: StatusAgendamento;
+  modalidade: "presencial" | "domiciliar";
+  observacoes: string | null;
+  servicoNome: string;
+  profissionalNome: string | null;
+};
+
+function ListaAgendamentosPerfil({
+  agendamentos,
+  clienteId,
+  pacotes,
+  profissionais,
+  servicos,
 }: {
-  fichas: { id: string; tipo: TipoFicha; status: StatusFicha; criadoEm: Date }[];
+  agendamentos: AgendamentoPerfil[];
+  clienteId: string;
+  pacotes: { id: string; nome: string }[];
+  profissionais: { id: string; nome: string }[];
+  servicos: { id: string; nome: string }[];
 }) {
-  if (fichas.length === 0) {
+  if (agendamentos.length === 0) {
     return (
-      <PainelVazio icone={<FileText className="size-4" />} texto="Nenhuma ficha registrada." />
+      <PainelVazio
+        icone={<CalendarClock className="size-4" />}
+        texto="Nenhum agendamento registrado."
+      />
     );
   }
 
   return (
     <div className="overflow-hidden rounded-3xl border border-border bg-surface">
       <div className="border-b border-border px-6 py-5">
-        <h3 className="text-base font-semibold text-foreground">Fichas de anamnese</h3>
+        <h3 className="text-base font-semibold text-foreground">Agendamentos</h3>
       </div>
       <ul className="divide-y divide-border">
-        {fichas.map((ficha) => (
-          <li className="flex items-center justify-between gap-4 px-6 py-5" key={ficha.id}>
+        {agendamentos.map((item) => (
+          <li className="flex flex-wrap items-center justify-between gap-4 px-6 py-5" key={item.id}>
             <span className="flex min-w-0 items-center gap-4">
               <span className="bg-menta flex size-12 shrink-0 items-center justify-center rounded-2xl text-brand">
-                <ClipboardList className="size-5" aria-hidden="true" />
+                <CalendarClock className="size-5" aria-hidden="true" />
               </span>
               <span className="min-w-0">
                 <span className="block truncate font-semibold text-foreground">
-                  {rotulosTipoFicha[ficha.tipo]}
+                  {item.servicoNome}
                 </span>
                 <span className="mt-1 block text-sm text-muted">
-                  Criada em {formatadorDataCurta.format(ficha.criadoEm)}
+                  {formatadorDataHora.format(item.inicio)} ·{" "}
+                  {item.profissionalNome ?? "Sem profissional"}
                 </span>
               </span>
             </span>
-            <span
-              className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${classeFicha[ficha.status]}`}
-            >
-              {rotulosStatusFicha[ficha.status]}
+            <span className="flex shrink-0 items-center gap-2">
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${classeStatusAgendamento[item.status]}`}
+              >
+                {rotulosStatusAgendamento[item.status]}
+              </span>
+              <MenuAcoesAgendamento
+                agendamento={item}
+                clienteFixoId={clienteId}
+                clientes={[]}
+                pacotes={pacotes}
+                profissionais={profissionais}
+                servicos={servicos}
+              />
             </span>
           </li>
         ))}
-      </ul>
-    </div>
-  );
-}
-
-function ListaSessoesPerfil({
-  sessoes,
-}: {
-  sessoes: {
-    id: string;
-    dataHora: Date;
-    regiaoTratada: string | null;
-    relatoCliente: string | null;
-    orientacoesPosAtendimento: string | null;
-    escalaDorAntes: number | null;
-    escalaDorDepois: number | null;
-  }[];
-}) {
-  if (sessoes.length === 0) {
-    return (
-      <PainelVazio icone={<NotebookPen className="size-4" />} texto="Nenhuma sessão registrada." />
-    );
-  }
-
-  return (
-    <div className="overflow-hidden rounded-3xl border border-border bg-surface">
-      <div className="border-b border-border px-6 py-5">
-        <h3 className="text-base font-semibold text-foreground">Sessões realizadas</h3>
-      </div>
-      <ul className="divide-y divide-border">
-        {sessoes.map((sessao, indice) => {
-          const numeroSessao = sessoes.length - indice;
-          const descricao =
-            sessao.relatoCliente ??
-            sessao.orientacoesPosAtendimento ??
-            "Registro clínico sem descrição complementar.";
-
-          return (
-            <li className="grid gap-4 px-6 py-5 md:grid-cols-[minmax(0,1fr)_8rem]" key={sessao.id}>
-              <div className="flex min-w-0 gap-4">
-                <span className="bg-menta flex size-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-brand">
-                  S{numeroSessao}
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-base font-semibold text-foreground">
-                    Sessão {numeroSessao}
-                  </span>
-                  <span className="mt-1 block text-sm text-foreground">
-                    {sessao.regiaoTratada ?? "Atendimento registrado"}
-                  </span>
-                  <span className="mt-2 block text-sm leading-6 text-muted">{descricao}</span>
-                  <span className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
-                    {sessao.escalaDorAntes !== null ? (
-                      <span>
-                        Dor antes:{" "}
-                        <strong className="rounded-full bg-lilas/25 px-2 py-0.5 text-roxo">
-                          {sessao.escalaDorAntes}/10
-                        </strong>
-                      </span>
-                    ) : null}
-                    {sessao.escalaDorDepois !== null ? (
-                      <span>
-                        Dor depois:{" "}
-                        <strong className="rounded-full bg-brand/15 px-2 py-0.5 text-brand">
-                          {sessao.escalaDorDepois}/10
-                        </strong>
-                      </span>
-                    ) : null}
-                  </span>
-                </span>
-              </div>
-              <time className="text-right text-sm font-medium text-muted">
-                {formatadorDataHora.format(sessao.dataHora)}
-              </time>
-            </li>
-          );
-        })}
       </ul>
     </div>
   );
@@ -613,80 +584,6 @@ function CardsEvolucao({ evolucao }: { evolucao: EvolucaoAgrupada[] }) {
   );
 }
 
-function HistoricoMedidas({ medidas }: { medidas: MedidaPerfil[] }) {
-  const series = selecionarSeries(medidas);
-
-  if (series.length === 0) {
-    return <PainelVazio icone={<Ruler className="size-4" />} texto="Nenhuma medida registrada." />;
-  }
-
-  const datas = [
-    ...new Set(medidas.map((medida) => medida.dataMedicao.toISOString().slice(0, 10))),
-  ].sort();
-  const valores = new Map<string, Map<string, MedidaPerfil>>();
-
-  for (const serie of series) {
-    const chave = chaveMedida(serie[0].regiao, serie[0].lado);
-    valores.set(
-      chave,
-      new Map(serie.map((medida) => [medida.dataMedicao.toISOString().slice(0, 10), medida])),
-    );
-  }
-
-  return (
-    <div className="overflow-hidden rounded-3xl border border-border bg-surface">
-      <div className="border-b border-border px-6 py-5">
-        <h3 className="text-base font-semibold text-foreground">Histórico completo de medidas</h3>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-sm">
-          <thead className="bg-creme text-left text-xs font-semibold text-muted">
-            <tr>
-              <th className="px-5 py-4">Data</th>
-              {series.map((serie) => (
-                <th className="px-5 py-4" key={chaveMedida(serie[0].regiao, serie[0].lado)}>
-                  {rotuloMedida(serie[0].regiao, serie[0].lado)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {datas.map((data, indiceData) => (
-              <tr key={data}>
-                <td className="px-5 py-4 font-medium text-foreground">
-                  {formatadorDataCurta.format(new Date(`${data}T00:00:00.000Z`))}
-                </td>
-                {series.map((serie) => {
-                  const chave = chaveMedida(serie[0].regiao, serie[0].lado);
-                  const atual = valores.get(chave)?.get(data);
-                  const anterior = datas
-                    .slice(0, indiceData)
-                    .reverse()
-                    .map((dataAnterior) => valores.get(chave)?.get(dataAnterior))
-                    .find(Boolean);
-                  const delta = atual && anterior ? atual.valorCm - anterior.valorCm : null;
-
-                  return (
-                    <td className="px-5 py-4 text-foreground" key={chave}>
-                      {atual ? formatarCm(atual.valorCm) : "—"}
-                      {delta !== null && delta !== 0 ? (
-                        <span className={delta < 0 ? "ml-1 text-brand" : "ml-1 text-dourado"}>
-                          {delta > 0 ? "+" : ""}
-                          {delta.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
-                        </span>
-                      ) : null}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 const classePagamento: Record<SituacaoPagamento, string> = {
   pendente: "bg-dourado/20 text-dourado",
   parcial: "bg-lilas/25 text-roxo",
@@ -849,104 +746,6 @@ function ListaDocumentosPerfil({
   );
 }
 
-function ListaMedicamentosPerfil({
-  clienteId,
-  medicamentos,
-}: {
-  clienteId: string;
-  medicamentos: {
-    id: string;
-    nome: string;
-    dosagem: string | null;
-    frequencia: string | null;
-    profissionalPrescritor: string | null;
-    dataInicio: Date | null;
-    alergiaRelacionada: string | null;
-    alertaInteracao: string | null;
-    fonteAlerta: string | null;
-    verificadoEm: Date | null;
-    verificadoPorNome: string | null;
-  }[];
-}) {
-  if (medicamentos.length === 0) {
-    return (
-      <PainelVazio icone={<Pill className="size-4" />} texto="Nenhum medicamento informado." />
-    );
-  }
-
-  return (
-    <div className="grid gap-4">
-      {medicamentos.map((medicamento) => (
-        <article className="rounded-3xl border border-border bg-surface p-5" key={medicamento.id}>
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <span className="flex min-w-0 items-start gap-4">
-              <span className="bg-menta mt-1 flex size-12 shrink-0 items-center justify-center rounded-2xl text-brand">
-                <Pill className="size-5" aria-hidden="true" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-base font-semibold text-foreground">
-                  {medicamento.nome}
-                </span>
-                <span className="mt-1 block text-sm text-muted">
-                  {[
-                    medicamento.dosagem,
-                    medicamento.frequencia,
-                    medicamento.profissionalPrescritor
-                      ? `prescrito por ${medicamento.profissionalPrescritor}`
-                      : null,
-                    medicamento.dataInicio
-                      ? `início ${formatadorData.format(medicamento.dataInicio)}`
-                      : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ") || "Sem detalhes adicionais"}
-                </span>
-              </span>
-            </span>
-
-            {medicamento.verificadoEm ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-brand/15 px-3 py-1 text-xs font-semibold text-brand">
-                <CheckCircle2 className="size-3.5" aria-hidden="true" />
-                Verificado
-              </span>
-            ) : precisaVerificacao(medicamento.verificadoEm) ? (
-              <form action={confirmarVerificacaoMedicamento}>
-                <input name="id" type="hidden" value={medicamento.id} />
-                <input name="clienteId" type="hidden" value={clienteId} />
-                <button
-                  className="inline-flex items-center gap-1 rounded-full bg-dourado/20 px-3 py-1 text-xs font-semibold text-dourado transition hover:bg-dourado/30"
-                  type="submit"
-                >
-                  <TriangleAlert className="size-3.5" aria-hidden="true" />
-                  Confirmar verificação
-                </button>
-              </form>
-            ) : null}
-          </div>
-
-          {medicamento.alergiaRelacionada || medicamento.alertaInteracao ? (
-            <div className="mt-4 grid gap-2 rounded-2xl bg-creme p-4 text-sm">
-              {medicamento.alergiaRelacionada ? (
-                <p className="text-foreground">
-                  <strong>Alergia relacionada: </strong>
-                  {medicamento.alergiaRelacionada}
-                </p>
-              ) : null}
-              {medicamento.alertaInteracao ? (
-                <p className="text-perigo">
-                  <strong>Alerta: </strong>
-                  {medicamento.alertaInteracao}
-                  {medicamento.fonteAlerta ? ` (fonte: ${medicamento.fonteAlerta})` : ""}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-        </article>
-      ))}
-    </div>
-  );
-}
-
 function ListaBiometriasPerfil({
   clienteId,
   biometrias,
@@ -1031,6 +830,7 @@ export default async function ClienteDetalhePage({
         listarServicos(),
         listarAgendamentosDoCliente(id),
         listarPacotesParaSelecao(),
+        listarProfissionaisAtivos(),
       ])
     : null;
 
@@ -1058,11 +858,45 @@ export default async function ClienteDetalhePage({
       }))
     : [];
 
+  const servicosParaSessoes = dadosSessoes
+    ? dadosSessoes[1].map((s) => ({ id: s.id, nome: s.nome }))
+    : [];
+  const agendamentosParaSessoes = dadosSessoes
+    ? dadosSessoes[2].map((a) => ({
+        id: a.id,
+        nome: `${formatadorDataHora.format(a.inicio)} · ${a.servicoNome}`,
+      }))
+    : [];
+  const pacotesParaSessoes = dadosSessoes
+    ? dadosSessoes[3].map((p) => ({ id: p.id, nome: p.servicoNome }))
+    : [];
+  const sessoesParaLista: SessaoLista[] = dadosSessoes ? dadosSessoes[0] : [];
+  const medidasParaLista: MedidaLista[] = medidasBrutas ?? [];
+  const medicamentosParaLista: MedicamentoLista[] = medicamentos ?? [];
+  const servicosParaFichas = servicosParaSessoes;
+
+  const fichasParaLista: FichaLista[] = fichas.map((item) => ({
+    id: item.id,
+    aceiteTermosEm: item.aceiteTermosEm,
+    atualizadoEm: item.atualizadoEm,
+    autorizacaoImagemEm: item.autorizacaoImagemEm,
+    clienteId: item.clienteId,
+    criadoEm: item.criadoEm,
+    respostas: profissional ? item.respostas : null,
+    servicoId: item.servicoId,
+    status: item.status,
+    tipo: item.tipo,
+    versao: item.versao,
+    versaoAnteriorId: item.versaoAnteriorId,
+  }));
+
   const pacotePrincipal = pacotes.find((pacote) => pacote.ativo) ?? pacotes[0] ?? null;
   const pacotesAtivos = pacotes.filter((pacote) => pacote.ativo).length;
   const statusCliente = pacotePrincipal?.ativo ? "Ativa" : "Cadastro";
   const proximaSessao = dadosSessoes?.[2]
-    .filter((agendamento) => agendamento.status === "marcado" && agendamento.inicio >= new Date())
+    .filter(
+      (agendamento) => agendamento.status === "marcado" && agendamento.inicio >= agoraBrasilia(),
+    )
     .sort((a, b) => a.inicio.getTime() - b.inicio.getTime())[0];
   const reducaoAcumulada =
     evolucaoMedidas?.reduce(
@@ -1074,6 +908,11 @@ export default async function ClienteDetalhePage({
     { id: "fichas", rotulo: "Fichas", contador: fichas.length },
     ...(profissional
       ? [
+          {
+            id: "agendamentos" as const,
+            rotulo: "Agendamentos",
+            contador: dadosSessoes?.[2].length ?? 0,
+          },
           { id: "sessoes" as const, rotulo: "Sessões", contador: dadosSessoes?.[0].length ?? 0 },
           { id: "medidas" as const, rotulo: "Medidas", contador: evolucaoMedidas?.length ?? 0 },
         ]
@@ -1280,9 +1119,7 @@ export default async function ClienteDetalhePage({
                   <FormularioFichaEsteticaCorporal
                     clienteId={id}
                     clienteNome={cliente.nome}
-                    servicos={
-                      dadosSessoes ? dadosSessoes[1].map((s) => ({ id: s.id, nome: s.nome })) : []
-                    }
+                    servicos={servicosParaFichas}
                   />
                 </ModalFormulario>
                 <ModalFormulario
@@ -1293,9 +1130,7 @@ export default async function ClienteDetalhePage({
                   <FormularioFichaExtensaoCilios
                     clienteId={id}
                     clienteNome={cliente.nome}
-                    servicos={
-                      dadosSessoes ? dadosSessoes[1].map((s) => ({ id: s.id, nome: s.nome })) : []
-                    }
+                    servicos={servicosParaFichas}
                   />
                 </ModalFormulario>
               </div>
@@ -1306,7 +1141,56 @@ export default async function ClienteDetalhePage({
           id="fichas"
           titulo="Fichas de avaliação"
         >
-          <ListaFichasPerfil fichas={fichas} />
+          <ListaFichas
+            clienteNome={cliente.nome}
+            fichas={fichasParaLista}
+            podeGerenciar={profissional}
+            servicos={servicosParaFichas}
+          />
+        </SecaoPerfil>
+      ) : null}
+
+      {abaAtual === "agendamentos" && dadosSessoes ? (
+        <SecaoPerfil
+          acao={
+            <ModalFormulario
+              icone={<CalendarClock className="size-4" aria-hidden />}
+              rotuloBotao="Novo agendamento"
+              titulo="Novo agendamento"
+            >
+              <FormularioAgendamento
+                clienteFixoId={id}
+                clientes={[]}
+                pacotes={dadosSessoes[3].map((p) => ({
+                  id: p.id,
+                  nome: `${p.clienteNome} · ${p.servicoNome}`,
+                }))}
+                profissionais={dadosSessoes[4].map((p) => ({
+                  id: p.id,
+                  nome: p.name ?? p.email ?? "",
+                }))}
+                servicos={dadosSessoes[1].map((s) => ({ id: s.id, nome: s.nome }))}
+              />
+            </ModalFormulario>
+          }
+          descricao="Atendimentos marcados, com status e histórico completo."
+          icone={<CalendarClock className="size-4" aria-hidden="true" />}
+          id="agendamentos"
+          titulo="Agendamentos"
+        >
+          <ListaAgendamentosPerfil
+            agendamentos={dadosSessoes[2]}
+            clienteId={id}
+            pacotes={dadosSessoes[3].map((p) => ({
+              id: p.id,
+              nome: `${p.clienteNome} · ${p.servicoNome}`,
+            }))}
+            profissionais={dadosSessoes[4].map((p) => ({
+              id: p.id,
+              nome: p.name ?? p.email ?? "",
+            }))}
+            servicos={dadosSessoes[1].map((s) => ({ id: s.id, nome: s.nome }))}
+          />
         </SecaoPerfil>
       ) : null}
 
@@ -1319,13 +1203,10 @@ export default async function ClienteDetalhePage({
               titulo="Nova sessão"
             >
               <FormularioSessao
-                agendamentos={dadosSessoes[2].map((a) => ({
-                  id: a.id,
-                  nome: `${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "UTC" }).format(a.inicio)} · ${a.servicoNome}`,
-                }))}
+                agendamentos={agendamentosParaSessoes}
                 clienteId={id}
-                pacotes={dadosSessoes[3].map((p) => ({ id: p.id, nome: p.servicoNome }))}
-                servicos={dadosSessoes[1].map((s) => ({ id: s.id, nome: s.nome }))}
+                pacotes={pacotesParaSessoes}
+                servicos={servicosParaSessoes}
               />
             </ModalFormulario>
           }
@@ -1334,7 +1215,12 @@ export default async function ClienteDetalhePage({
           id="sessoes"
           titulo="Sessões realizadas"
         >
-          <ListaSessoesPerfil sessoes={dadosSessoes[0]} />
+          <ListaSessoesGerenciavel
+            agendamentos={agendamentosParaSessoes}
+            pacotes={pacotesParaSessoes}
+            servicos={servicosParaSessoes}
+            sessoes={sessoesParaLista}
+          />
         </SecaoPerfil>
       ) : null}
 
@@ -1357,7 +1243,7 @@ export default async function ClienteDetalhePage({
           <div className="grid gap-6">
             <CardsEvolucao evolucao={evolucaoMedidas} />
             <GraficoMedidas medidas={medidasBrutas ?? []} />
-            <HistoricoMedidas medidas={medidasBrutas ?? []} />
+            <HistoricoMedidasGerenciavel medidas={medidasParaLista} sessoes={sessoesParaSelecao} />
           </div>
         </SecaoPerfil>
       ) : null}
@@ -1421,7 +1307,7 @@ export default async function ClienteDetalhePage({
           id="fotos"
           titulo="Fotos"
         >
-          <GaleriaFotos fotos={fotos} />
+          <GaleriaFotos fotos={fotos} podeExcluir />
         </SecaoPerfil>
       ) : null}
 
@@ -1461,7 +1347,7 @@ export default async function ClienteDetalhePage({
           id="medicamentos"
           titulo="Medicamentos"
         >
-          <ListaMedicamentosPerfil clienteId={id} medicamentos={medicamentos} />
+          <ListaMedicamentosGerenciavel clienteId={id} medicamentos={medicamentosParaLista} />
         </SecaoPerfil>
       ) : null}
     </div>

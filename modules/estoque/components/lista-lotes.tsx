@@ -1,5 +1,6 @@
 import { Boxes } from "lucide-react";
 
+import { agoraBrasilia } from "@/lib/utils";
 import { calcularStatusValidade, type StatusValidade } from "@/modules/estoque/disponibilidade";
 
 type LoteResumo = {
@@ -37,10 +38,12 @@ export function ListaLotes({ lotes }: { lotes: LoteResumo[] }) {
     );
   }
 
+  const hoje = agoraBrasilia();
+
   return (
     <ul className="grid gap-2">
       {lotes.map((l) => {
-        const statusValidade = calcularStatusValidade(l.validade);
+        const statusValidade = calcularStatusValidade(l.validade, hoje);
 
         return (
           <li

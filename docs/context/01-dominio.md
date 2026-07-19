@@ -10,8 +10,11 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
 - **Cliente** — pessoa atendida. Dados pessoais reutilizáveis (nome, nascimento, telefone,
   e-mail, endereço, contato de emergência, profissão), mais objetivo do tratamento,
   alergias, medicamentos, condições de saúde, cirurgias, contraindicações e consentimentos.
-- **Servico** — oferta clínica (ver catálogo em `00-produto.md`/`brief.md`). Grupos:
-  massoterapia/terapias, estética corporal, estética facial, saúde integrativa, pré/pós-operatório.
+- **Servico** — oferta clínica (ver catálogo em `00-produto.md`/`brief.md`). Grupo e
+  periodicidade são texto livre com lista de sugestões extensível (`opcaoServico`, ver
+  `modules/servicos/schema.ts`) — padrão inicial: massoterapia/terapias, estética corporal,
+  estética facial, saúde integrativa, pré/pós-operatório; a profissional pode adicionar outras
+  digitando "Outro" no formulário, e excluir as que ela mesma criou (não as padrão).
   Campos: descrição, indicação, contraindicações, duração, periodicidade, valor, preparo, cuidados.
 - **Pacote** — conjunto de sessões contratadas de um serviço para um cliente: quantidade,
   realizadas, restantes, contratação, validade, valor, forma/situação de pagamento, faltas.

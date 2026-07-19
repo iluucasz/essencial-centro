@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { filtrarFichaParaCliente } from "./acesso";
+import { filtrarFichaParaCliente, podeGerenciarFichas } from "./acesso";
+import type { UsuarioSessao } from "@/modules/auth/rbac";
 import type { Ficha } from "./schema";
 
 const fichaCompleta = {
@@ -36,5 +37,32 @@ describe("filtrarFichaParaCliente", () => {
     expect(respostas.compartilhado).toEqual({ orientacoes: "Beber bastante água" });
     expect(respostas.avaliacaoProfissional).toBeUndefined();
     expect(JSON.stringify(filtrada)).not.toContain("desconforto financeiro");
+  });
+});
+
+const profissional: UsuarioSessao = {
+  id: "u-profissional",
+  role: "profissional",
+  ativo: true,
+};
+
+const recepcao: UsuarioSessao = {
+  id: "u-recepcao",
+  role: "recepcao",
+  ativo: true,
+};
+
+const cliente: UsuarioSessao = {
+  id: "u-cliente",
+  role: "cliente",
+  clienteId: "c1",
+  ativo: true,
+};
+
+describe("podeGerenciarFichas", () => {
+  it("restringe criação, edição e exclusão de fichas ao perfil profissional", () => {
+    expect(podeGerenciarFichas(profissional)).toBe(true);
+    expect(podeGerenciarFichas(recepcao)).toBe(false);
+    expect(podeGerenciarFichas(cliente)).toBe(false);
   });
 });

@@ -1,28 +1,45 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { boolean, integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  integer,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { z } from "zod";
 
 import { usuario } from "@/modules/auth/schema";
 
-export const gruposServico = [
-  "massoterapia",
-  "estetica_corporal",
-  "estetica_facial",
-  "saude_integrativa",
-  "pre_pos_operatorio",
-] as const;
+export const tiposOpcaoServico = ["grupo", "periodicidade"] as const;
 
-export type GrupoServico = (typeof gruposServico)[number];
+export type TipoOpcaoServico = (typeof tiposOpcaoServico)[number];
 
-export const grupoServicoEnum = pgEnum("grupo_servico", gruposServico);
+export const tipoOpcaoServicoEnum = pgEnum("tipo_opcao_servico", tiposOpcaoServico);
 
-export const rotulosGrupoServico: Record<GrupoServico, string> = {
-  massoterapia: "Massoterapia e terapias",
-  estetica_corporal: "Estética corporal",
-  estetica_facial: "Estética facial",
-  saude_integrativa: "Saúde integrativa e bem-estar",
-  pre_pos_operatorio: "Pré e pós-operatório",
-};
+/**
+ * Lista extensível de opções pra "Grupo" e "Periodicidade" do serviço — os valores com
+ * `padrao=true` vêm do catálogo original (seed da migration) e não podem ser excluídos; os
+ * demais são criados pela própria profissional ao digitar "Outro" no formulário de serviço.
+ * `servico.grupo`/`servico.periodicidade` guardam o texto direto (sem FK) — excluir uma opção
+ * daqui não afeta serviços que já usam aquele valor, só some da lista pra novos cadastros.
+ */
+export const opcaoServico = pgTable(
+  "opcao_servico",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tipo: tipoOpcaoServicoEnum("tipo").notNull(),
+    nome: text("nome").notNull(),
+    padrao: boolean("padrao").notNull().default(false),
+    criadoPorId: uuid("criado_por_id").references(() => usuario.id, { onDelete: "set null" }),
+    criadoEm: timestamp("criado_em", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => ({
+    tipoNomeUnique: uniqueIndex("opcao_servico_tipo_nome_unique").on(table.tipo, table.nome),
+  }),
+);
 
 const textoLongoOpcional = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
@@ -41,7 +58,7 @@ const valorSchema = z.preprocess((value) => {
 export const servico = pgTable("servico", {
   id: uuid("id").defaultRandom().primaryKey(),
   nome: text("nome").notNull(),
-  grupo: grupoServicoEnum("grupo").notNull(),
+  grupo: text("grupo").notNull(),
   descricao: text("descricao"),
   indicacao: text("indicacao"),
   contraindicacoes: text("contraindicacoes"),
@@ -64,7 +81,7 @@ export const servicoInsertSchema = createInsertSchema(servico);
 
 export const criarServicoSchema = z.object({
   nome: z.string().trim().min(2, "Informe o nome do serviço.").max(120),
-  grupo: z.enum(gruposServico, "Selecione um grupo válido."),
+  grupo: z.string().trim().min(2, "Selecione ou informe um grupo.").max(120),
   descricao: textoLongoOpcional,
   indicacao: textoLongoOpcional,
   contraindicacoes: textoLongoOpcional,
@@ -79,6 +96,13 @@ export const criarServicoSchema = z.object({
   cuidadosPosteriores: textoLongoOpcional,
 });
 
+export const opcaoServicoSelectSchema = createSelectSchema(opcaoServico);
+
+export const excluirOpcaoServicoSchema = z.object({
+  id: z.string().uuid("Opção inválida."),
+});
+
 export type Servico = typeof servico.$inferSelect;
 export type NovoServico = typeof servico.$inferInsert;
 export type CriarServicoInput = z.infer<typeof criarServicoSchema>;
+export type OpcaoServico = typeof opcaoServico.$inferSelect;

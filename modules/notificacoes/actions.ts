@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { autorizarPapel } from "@/modules/auth/rbac";
 
+import { enviarEmailNotificacao } from "./email";
 import { notificacao } from "./schema";
 import { enviarWhatsAppTexto } from "./whatsapp";
 
@@ -54,6 +55,51 @@ export async function enviarWhatsAppDeTeste(
   return {
     status: "sucesso",
     mensagem: "Mensagem de teste enviada.",
+  } satisfies EstadoTesteWhatsApp;
+}
+
+/**
+ * Diagnóstico manual, protegido (só `profissional`) — nunca aceita/retorna a API key, nunca tem
+ * e-mail fixo no código (quem testa digita o endereço toda vez).
+ */
+export async function enviarEmailDeTeste(
+  _: EstadoTesteWhatsApp = estadoInicialTeste,
+  formData: FormData,
+) {
+  autorizarPapel(await auth(), ["profissional"]);
+
+  const email = formData.get("email");
+  const mensagem = formData.get("mensagem");
+
+  if (
+    typeof email !== "string" ||
+    typeof mensagem !== "string" ||
+    !email.trim() ||
+    !mensagem.trim()
+  ) {
+    return {
+      status: "erro",
+      mensagem: "Informe e-mail e mensagem.",
+    } satisfies EstadoTesteWhatsApp;
+  }
+
+  const resultado = await enviarEmailNotificacao({
+    destinatarioEmail: email,
+    destinatarioNome: email,
+    titulo: "Teste de integração — Essencial Centro",
+    mensagem,
+  });
+
+  if (!resultado.sent) {
+    return {
+      status: "erro",
+      mensagem: resultado.error ?? "E-mail não está configurado.",
+    } satisfies EstadoTesteWhatsApp;
+  }
+
+  return {
+    status: "sucesso",
+    mensagem: "E-mail de teste enviado.",
   } satisfies EstadoTesteWhatsApp;
 }
 

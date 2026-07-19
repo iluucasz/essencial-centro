@@ -2,25 +2,39 @@
 
 import { useActionState, useEffect, useState, type FocusEvent } from "react";
 import { Modal, useOverlayState } from "@heroui/react";
-import { Ellipsis, LoaderCircle, Pencil, Trash2 } from "lucide-react";
+import { Ellipsis, LoaderCircle, Pencil, Power, PowerOff, Trash2 } from "lucide-react";
+
+import { usePosicaoMenuAcoes } from "@/components/ui/menu-acoes";
+import { ConteudoModal, FecharModalProvider } from "@/components/ui/modal-formulario";
+import {
+  alternarAtivoServico,
+  excluirServico,
+  type EstadoExclusaoServico,
+} from "@/modules/servicos/actions";
 
 import {
-  FecharModalProvider,
-  ModalDialogAnimado,
-  ParteModalAnimada,
-} from "@/components/ui/modal-formulario";
-import { excluirServico, type EstadoExclusaoServico } from "@/modules/servicos/actions";
-
-import { FormularioServico, type ServicoFormulario } from "./formulario-servico";
+  FormularioServico,
+  type OpcaoServicoResumo,
+  type ServicoFormulario,
+} from "./formulario-servico";
 
 const estadoInicialExclusao: EstadoExclusaoServico = { status: "inicial" };
 
-export function MenuAcoesServico({ servico }: { servico: ServicoFormulario }) {
+export function MenuAcoesServico({
+  opcoesGrupo,
+  opcoesPeriodicidade,
+  servico,
+}: {
+  opcoesGrupo: OpcaoServicoResumo[];
+  opcoesPeriodicidade: OpcaoServicoResumo[];
+  servico: ServicoFormulario;
+}) {
   const modalEdicao = useOverlayState();
   const modalExclusao = useOverlayState();
   const [menuAberto, setMenuAberto] = useState(false);
   const [confirmado, setConfirmado] = useState(false);
   const [state, formAction, pending] = useActionState(excluirServico, estadoInicialExclusao);
+  const { gatilhoRef, abrirParaCima } = usePosicaoMenuAcoes(menuAberto);
 
   useEffect(() => {
     if (state.status !== "sucesso") return;
@@ -38,7 +52,7 @@ export function MenuAcoesServico({ servico }: { servico: ServicoFormulario }) {
 
   return (
     <>
-      <div className="relative inline-flex" onBlur={fecharMenuAoPerderFoco}>
+      <div className="relative inline-flex" onBlur={fecharMenuAoPerderFoco} ref={gatilhoRef}>
         <button
           aria-expanded={menuAberto}
           aria-haspopup="menu"
@@ -53,7 +67,7 @@ export function MenuAcoesServico({ servico }: { servico: ServicoFormulario }) {
 
         {menuAberto ? (
           <div
-            className="absolute top-10 right-0 z-20 w-56 rounded-xl border border-border bg-surface p-1 shadow-md"
+            className={`absolute right-0 z-20 w-56 rounded-xl border border-border bg-surface p-1 shadow-md ${abrirParaCima ? "bottom-10" : "top-10"}`}
             role="menu"
           >
             <button
@@ -68,6 +82,23 @@ export function MenuAcoesServico({ servico }: { servico: ServicoFormulario }) {
               <Pencil className="size-4 text-roxo" aria-hidden="true" />
               Editar serviço
             </button>
+            <form action={alternarAtivoServico}>
+              <input name="id" type="hidden" value={servico.id} />
+              <input name="ativoAtual" type="hidden" value={String(servico.ativo)} />
+              <button
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+                onClick={() => setMenuAberto(false)}
+                role="menuitem"
+                type="submit"
+              >
+                {servico.ativo ? (
+                  <PowerOff className="size-4 text-perigo" aria-hidden="true" />
+                ) : (
+                  <Power className="size-4 text-roxo" aria-hidden="true" />
+                )}
+                {servico.ativo ? "Desativar serviço" : "Ativar serviço"}
+              </button>
+            </form>
             <button
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-perigo transition hover:bg-perigo/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-perigo"
               onClick={() => {
@@ -88,23 +119,15 @@ export function MenuAcoesServico({ servico }: { servico: ServicoFormulario }) {
       <Modal state={modalEdicao}>
         <Modal.Backdrop variant="opaque">
           <Modal.Container size="lg">
-            <ModalDialogAnimado className="max-h-[85vh] overflow-y-auto">
-              <ParteModalAnimada>
-                <Modal.Header>
-                  <Modal.Heading className="text-lg font-semibold text-brand">
-                    Editar serviço
-                  </Modal.Heading>
-                </Modal.Header>
-              </ParteModalAnimada>
-              <Modal.CloseTrigger />
-              <ParteModalAnimada ordem={1}>
-                <Modal.Body>
-                  <FecharModalProvider value={modalEdicao.close}>
-                    <FormularioServico servico={servico} />
-                  </FecharModalProvider>
-                </Modal.Body>
-              </ParteModalAnimada>
-            </ModalDialogAnimado>
+            <ConteudoModal titulo="Editar serviço">
+              <FecharModalProvider value={modalEdicao.close}>
+                <FormularioServico
+                  opcoesGrupo={opcoesGrupo}
+                  opcoesPeriodicidade={opcoesPeriodicidade}
+                  servico={servico}
+                />
+              </FecharModalProvider>
+            </ConteudoModal>
           </Modal.Container>
         </Modal.Backdrop>
       </Modal>
@@ -112,69 +135,58 @@ export function MenuAcoesServico({ servico }: { servico: ServicoFormulario }) {
       <Modal state={modalExclusao}>
         <Modal.Backdrop variant="opaque">
           <Modal.Container size="sm">
-            <ModalDialogAnimado>
-              <ParteModalAnimada>
-                <Modal.Header>
-                  <Modal.Heading className="text-lg font-semibold text-perigo">
-                    Excluir serviço
-                  </Modal.Heading>
-                </Modal.Header>
-              </ParteModalAnimada>
-              <Modal.CloseTrigger />
-              <ParteModalAnimada ordem={1}>
-                <Modal.Body>
-                  <form action={formAction} className="grid gap-4">
-                    <input name="servicoId" type="hidden" value={servico.id} />
-                    <p className="text-sm text-foreground">
-                      Você está prestes a excluir {servico.nome}. Se ele estiver vinculado a agenda,
-                      pacotes, sessões ou fichas, a exclusão será bloqueada.
-                    </p>
-                    <label className="flex items-start gap-3 rounded-xl bg-creme p-3 text-sm text-foreground">
-                      <input
-                        checked={confirmado}
-                        className="mt-1 size-4 rounded border-border text-perigo focus:ring-perigo"
-                        name="confirmarExclusao"
-                        onChange={(event) => setConfirmado(event.target.checked)}
-                        type="checkbox"
-                        value="true"
-                      />
-                      <span>Entendo que a exclusão não pode ser desfeita.</span>
-                    </label>
+            <ConteudoModal corTitulo="text-perigo" titulo="Excluir serviço">
+              <form action={formAction} className="grid gap-4">
+                <input name="servicoId" type="hidden" value={servico.id} />
+                <p className="text-sm text-foreground">
+                  Você está prestes a excluir {servico.nome}. Se ele estiver vinculado a agenda,
+                  pacotes ou sessões, a exclusão será bloqueada e você verá exatamente o que precisa
+                  resolver antes.
+                </p>
+                <label className="flex items-start gap-3 rounded-xl bg-creme p-3 text-sm text-foreground">
+                  <input
+                    checked={confirmado}
+                    className="mt-1 size-4 rounded border-border text-perigo focus:ring-perigo"
+                    name="confirmarExclusao"
+                    onChange={(event) => setConfirmado(event.target.checked)}
+                    type="checkbox"
+                    value="true"
+                  />
+                  <span>Entendo que a exclusão não pode ser desfeita.</span>
+                </label>
 
-                    {state.status === "erro" && state.mensagem ? (
-                      <p className="text-sm font-medium text-perigo" role="alert">
-                        {state.mensagem}
-                      </p>
-                    ) : null}
+                {state.status === "erro" && state.mensagem ? (
+                  <p className="text-sm font-medium text-perigo" role="alert">
+                    {state.mensagem}
+                  </p>
+                ) : null}
 
-                    <div className="flex flex-wrap justify-end gap-2">
-                      <button
-                        className="inline-flex h-10 items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
-                        onClick={() => {
-                          setConfirmado(false);
-                          modalExclusao.close();
-                        }}
-                        type="button"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-perigo px-4 text-sm font-semibold text-white transition hover:bg-perigo/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-perigo disabled:cursor-not-allowed disabled:opacity-60"
-                        disabled={!confirmado || pending}
-                        type="submit"
-                      >
-                        {pending ? (
-                          <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                        ) : (
-                          <Trash2 className="size-4" aria-hidden="true" />
-                        )}
-                        Excluir definitivamente
-                      </button>
-                    </div>
-                  </form>
-                </Modal.Body>
-              </ParteModalAnimada>
-            </ModalDialogAnimado>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <button
+                    className="inline-flex h-10 items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+                    onClick={() => {
+                      setConfirmado(false);
+                      modalExclusao.close();
+                    }}
+                    type="button"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-perigo px-4 text-sm font-semibold text-white transition hover:bg-perigo/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-perigo disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={!confirmado || pending}
+                    type="submit"
+                  >
+                    {pending ? (
+                      <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Trash2 className="size-4" aria-hidden="true" />
+                    )}
+                    Excluir definitivamente
+                  </button>
+                </div>
+              </form>
+            </ConteudoModal>
           </Modal.Container>
         </Modal.Backdrop>
       </Modal>

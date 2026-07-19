@@ -1,7 +1,7 @@
 import { UserPlus } from "lucide-react";
 
 import { ModalFormulario } from "@/components/ui/modal-formulario";
-import { FormularioCriarUsuario } from "@/modules/auth/components/formulario-criar-usuario";
+import { FormularioUsuario } from "@/modules/auth/components/formulario-usuario";
 import { ListaUsuarios } from "@/modules/auth/components/lista-usuarios";
 import { exigirUsuarioAtual, listarUsuarios } from "@/modules/auth/queries";
 import { listarClientes } from "@/modules/clientes/queries";
@@ -9,7 +9,8 @@ import { listarClientes } from "@/modules/clientes/queries";
 export default async function UsuariosPage() {
   const usuarioAtual = await exigirUsuarioAtual(["profissional"]);
 
-  const [usuarios, clientes] = await Promise.all([listarUsuarios(), listarClientes()]);
+  const [usuarios, clientesBrutos] = await Promise.all([listarUsuarios(), listarClientes()]);
+  const clientes = clientesBrutos.map((c) => ({ id: c.id, nome: c.nome }));
 
   return (
     <div className="grid gap-8">
@@ -26,11 +27,11 @@ export default async function UsuariosPage() {
           rotuloBotao="Novo usuário"
           titulo="Criar usuário"
         >
-          <FormularioCriarUsuario clientes={clientes.map((c) => ({ id: c.id, nome: c.nome }))} />
+          <FormularioUsuario clientes={clientes} />
         </ModalFormulario>
       </header>
 
-      <ListaUsuarios usuarioAtualId={usuarioAtual.id} usuarios={usuarios} />
+      <ListaUsuarios clientes={clientes} usuarioAtualId={usuarioAtual.id} usuarios={usuarios} />
     </div>
   );
 }

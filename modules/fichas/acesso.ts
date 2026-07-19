@@ -1,3 +1,5 @@
+import type { UsuarioSessao } from "@/modules/auth/rbac";
+
 import type { Ficha } from "./schema";
 
 export type FichaParaCliente = Omit<Ficha, "respostas"> & {
@@ -18,4 +20,8 @@ export function filtrarFichaParaCliente(ficha: Ficha): FichaParaCliente {
       compartilhado: respostas.compartilhado,
     },
   };
+}
+
+export function podeGerenciarFichas(usuario: Pick<UsuarioSessao, "role">) {
+  return usuario.role === "profissional";
 }

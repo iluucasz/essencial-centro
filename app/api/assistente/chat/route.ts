@@ -10,6 +10,7 @@ import {
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
+import { agoraBrasilia } from "@/lib/utils";
 import { ErroAutorizacao, autorizarPapel } from "@/modules/auth/rbac";
 import { listarClientes } from "@/modules/clientes/queries";
 import { salvarMensagemAssistente } from "@/modules/assistente/actions";
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
     execute: async ({ writer }) => {
       const resultado = streamText({
         model: groq(MODELO_GROQ_PADRAO),
-        instructions: montarPromptSistema({ dataAtual: new Date(), nomeProfissional }),
+        instructions: montarPromptSistema({ dataAtual: agoraBrasilia(), nomeProfissional }),
         messages: mensagensModelo,
         tools: ferramentasAssistente,
         stopWhen: stepCountIs(LIMITE_PASSOS_FERRAMENTA),

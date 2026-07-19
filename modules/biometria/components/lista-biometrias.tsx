@@ -8,7 +8,6 @@ type BiometriaResumo = {
   dedo: DedoBiometria;
   qualidadeCaptura: number;
   criadoEm: Date;
-  criadoPorNome: string | null;
 };
 
 const formatadorDataHora = new Intl.DateTimeFormat("pt-BR", {
@@ -46,7 +45,6 @@ export function ListaBiometrias({
             </span>
             <span className="mt-0.5 block text-xs text-muted">
               Qualidade {b.qualidadeCaptura} · cadastrada em {formatadorDataHora.format(b.criadoEm)}
-              {b.criadoPorNome ? ` por ${b.criadoPorNome}` : ""}
             </span>
           </span>
 

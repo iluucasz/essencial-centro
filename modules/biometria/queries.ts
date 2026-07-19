@@ -5,7 +5,6 @@ import { db } from "@/db";
 import { autorizarPapel } from "@/modules/auth/rbac";
 import { listarClientesComAgendamentoPendenteHoje } from "@/modules/agenda/queries";
 import { cliente } from "@/modules/clientes/schema";
-import { usuario } from "@/modules/auth/schema";
 
 import { biometriaCliente } from "./schema";
 
@@ -19,10 +18,8 @@ export async function listarBiometriasDoCliente(clienteId: string) {
       dedo: biometriaCliente.dedo,
       qualidadeCaptura: biometriaCliente.qualidadeCaptura,
       criadoEm: biometriaCliente.criadoEm,
-      criadoPorNome: usuario.name,
     })
     .from(biometriaCliente)
-    .innerJoin(usuario, eq(usuario.id, biometriaCliente.criadoPorId))
     .where(and(eq(biometriaCliente.clienteId, clienteId), eq(biometriaCliente.ativo, true)))
     .orderBy(asc(biometriaCliente.dedo));
 }

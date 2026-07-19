@@ -2,7 +2,7 @@ import { ArrowUpCircle, CalendarCheck, Scale, UserPlus, UsersRound, Wallet } fro
 
 import { CampoDataCalendario } from "@/components/ui/calendario-tailgrids";
 import { CardKpi } from "@/components/ui/card-kpi";
-import { primeiroDiaDoMes, ultimoDiaDoMes } from "@/lib/utils";
+import { agoraBrasilia, primeiroDiaDoMes, ultimoDiaDoMes } from "@/lib/utils";
 import { rotulosStatusAgendamento, statusAgendamento } from "@/modules/agenda/schema";
 import { obterRelatorioPeriodo } from "@/modules/relatorios/queries";
 
@@ -35,7 +35,7 @@ export default async function RelatoriosPage({
 }) {
   const { inicio: inicioParam, fim: fimParam } = await searchParams;
 
-  const hoje = new Date();
+  const hoje = agoraBrasilia();
   const inicio = parseDataInicio(inicioParam, primeiroDiaDoMes(hoje));
   const fim = parseDataFim(fimParam, ultimoDiaDoMes(hoje));
 

@@ -31,10 +31,10 @@ describe("criarServicoSchema", () => {
     }
   });
 
-  it("recusa duração fora do intervalo e grupo inválido", () => {
+  it("recusa duração fora do intervalo e grupo vazio", () => {
     const resultado = criarServicoSchema.safeParse({
       nome: "Serviço teste",
-      grupo: "grupo_inexistente",
+      grupo: "",
       duracaoMinutos: 600,
     });
 
@@ -43,6 +43,19 @@ describe("criarServicoSchema", () => {
       const campos = resultado.error.flatten().fieldErrors;
       expect(campos.duracaoMinutos?.[0]).toContain("8 horas");
       expect(campos.grupo?.[0]).toBeTruthy();
+    }
+  });
+
+  it("aceita um grupo digitado livremente (fluxo 'Outro')", () => {
+    const resultado = criarServicoSchema.safeParse({
+      nome: "Serviço teste",
+      grupo: "Grupo personalizado",
+      duracaoMinutos: 60,
+    });
+
+    expect(resultado.success).toBe(true);
+    if (resultado.success) {
+      expect(resultado.data.grupo).toBe("Grupo personalizado");
     }
   });
 });

@@ -1,5 +1,11 @@
-import { describe, expect, it } from "vitest";
-import { calcularVariacaoPercentual, cn, primeiroDiaDoMes, ultimoDiaDoMes } from "@/lib/utils";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  agoraBrasilia,
+  calcularVariacaoPercentual,
+  cn,
+  primeiroDiaDoMes,
+  ultimoDiaDoMes,
+} from "@/lib/utils";
 
 describe("cn", () => {
   it("junta classes condicionais ignorando falsy", () => {
@@ -43,5 +49,40 @@ describe("primeiroDiaDoMes / ultimoDiaDoMes", () => {
 
     expect(primeiroDiaDoMes(mesAnterior).toISOString()).toBe("2025-12-01T00:00:00.000Z");
     expect(ultimoDiaDoMes(mesAnterior).toISOString()).toBe("2025-12-31T23:59:59.999Z");
+  });
+});
+
+describe("agoraBrasilia", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("reflete o dia em Brasília mesmo quando o UTC já virou o dia seguinte", () => {
+    // 21h30 em Brasília (17/07) == 00h30 UTC do dia 18 — o servidor (UTC) já está "amanhã".
+    vi.setSystemTime(new Date("2026-07-18T00:30:00.000Z"));
+
+    const agora = agoraBrasilia();
+
+    expect(agora.getUTCFullYear()).toBe(2026);
+    expect(agora.getUTCMonth()).toBe(6);
+    expect(agora.getUTCDate()).toBe(17);
+    expect(agora.getUTCHours()).toBe(21);
+    expect(agora.getUTCMinutes()).toBe(30);
+  });
+
+  it("acompanha o horário normalmente fora da virada do dia", () => {
+    // 10h da manhã em Brasília == 13h UTC, sem virada de dia em nenhum dos dois lados.
+    vi.setSystemTime(new Date("2026-07-17T13:00:00.000Z"));
+
+    const agora = agoraBrasilia();
+
+    expect(agora.getUTCFullYear()).toBe(2026);
+    expect(agora.getUTCMonth()).toBe(6);
+    expect(agora.getUTCDate()).toBe(17);
+    expect(agora.getUTCHours()).toBe(10);
   });
 });

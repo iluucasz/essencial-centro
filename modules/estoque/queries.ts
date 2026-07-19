@@ -2,6 +2,7 @@ import { asc, desc, eq, sum } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
+import { agoraBrasilia } from "@/lib/utils";
 import { autorizarPapel } from "@/modules/auth/rbac";
 
 import {
@@ -80,7 +81,7 @@ export async function contarLotesProximosDoVencimento() {
     );
     if (disponivel <= 0) return false;
 
-    const status = calcularStatusValidade(l.validade);
+    const status = calcularStatusValidade(l.validade, agoraBrasilia());
     return status === "vencido" || status === "proximo_vencimento";
   }).length;
 }

@@ -2,6 +2,7 @@ import { and, asc, desc, eq, gte, isNull, lt, lte, ne } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
+import { agoraBrasilia } from "@/lib/utils";
 import { autorizarPapel, ErroAutorizacao } from "@/modules/auth/rbac";
 import { cliente } from "@/modules/clientes/schema";
 import { servico } from "@/modules/servicos/schema";
@@ -11,10 +12,10 @@ import { agendamento } from "./schema";
 
 function limitesDoDia(data: Date) {
   const inicioDoDia = new Date(data);
-  inicioDoDia.setHours(0, 0, 0, 0);
+  inicioDoDia.setUTCHours(0, 0, 0, 0);
 
   const inicioDoDiaSeguinte = new Date(inicioDoDia);
-  inicioDoDiaSeguinte.setDate(inicioDoDiaSeguinte.getDate() + 1);
+  inicioDoDiaSeguinte.setUTCDate(inicioDoDiaSeguinte.getUTCDate() + 1);
 
   return { inicioDoDia, inicioDoDiaSeguinte };
 }
@@ -113,7 +114,7 @@ export async function listarParadasDomiciliaresDoDia(data: Date) {
  * validou o segredo da ponte (BIOMETRIA_BRIDGE_SECRET) na própria rota da API.
  */
 export async function listarClientesComAgendamentoPendenteHoje() {
-  const { inicioDoDia, inicioDoDiaSeguinte } = limitesDoDia(new Date());
+  const { inicioDoDia, inicioDoDiaSeguinte } = limitesDoDia(agoraBrasilia());
 
   return db
     .select({ clienteId: agendamento.clienteId })
@@ -160,22 +161,52 @@ export async function listarAgendamentosDoProfissionalNoDia(profissionalId: stri
     );
 }
 
-/** Usado pelo formulário de sessão, para vincular o registro clínico a um atendimento marcado. */
+/** Usado pelo formulário de sessão (vincular o registro clínico a um atendimento marcado) e pela
+ * aba "Agendamentos" do perfil do cliente (lista com CRUD completo). */
 export async function listarAgendamentosDoCliente(clienteId: string) {
   autorizarPapel(await auth(), ["profissional"]);
 
   return db
     .select({
       id: agendamento.id,
+      clienteId: agendamento.clienteId,
+      servicoId: agendamento.servicoId,
+      profissionalId: agendamento.profissionalId,
+      pacoteId: agendamento.pacoteId,
       inicio: agendamento.inicio,
+      duracaoMinutos: agendamento.duracaoMinutos,
       status: agendamento.status,
+      modalidade: agendamento.modalidade,
+      observacoes: agendamento.observacoes,
+      checkinEm: agendamento.checkinEm,
       servicoNome: servico.nome,
+      profissionalNome: usuario.name,
     })
     .from(agendamento)
     .innerJoin(servico, eq(servico.id, agendamento.servicoId))
+    .leftJoin(usuario, eq(usuario.id, agendamento.profissionalId))
     .where(eq(agendamento.clienteId, clienteId))
     .orderBy(desc(agendamento.inicio))
-    .limit(20);
+    .limit(50);
+}
+
+/** Usado pela página de detalhe do serviço — histórico de agendamentos vinculados a ele. */
+export async function listarAgendamentosDoServico(servicoId: string) {
+  autorizarPapel(await auth(), ["profissional", "recepcao"]);
+
+  return db
+    .select({
+      id: agendamento.id,
+      clienteId: agendamento.clienteId,
+      clienteNome: cliente.nome,
+      inicio: agendamento.inicio,
+      status: agendamento.status,
+    })
+    .from(agendamento)
+    .innerJoin(cliente, eq(cliente.id, agendamento.clienteId))
+    .where(eq(agendamento.servicoId, servicoId))
+    .orderBy(desc(agendamento.inicio))
+    .limit(50);
 }
 
 /** Usado pela página de confirmação de presença (destino do QR Code mostrado ao cliente). */
@@ -200,7 +231,7 @@ export async function obterAgendamentoParaCheckin(id: string) {
  * autorização desse fluxo é a validação do `CRON_SECRET` na própria rota da API.
  */
 export async function listarAgendamentosParaLembretes() {
-  const agora = new Date();
+  const agora = agoraBrasilia();
   const limite = new Date(agora.getTime() + 25 * 60 * 60 * 1000);
 
   return db

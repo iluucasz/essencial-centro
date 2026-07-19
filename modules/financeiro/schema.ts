@@ -134,6 +134,11 @@ export const criarLancamentoSchema = z.object({
   pacoteId: idOpcional,
 });
 
+export const atualizarLancamentoSchema = criarLancamentoSchema.extend({
+  id: z.string().uuid("Lançamento inválido."),
+});
+
 export type LancamentoFinanceiro = typeof lancamentoFinanceiro.$inferSelect;
 export type NovoLancamentoFinanceiro = typeof lancamentoFinanceiro.$inferInsert;
 export type CriarLancamentoInput = z.infer<typeof criarLancamentoSchema>;
+export type AtualizarLancamentoInput = z.infer<typeof atualizarLancamentoSchema>;

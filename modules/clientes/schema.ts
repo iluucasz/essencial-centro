@@ -2,6 +2,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { date, pgTable, text, timestamp, uuid, boolean, uniqueIndex } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
+import { agoraBrasilia } from "@/lib/utils";
 import { usuario } from "@/modules/auth/schema";
 
 const textoCurtoOpcional = z.preprocess(
@@ -20,7 +21,7 @@ const dataNascimentoSchema = z
     if (typeof value === "string" && value) return new Date(`${value}T00:00:00.000`);
     return value;
   }, z.date("Informe a data de nascimento."))
-  .refine((value) => value <= new Date(), "A data de nascimento não pode estar no futuro.");
+  .refine((value) => value <= agoraBrasilia(), "A data de nascimento não pode estar no futuro.");
 
 export const cliente = pgTable(
   "cliente",

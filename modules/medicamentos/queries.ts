@@ -36,6 +36,7 @@ export async function listarMedicamentosDoCliente(clienteId: string) {
       verificadoEm: medicamentoInformado.verificadoEm,
       verificadoPorNome: usuario.name,
       criadoEm: medicamentoInformado.criadoEm,
+      atualizadoEm: medicamentoInformado.atualizadoEm,
     })
     .from(medicamentoInformado)
     .leftJoin(usuario, eq(usuario.id, medicamentoInformado.verificadoPorId))

@@ -112,6 +112,11 @@ export const criarSessaoSchema = z.object({
   presencaConfirmada: z.boolean().default(true),
 });
 
+export const editarSessaoSchema = criarSessaoSchema.extend({
+  id: z.string().uuid("Sessão inválida."),
+});
+
 export type Sessao = typeof sessao.$inferSelect;
 export type NovaSessao = typeof sessao.$inferInsert;
 export type CriarSessaoInput = z.infer<typeof criarSessaoSchema>;
+export type EditarSessaoInput = z.infer<typeof editarSessaoSchema>;

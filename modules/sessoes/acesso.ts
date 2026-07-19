@@ -1,3 +1,5 @@
+import type { UsuarioSessao } from "@/modules/auth/rbac";
+
 import type { Sessao } from "./schema";
 
 export type SessaoParaCliente = Omit<
@@ -26,4 +28,8 @@ export function filtrarSessaoParaCliente(sessao: Sessao): SessaoParaCliente {
   } = sessao;
 
   return sessaoParaCliente;
+}
+
+export function podeGerenciarSessoes(usuario: Pick<UsuarioSessao, "role">) {
+  return usuario.role === "profissional";
 }

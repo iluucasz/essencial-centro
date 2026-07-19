@@ -17,7 +17,7 @@ export async function obterRelatorioPeriodo(inicio: Date, fim: Date) {
 
   const [agendamentos, lancamentos, clientes] = await Promise.all([
     listarAgendamentosNoPeriodo(inicio, fim),
-    listarLancamentos({ inicio, fim }),
+    listarLancamentos({ periodo: { inicio, fim } }),
     listarClientes(),
   ]);
 

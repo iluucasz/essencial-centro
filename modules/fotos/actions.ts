@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { put } from "@vercel/blob";
+import { del, put } from "@vercel/blob";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -16,6 +18,21 @@ export type EstadoFormularioFoto = {
 };
 
 const estadoInicial: EstadoFormularioFoto = { status: "inicial" };
+
+export type EstadoExclusaoFoto = {
+  status: "inicial" | "erro" | "sucesso";
+  mensagem?: string;
+};
+
+const estadoInicialExclusao: EstadoExclusaoFoto = { status: "inicial" };
+
+const excluirFotoSchema = z.object({
+  id: z.string().uuid("Foto inválida."),
+  clienteId: z.string().uuid("Cliente inválido."),
+  confirmarExclusao: z.literal("true", {
+    error: "Confirme que entende que a exclusão não pode ser desfeita.",
+  }),
+});
 
 function getValor(formData: FormData, nome: string) {
   return formData.get(nome);
@@ -65,4 +82,42 @@ export async function criarFoto(_: EstadoFormularioFoto = estadoInicial, formDat
     status: "sucesso",
     mensagem: "Foto enviada com sucesso.",
   } satisfies EstadoFormularioFoto;
+}
+
+export async function excluirFoto(
+  _: EstadoExclusaoFoto = estadoInicialExclusao,
+  formData: FormData,
+) {
+  autorizarPapel(await auth(), ["profissional"]);
+
+  const parsed = excluirFotoSchema.safeParse({
+    id: getValor(formData, "id"),
+    clienteId: getValor(formData, "clienteId"),
+    confirmarExclusao: getValor(formData, "confirmarExclusao"),
+  });
+
+  if (!parsed.success) {
+    return {
+      status: "erro",
+      mensagem:
+        parsed.error.issues[0]?.message ??
+        "Confirme que entende que a exclusão não pode ser desfeita.",
+    } satisfies EstadoExclusaoFoto;
+  }
+
+  const { id, clienteId } = parsed.data;
+  const [registro] = await db.select().from(foto).where(eq(foto.id, id)).limit(1);
+
+  if (!registro || registro.clienteId !== clienteId) {
+    return { status: "erro", mensagem: "Foto não encontrada." } satisfies EstadoExclusaoFoto;
+  }
+
+  await db.delete(foto).where(eq(foto.id, id));
+
+  // Não bloqueia a exclusão do registro se o blob já não existir mais no storage.
+  await del(registro.pathname).catch(() => {});
+
+  revalidatePath(`/painel/clientes/${clienteId}`);
+
+  return { status: "sucesso", mensagem: "Foto excluída com sucesso." } satisfies EstadoExclusaoFoto;
 }

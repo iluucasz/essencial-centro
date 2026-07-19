@@ -10,6 +10,10 @@ import {
   type TipoLancamento,
 } from "@/modules/financeiro/schema";
 
+import { MenuAcoesLancamento } from "./menu-acoes-lancamento";
+
+type Opcao = { id: string; nome: string };
+
 type LancamentoResumo = {
   id: string;
   tipo: TipoLancamento;
@@ -19,6 +23,8 @@ type LancamentoResumo = {
   data: Date;
   formaPagamento: string | null;
   situacao: SituacaoLancamento;
+  clienteId: string | null;
+  pacoteId: string | null;
   clienteNome: string | null;
 };
 
@@ -43,11 +49,19 @@ function formatarFormaPagamento(formaPagamento: string | null) {
   );
 }
 
-export function ListaLancamentos({ lancamentos }: { lancamentos: LancamentoResumo[] }) {
+export function ListaLancamentos({
+  clientes,
+  lancamentos,
+  pacotes,
+}: {
+  clientes: Opcao[];
+  lancamentos: LancamentoResumo[];
+  pacotes: Opcao[];
+}) {
   if (lancamentos.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-surface p-6 text-sm text-muted">
-        Nenhum lançamento registrado ainda.
+        Nenhum lançamento encontrado para os filtros selecionados.
       </div>
     );
   }
@@ -93,10 +107,17 @@ export function ListaLancamentos({ lancamentos }: { lancamentos: LancamentoResum
                 </span>
               </span>
 
-              <span
-                className={`rounded-full px-2.5 py-1 text-xs font-medium ${classePorSituacao[lancamento.situacao]}`}
-              >
-                {rotulosSituacaoLancamento[lancamento.situacao]}
+              <span className="flex shrink-0 items-center gap-2">
+                <span
+                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${classePorSituacao[lancamento.situacao]}`}
+                >
+                  {rotulosSituacaoLancamento[lancamento.situacao]}
+                </span>
+                <MenuAcoesLancamento
+                  clientes={clientes}
+                  lancamento={lancamento}
+                  pacotes={pacotes}
+                />
               </span>
             </div>
           </div>

@@ -5,6 +5,8 @@ import { Modal, useOverlayState } from "@heroui/react";
 import { Plus } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 
+import { cn } from "@/lib/utils";
+
 /**
  * Wrapper padrão para "formulário de criação" em modal (em vez de página/aside fixo).
  * `icone` e `children` cruzam a fronteira Server → Client como elementos já
@@ -32,9 +34,11 @@ export function FecharModalProvider({
 export function ModalDialogAnimado({
   children,
   className,
+  conteudoClassName,
 }: {
   children: ReactNode;
   className?: string;
+  conteudoClassName?: string;
 }) {
   const reduzirMovimento = useReducedMotion();
 
@@ -47,6 +51,7 @@ export function ModalDialogAnimado({
           duration: reduzirMovimento ? 0.01 : 0.18,
           ease: "easeOut",
         }}
+        className={conteudoClassName}
       >
         {children}
       </motion.div>
@@ -56,9 +61,11 @@ export function ModalDialogAnimado({
 
 export function ParteModalAnimada({
   children,
+  className,
   ordem = 0,
 }: {
   children: ReactNode;
+  className?: string;
   ordem?: number;
 }) {
   const reduzirMovimento = useReducedMotion();
@@ -72,9 +79,51 @@ export function ParteModalAnimada({
         duration: reduzirMovimento ? 0.01 : 0.18,
         ease: "easeOut",
       }}
+      className={className}
     >
       {children}
     </motion.div>
+  );
+}
+
+/**
+ * "Casca" visual padrão do conteúdo de um modal (cabeçalho fixo com borda, corpo com scroll
+ * próprio de cantos arredondados e scrollbar fina, botão de fechar consistente) — usada tanto
+ * pelo `ModalFormulario` (criação) quanto pelos menus de ações (`MenuAcoes<Entidade>`) de cada
+ * módulo, pra edição/exclusão terem exatamente a mesma "pele" em vez de cada um reimplementar o
+ * cabeçalho/scroll à mão.
+ */
+export function ConteudoModal({
+  titulo,
+  corTitulo = "text-brand",
+  children,
+}: {
+  titulo: string;
+  corTitulo?: string;
+  children: ReactNode;
+}) {
+  return (
+    <ModalDialogAnimado
+      className="max-h-[min(86vh,44rem)] w-[calc(100vw-2rem)] max-w-[44rem] overflow-hidden rounded-3xl"
+      conteudoClassName="flex max-h-[min(86vh,44rem)] min-h-0 flex-col"
+    >
+      <ParteModalAnimada className="shrink-0">
+        <Modal.Header className="shrink-0 border-b border-border/70 px-6 pt-6 pr-14 pb-4">
+          <Modal.Heading className={cn("text-lg font-semibold", corTitulo)}>{titulo}</Modal.Heading>
+        </Modal.Header>
+      </ParteModalAnimada>
+      <Modal.CloseTrigger className="top-5 right-5 bg-muted/10 text-muted transition hover:bg-roxo/10 hover:text-roxo" />
+      <ParteModalAnimada className="min-h-0 flex-1" ordem={1}>
+        <Modal.Body
+          className={cn(
+            "h-full min-h-0 [scrollbar-gutter:stable] overflow-x-hidden overflow-y-auto px-6 pt-5 pb-6",
+            "[&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted/35 [&::-webkit-scrollbar-track]:bg-transparent",
+          )}
+        >
+          {children}
+        </Modal.Body>
+      </ParteModalAnimada>
+    </ModalDialogAnimado>
   );
 }
 
@@ -98,20 +147,10 @@ export function ModalFormulario({
         {rotuloBotao}
       </Modal.Trigger>
       <Modal.Backdrop variant="opaque">
-        <Modal.Container size="lg">
-          <ModalDialogAnimado className="max-h-[85vh] overflow-y-auto">
-            <ParteModalAnimada>
-              <Modal.Header>
-                <Modal.Heading className="text-lg font-semibold text-brand">{titulo}</Modal.Heading>
-              </Modal.Header>
-            </ParteModalAnimada>
-            <Modal.CloseTrigger />
-            <ParteModalAnimada ordem={1}>
-              <Modal.Body>
-                <FecharModalProvider value={state.close}>{children}</FecharModalProvider>
-              </Modal.Body>
-            </ParteModalAnimada>
-          </ModalDialogAnimado>
+        <Modal.Container className="w-[calc(100vw-2rem)] sm:w-full" size="lg">
+          <ConteudoModal titulo={titulo}>
+            <FecharModalProvider value={state.close}>{children}</FecharModalProvider>
+          </ConteudoModal>
         </Modal.Container>
       </Modal.Backdrop>
     </Modal>

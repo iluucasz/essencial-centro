@@ -1,20 +1,22 @@
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
+import { agoraBrasilia } from "@/lib/utils";
 import {
   confirmarPresencaViaBiometria,
   obterAgendamentoDoClienteHoje,
 } from "@/modules/agenda/checkin-biometria";
 import { cliente } from "@/modules/clientes/schema";
 
-import { codigoValido, qualidadeCadastroValida } from "./cadastro";
+import { qualidadeCadastroValida } from "./cadastro";
 import { type EntradaDecisaoIdentificacao, decidirResultadoIdentificacao } from "./decisao";
 import { calcularHashTemplate } from "./hash";
 import {
   biometriaCliente,
-  codigoCadastroBiometria,
   tentativaIdentificacaoBiometrica,
+  type DedoBiometria,
+  type FinalizarCadastroInput,
   type RelatarIdentificacaoInput,
 } from "./schema";
 
@@ -24,44 +26,49 @@ export function autorizarSegredoBridge(request: Request): boolean {
   return Boolean(segredo) && request.headers.get("authorization") === `Bearer ${segredo}`;
 }
 
-export async function resolverCodigoCadastro(codigo: string) {
-  const [registro] = await db
-    .select()
-    .from(codigoCadastroBiometria)
-    .where(eq(codigoCadastroBiometria.codigo, codigo))
-    .limit(1);
+/**
+ * Lista os clientes disponíveis para cadastro de digital na ponte física. Busca vazia retorna todos
+ * os clientes com consentimento de biometria; termo preenchido filtra por nome. Restrita a clientes
+ * com consentimento já registrado: cadastrar exige consentimento de qualquer forma (ver
+ * finalizarCadastro), então a ponte nunca lista clientes sem opt-in biométrico.
+ */
+export async function buscarClientesParaCadastro(termo: string) {
+  const termoNormalizado = termo.trim();
+  const filtroCliente = termoNormalizado
+    ? and(eq(cliente.consentimentoBiometria, true), ilike(cliente.nome, `%${termoNormalizado}%`))
+    : eq(cliente.consentimentoBiometria, true);
 
-  if (!registro || !codigoValido(registro, new Date())) return null;
-
-  const [c] = await db
-    .select({ nome: cliente.nome })
+  const clientes = await db
+    .select({ id: cliente.id, nome: cliente.nome })
     .from(cliente)
-    .where(eq(cliente.id, registro.clienteId))
-    .limit(1);
+    .where(filtroCliente)
+    .orderBy(asc(cliente.nome));
 
-  return {
-    clienteId: registro.clienteId,
-    clienteNome: c?.nome ?? "",
-    dedo: registro.dedo,
-    expiraEm: registro.expiraEm,
-  };
-}
+  if (clientes.length === 0) return [];
 
-export async function finalizarCadastro(input: {
-  codigo: string;
-  templateBase64: string;
-  qualidadeCaptura: number;
-}) {
-  const [registro] = await db
-    .select()
-    .from(codigoCadastroBiometria)
-    .where(eq(codigoCadastroBiometria.codigo, input.codigo))
-    .limit(1);
+  const clienteIds = clientes.map((c) => c.id);
 
-  if (!registro || !codigoValido(registro, new Date())) {
-    return { tipo: "codigo_invalido" as const };
+  const biometrias = await db
+    .select({ clienteId: biometriaCliente.clienteId, dedo: biometriaCliente.dedo })
+    .from(biometriaCliente)
+    .where(and(inArray(biometriaCliente.clienteId, clienteIds), eq(biometriaCliente.ativo, true)));
+
+  const dedosPorCliente = new Map<string, DedoBiometria[]>();
+
+  for (const b of biometrias) {
+    const lista = dedosPorCliente.get(b.clienteId) ?? [];
+    lista.push(b.dedo);
+    dedosPorCliente.set(b.clienteId, lista);
   }
 
+  return clientes.map((c) => ({
+    clienteId: c.id,
+    clienteNome: c.nome,
+    dedosCadastrados: dedosPorCliente.get(c.id) ?? [],
+  }));
+}
+
+export async function finalizarCadastro(input: FinalizarCadastroInput) {
   if (!qualidadeCadastroValida(input.qualidadeCaptura)) {
     return { tipo: "qualidade_insuficiente" as const };
   }
@@ -69,10 +76,14 @@ export async function finalizarCadastro(input: {
   const [c] = await db
     .select({ nome: cliente.nome, consentimentoBiometria: cliente.consentimentoBiometria })
     .from(cliente)
-    .where(eq(cliente.id, registro.clienteId))
+    .where(eq(cliente.id, input.clienteId))
     .limit(1);
 
-  if (!c?.consentimentoBiometria) {
+  if (!c) {
+    return { tipo: "cliente_invalido" as const };
+  }
+
+  if (!c.consentimentoBiometria) {
     return { tipo: "sem_consentimento" as const };
   }
 
@@ -83,8 +94,8 @@ export async function finalizarCadastro(input: {
     .set({ ativo: false })
     .where(
       and(
-        eq(biometriaCliente.clienteId, registro.clienteId),
-        eq(biometriaCliente.dedo, registro.dedo),
+        eq(biometriaCliente.clienteId, input.clienteId),
+        eq(biometriaCliente.dedo, input.dedo),
         eq(biometriaCliente.ativo, true),
       ),
     );
@@ -92,26 +103,20 @@ export async function finalizarCadastro(input: {
   const [nova] = await db
     .insert(biometriaCliente)
     .values({
-      clienteId: registro.clienteId,
-      dedo: registro.dedo,
+      clienteId: input.clienteId,
+      dedo: input.dedo,
       templateBase64: input.templateBase64,
       templateHash: calcularHashTemplate(input.templateBase64),
       qualidadeCaptura: input.qualidadeCaptura,
-      criadoPorId: registro.criadoPorId,
     })
     .returning();
-
-  await db
-    .update(codigoCadastroBiometria)
-    .set({ consumidoEm: new Date(), biometriaGeradaId: nova!.id })
-    .where(eq(codigoCadastroBiometria.id, registro.id));
 
   return {
     tipo: "sucesso" as const,
     biometriaId: nova!.id,
-    clienteId: registro.clienteId,
+    clienteId: input.clienteId,
     clienteNome: c.nome,
-    dedo: registro.dedo,
+    dedo: input.dedo,
   };
 }
 
@@ -147,7 +152,9 @@ export async function relatarIdentificacao(input: RelatarIdentificacaoInput) {
     .where(and(eq(biometriaCliente.id, input.biometriaId), eq(biometriaCliente.ativo, true)))
     .limit(1);
 
-  const agendamento = bio ? await obterAgendamentoDoClienteHoje(bio.clienteId, new Date()) : null;
+  const agendamento = bio
+    ? await obterAgendamentoDoClienteHoje(bio.clienteId, agoraBrasilia())
+    : null;
 
   const entrada: EntradaDecisaoIdentificacao =
     !bio || !agendamento

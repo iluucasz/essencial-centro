@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { LoaderCircle, PackagePlus } from "lucide-react";
 
 import { CampoDataCalendario } from "@/components/ui/calendario-tailgrids";
 import { useFecharModal } from "@/components/ui/modal-formulario";
+import { cn } from "@/lib/utils";
 import {
   atualizarPacote,
   criarPacote,
@@ -17,8 +18,19 @@ import {
 } from "@/modules/pacotes/schema";
 
 const estadoInicial: EstadoFormularioPacote = { status: "inicial" };
+const classeCampo =
+  "h-11 w-full min-w-0 rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition outline-none placeholder:text-muted/70 focus:border-roxo focus:ring-2 focus:ring-roxo/20";
 
 type Opcao = { id: string; nome: string };
+
+const OPCOES_FORMA_PAGAMENTO = [
+  "Pix",
+  "Dinheiro",
+  "Cartão de crédito",
+  "Cartão de débito",
+  "Transferência bancária",
+  "Boleto",
+];
 
 export type PacoteFormulario = {
   id: string;
@@ -53,11 +65,10 @@ function MensagemFormulario({ state }: { state: EstadoFormularioPacote | undefin
 
   return (
     <p
-      className={
-        state.status === "erro"
-          ? "text-sm font-medium text-perigo"
-          : "text-sm font-medium text-brand"
-      }
+      className={cn(
+        "rounded-xl px-3 py-2 text-sm font-medium",
+        state.status === "erro" ? "bg-perigo/10 text-perigo" : "bg-brand/10 text-brand",
+      )}
       role={state.status === "erro" ? "alert" : "status"}
     >
       {state.mensagem}
@@ -81,14 +92,14 @@ function CampoSelect({
   const errorId = `${name}-erro`;
 
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 gap-2">
       <label className="text-sm font-medium text-foreground" htmlFor={name}>
         {label}
       </label>
       <select
         aria-describedby={error?.length ? errorId : undefined}
         aria-invalid={error?.length ? true : undefined}
-        className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
+        className={classeCampo}
         defaultValue={defaultValue ?? ""}
         id={name}
         name={name}
@@ -115,37 +126,90 @@ function CampoSelect({
 function CampoTexto({
   defaultValue,
   error,
+  inputMode,
   label,
   name,
+  placeholder,
   required,
   type = "text",
 }: {
   defaultValue?: string | number;
   error?: string[];
+  inputMode?: "none" | "text" | "tel" | "url" | "email" | "numeric" | "decimal" | "search";
   label: string;
   name: string;
+  placeholder?: string;
   required?: boolean;
   type?: string;
 }) {
   const errorId = `${name}-erro`;
 
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 gap-2">
       <label className="text-sm font-medium text-foreground" htmlFor={name}>
         {label}
       </label>
       <input
         aria-describedby={error?.length ? errorId : undefined}
         aria-invalid={error?.length ? true : undefined}
-        className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
+        className={classeCampo}
         defaultValue={defaultValue}
         id={name}
+        inputMode={inputMode}
         name={name}
+        placeholder={placeholder}
         required={required}
         type={type}
       />
       {error?.length ? (
         <p className="text-sm text-perigo" id={errorId}>
+          {error[0]}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function CampoFormaPagamento({ defaultValue, error }: { defaultValue?: string; error?: string[] }) {
+  const ehPredefinida = Boolean(defaultValue && OPCOES_FORMA_PAGAMENTO.includes(defaultValue));
+  const [selecionado, setSelecionado] = useState(() => {
+    if (ehPredefinida) return defaultValue as string;
+
+    return defaultValue ? "outro" : "";
+  });
+
+  return (
+    <div className="grid min-w-0 gap-2">
+      <label className="text-sm font-medium text-foreground" htmlFor="formaPagamentoSelect">
+        Forma de pagamento
+      </label>
+      <select
+        aria-describedby={error?.length ? "formaPagamento-erro" : undefined}
+        className={classeCampo}
+        id="formaPagamentoSelect"
+        name={selecionado === "outro" ? undefined : "formaPagamento"}
+        onChange={(event) => setSelecionado(event.target.value)}
+        value={selecionado}
+      >
+        <option value="">Selecione</option>
+        {OPCOES_FORMA_PAGAMENTO.map((opcao) => (
+          <option key={opcao} value={opcao}>
+            {opcao}
+          </option>
+        ))}
+        <option value="outro">Outro</option>
+      </select>
+      {selecionado === "outro" ? (
+        <input
+          aria-describedby={error?.length ? "formaPagamento-erro" : undefined}
+          className={classeCampo}
+          defaultValue={ehPredefinida ? "" : (defaultValue ?? "")}
+          name="formaPagamento"
+          placeholder="Digite a forma de pagamento"
+        />
+      ) : null}
+      {error?.length ? (
+        <p className="text-sm text-perigo" id="formaPagamento-erro">
           {error[0]}
         </p>
       ) : null}
@@ -173,7 +237,7 @@ export function FormularioPacote({
   }, [state, fecharModal]);
 
   return (
-    <form action={formAction} className="grid gap-6">
+    <form action={formAction} className="grid min-w-0 gap-6">
       {pacote ? <input name="id" type="hidden" value={pacote.id} /> : null}
 
       <CampoSelect
@@ -195,8 +259,10 @@ export function FormularioPacote({
         <CampoTexto
           defaultValue={pacote?.quantidadeSessoes}
           error={state?.campos?.quantidadeSessoes}
+          inputMode="numeric"
           label="Quantidade de sessões"
           name="quantidadeSessoes"
+          placeholder="Ex.: 10"
           required
           type="number"
         />
@@ -209,14 +275,14 @@ export function FormularioPacote({
         <CampoTexto
           defaultValue={formatarValor(pacote?.valorCentavos)}
           error={state?.campos?.valorCentavos}
+          inputMode="decimal"
           label="Valor (R$)"
           name="valor"
+          placeholder="Ex.: 1200,00"
         />
-        <CampoTexto
+        <CampoFormaPagamento
           defaultValue={pacote?.formaPagamento ?? undefined}
           error={state?.campos?.formaPagamento}
-          label="Forma de pagamento"
-          name="formaPagamento"
         />
       </div>
 
@@ -243,18 +309,20 @@ export function FormularioPacote({
 
       <MensagemFormulario state={state} />
 
-      <button
-        className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo disabled:cursor-not-allowed disabled:opacity-70"
-        disabled={pending}
-        type="submit"
-      >
-        {pending ? (
-          <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-        ) : (
-          <PackagePlus className="size-4" />
-        )}
-        {pacote ? "Atualizar pacote" : "Salvar pacote"}
-      </button>
+      <div className="flex justify-end border-t border-border/70 pt-4">
+        <button
+          className="inline-flex h-11 min-w-40 items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo disabled:cursor-not-allowed disabled:opacity-70"
+          disabled={pending}
+          type="submit"
+        >
+          {pending ? (
+            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <PackagePlus className="size-4" />
+          )}
+          {pacote ? "Atualizar pacote" : "Salvar pacote"}
+        </button>
+      </div>
     </form>
   );
 }

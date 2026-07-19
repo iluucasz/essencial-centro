@@ -66,6 +66,11 @@ export const criarMedicamentoInformadoSchema = z.object({
   fonteAlerta: textoCurtoOpcional,
 });
 
+export const editarMedicamentoInformadoSchema = criarMedicamentoInformadoSchema.extend({
+  id: z.string().uuid("Medicamento inválido."),
+});
+
 export type MedicamentoInformado = typeof medicamentoInformado.$inferSelect;
 export type NovoMedicamentoInformado = typeof medicamentoInformado.$inferInsert;
 export type CriarMedicamentoInformadoInput = z.infer<typeof criarMedicamentoInformadoSchema>;
+export type EditarMedicamentoInformadoInput = z.infer<typeof editarMedicamentoInformadoSchema>;

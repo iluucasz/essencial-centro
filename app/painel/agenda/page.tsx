@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CalendarClock, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
 import { ModalFormulario } from "@/components/ui/modal-formulario";
-import { cn } from "@/lib/utils";
+import { agoraBrasilia, cn } from "@/lib/utils";
 import { listarProfissionaisAtivos } from "@/modules/auth/queries";
 import { FiltrosAgenda } from "@/modules/agenda/components/filtros-agenda";
 import { FormularioAgendamento } from "@/modules/agenda/components/formulario-agendamento";
@@ -76,7 +76,7 @@ function formatarDataParam(data: Date) {
 }
 
 function hojeUtc() {
-  const hoje = new Date();
+  const hoje = agoraBrasilia();
 
   return criarDataUtc(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate());
 }
@@ -455,6 +455,14 @@ export default async function AgendaPage({
     visualizacao === "mes"
       ? adicionarMeses(dataSelecionada, 1)
       : adicionarDias(dataSelecionada, visualizacao === "semana" ? 7 : 1);
+  const tituloPeriodoAgenda =
+    visualizacao === "semana"
+      ? `${formatadorDiaSemana.format(periodo.inicio)} - ${formatadorDiaSemana.format(
+          adicionarDias(periodo.fim, -1),
+        )}`
+      : visualizacao === "dia"
+        ? formatadorDataLonga.format(dataSelecionada)
+        : formatadorMesAno.format(dataSelecionada);
 
   return (
     <div className="grid gap-6">
@@ -464,11 +472,7 @@ export default async function AgendaPage({
             <CalendarClock className="size-4" aria-hidden="true" />
             Agenda
           </p>
-          <h1 className="mt-2 text-2xl font-semibold text-brand">
-            {visualizacao === "mes"
-              ? formatadorMesAno.format(dataSelecionada)
-              : formatadorDataLonga.format(dataSelecionada)}
-          </h1>
+          <h1 className="mt-2 text-2xl font-semibold text-brand">Calendário de atendimentos</h1>
         </div>
 
         <ModalFormulario
@@ -497,6 +501,7 @@ export default async function AgendaPage({
         cliente={clienteFiltro}
         clientes={clientes.map((cliente) => ({ id: cliente.id, nome: cliente.nome }))}
         data={formatarDataParam(dataSelecionada)}
+        key={`${formatarDataParam(dataSelecionada)}:${visualizacao}:${busca}:${clienteFiltro}:${servicoFiltro}:${profissionalFiltro}:${statusFiltro}:${modalidadeFiltro}`}
         limparHref={hrefAgenda({ data: dataSelecionada, visualizacao })}
         modalidade={modalidadeFiltro}
         modalidades={modalidadeAtendimento.map((modalidade) => ({
@@ -558,7 +563,7 @@ export default async function AgendaPage({
               href={hrefAgenda({
                 busca,
                 cliente: clienteFiltro,
-                data: new Date(),
+                data: hojeUtc(),
                 modalidade: modalidadeFiltro,
                 profissional: profissionalFiltro,
                 servico: servicoFiltro,
@@ -570,15 +575,10 @@ export default async function AgendaPage({
             </Link>
           </div>
 
-          <p className="text-sm font-semibold text-foreground">
-            {visualizacao === "semana"
-              ? `${formatadorDiaSemana.format(periodo.inicio)} - ${formatadorDiaSemana.format(
-                  adicionarDias(periodo.fim, -1),
-                )}`
-              : visualizacao === "dia"
-                ? formatadorDataLonga.format(dataSelecionada)
-                : formatadorMesAno.format(dataSelecionada)}
-          </p>
+          <div className="order-first w-full text-center sm:order-none sm:w-auto">
+            <p className="text-xs font-semibold tracking-wide text-muted uppercase">Agenda</p>
+            <h2 className="mt-1 text-lg font-semibold text-brand">{tituloPeriodoAgenda}</h2>
+          </div>
 
           <div className="flex rounded-lg bg-background p-1">
             {visualizacoesAgenda.map((item) => (

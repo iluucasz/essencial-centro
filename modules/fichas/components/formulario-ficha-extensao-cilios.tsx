@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle, Save } from "lucide-react";
 import type { z } from "zod";
 
-import { criarFichaExtensaoCilios } from "@/modules/fichas/actions";
+import { criarFichaExtensaoCilios, editarFichaExtensaoCilios } from "@/modules/fichas/actions";
 import {
   criarFichaExtensaoCiliosSchema,
   type CriarFichaExtensaoCiliosInput,
@@ -17,6 +17,13 @@ import { useFecharModal } from "@/components/ui/modal-formulario";
 /** Ver formulario-ficha-estetica-corporal.tsx para a explicação do `z.input<>` aqui — mesmo
  * motivo: campos com `z.preprocess` fazem o tipo de entrada divergir do tipo de saída do Zod. */
 type EntradaFormulario = z.input<typeof criarFichaExtensaoCiliosSchema>;
+
+export type FichaExtensaoCiliosEdicao = {
+  id: string;
+  servicoId: string | null;
+  autorizacaoImagemEm: Date | null;
+  respostas: CriarFichaExtensaoCiliosInput["respostas"];
+};
 
 const valoresIniciais: EntradaFormulario = {
   clienteId: "",
@@ -64,7 +71,7 @@ function Campo({
   htmlFor: string;
 }) {
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 gap-2">
       <label className="text-sm font-medium text-foreground" htmlFor={htmlFor}>
         {label}
       </label>
@@ -75,19 +82,63 @@ function Campo({
 }
 
 const classeInput =
-  "h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20";
+  "h-11 w-full min-w-0 rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition outline-none placeholder:text-muted/70 focus:border-roxo focus:ring-2 focus:ring-roxo/20";
 const classeArea =
-  "min-h-20 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20";
+  "min-h-24 w-full min-w-0 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground transition outline-none placeholder:text-muted/70 focus:border-roxo focus:ring-2 focus:ring-roxo/20";
 const classeCheckbox =
   "flex items-center gap-2 text-sm text-foreground [&>input]:size-4 [&>input]:rounded [&>input]:border-border [&>input]:text-brand [&>input]:focus:ring-roxo";
+
+function clonarValoresIniciais(clienteId: string): EntradaFormulario {
+  return {
+    clienteId,
+    servicoId: undefined,
+    autorizacaoImagem: false,
+    respostas: {
+      relato: { ...valoresIniciais.respostas.relato },
+      avaliacaoProfissional: { ...valoresIniciais.respostas.avaliacaoProfissional },
+      compartilhado: { ...valoresIniciais.respostas.compartilhado },
+    },
+  };
+}
+
+function montarValoresFormulario(
+  clienteId: string,
+  ficha?: FichaExtensaoCiliosEdicao,
+): EntradaFormulario {
+  const base = clonarValoresIniciais(clienteId);
+
+  if (!ficha) return base;
+
+  return {
+    ...base,
+    servicoId: ficha.servicoId ?? undefined,
+    autorizacaoImagem: Boolean(ficha.autorizacaoImagemEm),
+    respostas: {
+      relato: {
+        ...base.respostas.relato,
+        ...ficha.respostas.relato,
+      },
+      avaliacaoProfissional: {
+        ...base.respostas.avaliacaoProfissional,
+        ...ficha.respostas.avaliacaoProfissional,
+      },
+      compartilhado: {
+        ...base.respostas.compartilhado,
+        ...ficha.respostas.compartilhado,
+      },
+    },
+  };
+}
 
 export function FormularioFichaExtensaoCilios({
   clienteId,
   clienteNome,
+  ficha,
   servicos,
 }: {
   clienteId: string;
   clienteNome: string;
+  ficha?: FichaExtensaoCiliosEdicao;
   servicos: { id: string; nome: string }[];
 }) {
   const router = useRouter();
@@ -101,7 +152,7 @@ export function FormularioFichaExtensaoCilios({
     formState: { errors, isSubmitting },
   } = useForm<EntradaFormulario, unknown, CriarFichaExtensaoCiliosInput>({
     resolver: zodResolver(criarFichaExtensaoCiliosSchema),
-    defaultValues: { ...valoresIniciais, clienteId },
+    defaultValues: montarValoresFormulario(clienteId, ficha),
   });
 
   const relato = watch("respostas.relato");
@@ -109,7 +160,9 @@ export function FormularioFichaExtensaoCilios({
 
   async function onSubmit(dados: CriarFichaExtensaoCiliosInput) {
     setErroEnvio(null);
-    const resultado = await criarFichaExtensaoCilios(dados);
+    const resultado = ficha
+      ? await editarFichaExtensaoCilios({ ...dados, id: ficha.id })
+      : await criarFichaExtensaoCilios(dados);
 
     if (resultado.status === "erro") {
       setErroEnvio(resultado.mensagem);
@@ -123,8 +176,13 @@ export function FormularioFichaExtensaoCilios({
   const erros = errors.respostas;
 
   return (
-    <form className="grid gap-8" onSubmit={handleSubmit(onSubmit)}>
-      <p className="text-sm text-muted">Cliente: {clienteNome}</p>
+    <form className="grid min-w-0 gap-8" onSubmit={handleSubmit(onSubmit)}>
+      <p className="rounded-xl bg-lilas/15 px-3 py-2 text-sm text-roxo">Cliente: {clienteNome}</p>
+      {ficha ? (
+        <p className="rounded-xl bg-creme px-3 py-2 text-sm text-muted">
+          Ao salvar, uma nova versão será registrada para preservar a ficha assinada.
+        </p>
+      ) : null}
 
       {servicos.length > 0 ? (
         <Campo htmlFor="servicoId" label="Serviço (opcional)">
@@ -150,6 +208,7 @@ export function FormularioFichaExtensaoCilios({
           <textarea
             className={classeArea}
             id="objetivoProcedimento"
+            placeholder="Ex.: alongamento natural com volume leve para rotina diária"
             {...register("respostas.relato.objetivoProcedimento")}
           />
         </Campo>
@@ -172,6 +231,7 @@ export function FormularioFichaExtensaoCilios({
             <input
               className={classeInput}
               id="reacaoAdesivoDetalhe"
+              placeholder="Ex.: ardência, vermelhidão ou inchaço após aplicação"
               {...register("respostas.relato.reacaoAdesivoDetalhe")}
             />
           </Campo>
@@ -195,6 +255,7 @@ export function FormularioFichaExtensaoCilios({
             <input
               className={classeInput}
               id="problemaOcularDetalhe"
+              placeholder="Ex.: olho seco, blefarite ou conjuntivite recente"
               {...register("respostas.relato.problemaOcularDetalhe")}
             />
           </Campo>
@@ -213,6 +274,7 @@ export function FormularioFichaExtensaoCilios({
             <input
               className={classeInput}
               id="alergiaDetalhe"
+              placeholder="Ex.: alergia a látex ou cosméticos"
               {...register("respostas.relato.alergiaDetalhe")}
             />
           </Campo>
@@ -236,6 +298,7 @@ export function FormularioFichaExtensaoCilios({
             <input
               className={classeInput}
               id="cirurgiaOcularDetalhe"
+              placeholder="Ex.: cirurgia a laser em março de 2025"
               {...register("respostas.relato.cirurgiaOcularDetalhe")}
             />
           </Campo>
@@ -257,7 +320,7 @@ export function FormularioFichaExtensaoCilios({
           <input
             className={classeInput}
             id="tecnicaAplicada"
-            placeholder="Fio a fio, volume russo, híbrido..."
+            placeholder="Ex.: fio a fio, volume russo ou híbrido"
             {...register("respostas.avaliacaoProfissional.tecnicaAplicada")}
           />
         </Campo>
@@ -266,6 +329,7 @@ export function FormularioFichaExtensaoCilios({
           <input
             className={classeInput}
             id="curvaturaEspessuraFios"
+            placeholder="Ex.: curvatura C, espessura 0.07"
             {...register("respostas.avaliacaoProfissional.curvaturaEspessuraFios")}
           />
         </Campo>
@@ -287,6 +351,7 @@ export function FormularioFichaExtensaoCilios({
               <input
                 className={classeInput}
                 id="contraindicacaoDetalhe"
+                placeholder="Ex.: irritação ocular ativa, adiar procedimento"
                 {...register("respostas.avaliacaoProfissional.contraindicacaoDetalhe")}
               />
             </Campo>
@@ -300,6 +365,7 @@ export function FormularioFichaExtensaoCilios({
           <textarea
             className={classeArea}
             id="observacoesInternas"
+            placeholder="Anotações internas para a equipe, não visíveis ao cliente"
             {...register("respostas.avaliacaoProfissional.observacoesInternas")}
           />
         </Campo>
@@ -312,6 +378,7 @@ export function FormularioFichaExtensaoCilios({
           <textarea
             className={classeArea}
             id="resumoProcedimento"
+            placeholder="Resumo claro do procedimento para exibição no portal do cliente"
             {...register("respostas.compartilhado.resumoProcedimento")}
           />
         </Campo>
@@ -320,6 +387,7 @@ export function FormularioFichaExtensaoCilios({
           <textarea
             className={classeArea}
             id="orientacoes"
+            placeholder="Ex.: não molhar nas primeiras horas e evitar produtos oleosos"
             {...register("respostas.compartilhado.orientacoes")}
           />
         </Campo>
@@ -333,23 +401,28 @@ export function FormularioFichaExtensaoCilios({
       </div>
 
       {erroEnvio ? (
-        <p className="text-sm font-medium text-perigo" role="alert">
+        <p
+          className="rounded-xl bg-perigo/10 px-3 py-2 text-sm font-medium text-perigo"
+          role="alert"
+        >
           {erroEnvio}
         </p>
       ) : null}
 
-      <button
-        className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo disabled:cursor-not-allowed disabled:opacity-70"
-        disabled={isSubmitting}
-        type="submit"
-      >
-        {isSubmitting ? (
-          <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-        ) : (
-          <Save className="size-4" />
-        )}
-        Salvar ficha
-      </button>
+      <div className="flex justify-end border-t border-border/70 pt-4">
+        <button
+          className="inline-flex h-11 min-w-36 items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo disabled:cursor-not-allowed disabled:opacity-70"
+          disabled={isSubmitting}
+          type="submit"
+        >
+          {isSubmitting ? (
+            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Save className="size-4" />
+          )}
+          {ficha ? "Salvar nova versão" : "Salvar ficha"}
+        </button>
+      </div>
     </form>
   );
 }

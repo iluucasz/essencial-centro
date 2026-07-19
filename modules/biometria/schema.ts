@@ -67,9 +67,6 @@ export const biometriaCliente = pgTable(
     templateHash: text("template_hash").notNull(),
     qualidadeCaptura: integer("qualidade_captura").notNull(),
     ativo: boolean("ativo").notNull().default(true),
-    criadoPorId: uuid("criado_por_id")
-      .notNull()
-      .references(() => usuario.id, { onDelete: "restrict" }),
     atualizadoPorId: uuid("atualizado_por_id").references(() => usuario.id, {
       onDelete: "set null",
     }),
@@ -82,29 +79,6 @@ export const biometriaCliente = pgTable(
       .where(sql`${table.ativo} = true`),
   }),
 );
-
-/**
- * Código curto (6 dígitos, expira em minutos) que a operadora gera na tela do cliente e digita na
- * ponte física — assim a ponte nunca precisa de busca/listagem própria de clientes, mantendo toda
- * lógica de diretório centralizada no Next.js.
- */
-export const codigoCadastroBiometria = pgTable("codigo_cadastro_biometria", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  clienteId: uuid("cliente_id")
-    .notNull()
-    .references(() => cliente.id, { onDelete: "restrict" }),
-  dedo: dedoBiometriaEnum("dedo").notNull(),
-  codigo: text("codigo").notNull(),
-  expiraEm: timestamp("expira_em", { mode: "date" }).notNull(),
-  consumidoEm: timestamp("consumido_em", { mode: "date" }),
-  biometriaGeradaId: uuid("biometria_gerada_id").references(() => biometriaCliente.id, {
-    onDelete: "set null",
-  }),
-  criadoPorId: uuid("criado_por_id")
-    .notNull()
-    .references(() => usuario.id, { onDelete: "restrict" }),
-  criadoEm: timestamp("criado_em", { mode: "date" }).notNull().defaultNow(),
-});
 
 /**
  * Log append-only de toda tentativa de identificação — sucesso, rejeição ou sem match. Fecha o
@@ -132,15 +106,9 @@ export const tentativaIdentificacaoBiometrica = pgTable("tentativa_identificacao
 
 export const biometriaClienteSelectSchema = createSelectSchema(biometriaCliente);
 export const biometriaClienteInsertSchema = createInsertSchema(biometriaCliente);
-export const codigoCadastroBiometriaSelectSchema = createSelectSchema(codigoCadastroBiometria);
 export const tentativaIdentificacaoBiometricaSelectSchema = createSelectSchema(
   tentativaIdentificacaoBiometrica,
 );
-
-export const gerarCodigoCadastroSchema = z.object({
-  clienteId: z.string().uuid("Cliente inválido."),
-  dedo: z.enum(dedosBiometria, "Selecione o dedo."),
-});
 
 // Formato de mensagem da ponte — desenhado à mão, não derivado dos schemas de insert: o formato
 // de entrada difere do formato da linha no banco, mesma relação de criarAgendamentoSchema vs.
@@ -157,18 +125,15 @@ export const relatarIdentificacaoSchema = z
     "farAtingido deve ser nulo se e somente se biometriaId for nulo.",
   );
 
-export const resolverCodigoSchema = z.object({
-  codigo: z.string().regex(/^\d{6}$/, "Código inválido."),
-});
-
 export const finalizarCadastroSchema = z.object({
-  codigo: z.string().regex(/^\d{6}$/, "Código inválido."),
+  clienteId: z.string().uuid("Cliente inválido."),
+  dedo: z.enum(dedosBiometria, "Selecione o dedo."),
   templateBase64: z.string().min(1, "Template vazio."),
   qualidadeCaptura: z.number().int().min(0).max(1000),
 });
 
 export type BiometriaCliente = typeof biometriaCliente.$inferSelect;
 export type NovaBiometriaCliente = typeof biometriaCliente.$inferInsert;
-export type CodigoCadastroBiometria = typeof codigoCadastroBiometria.$inferSelect;
 export type TentativaIdentificacaoBiometrica = typeof tentativaIdentificacaoBiometrica.$inferSelect;
 export type RelatarIdentificacaoInput = z.infer<typeof relatarIdentificacaoSchema>;
+export type FinalizarCadastroInput = z.infer<typeof finalizarCadastroSchema>;

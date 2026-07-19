@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import {
   BarChart3,
   Boxes,
@@ -88,6 +88,10 @@ function itemAtivo(pathname: string, href: string, exato: boolean) {
   return exato ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function itemDisponivelParaPapel(item: (typeof itensNavegacao)[number], papel: PapelUsuario) {
+  return !("papeis" in item) || (item.papeis as readonly PapelUsuario[]).includes(papel);
+}
+
 function Sidebar({
   pathname,
   papel,
@@ -103,18 +107,23 @@ function Sidebar({
 }) {
   return (
     <nav className="flex h-full flex-col gap-1 p-4" aria-label="Navegação do painel">
-      <div
-        className={
-          "flex h-16 items-center px-2 " + (colapsada ? "justify-center" : "justify-between gap-3")
-        }
-      >
+      <div className="relative flex h-16 items-center justify-center px-2">
         {colapsada ? null : (
-          <span className="text-lg font-semibold text-brand">Essencial Centro</span>
+          <Link
+            className="mx-auto max-w-44 text-center font-heading text-xl leading-tight font-semibold text-brand transition hover:text-roxo focus-visible:rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-roxo"
+            href="/painel"
+            onClick={onNavigate}
+          >
+            Essencial Centro
+          </Link>
         )}
         {onToggleCollapse ? (
           <button
             aria-label={colapsada ? "Expandir menu" : "Recolher menu"}
-            className="rounded-lg p-2 text-muted transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+            className={
+              "rounded-lg p-2 text-muted transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo " +
+              (colapsada ? "" : "absolute right-0")
+            }
             onClick={onToggleCollapse}
             title={colapsada ? "Expandir menu" : "Recolher menu"}
             type="button"
@@ -134,7 +143,7 @@ function Sidebar({
         </p>
       )}
       {itensNavegacao
-        .filter((item) => !("papeis" in item) || (item.papeis as readonly string[]).includes(papel))
+        .filter((item) => itemDisponivelParaPapel(item, papel))
         .map(({ href, label, icone: Icone, exato }) => {
           const ativo = itemAtivo(pathname, href, exato);
 
@@ -176,13 +185,18 @@ export function PainelShell({
   const reduzirMovimento = useReducedMotion();
   const [menuAberto, setMenuAberto] = useState(false);
   const [colapsada, setColapsada] = useState(false);
+  const paginaAtual =
+    itensNavegacao.find(
+      (item) =>
+        itemDisponivelParaPapel(item, usuario.role) && itemAtivo(pathname, item.href, item.exato),
+    )?.label ?? "Painel";
 
   return (
-    <div className="area-interna min-h-screen bg-creme md:flex">
+    <div className="area-interna h-dvh overflow-hidden bg-creme md:flex">
       {/* Sidebar fixa (desktop) */}
       <aside
         className={
-          "hidden shrink-0 border-r border-border bg-surface transition-[width] duration-200 md:block " +
+          "hidden h-dvh shrink-0 overflow-y-auto border-r border-border bg-surface transition-[width] duration-200 md:block " +
           (colapsada ? "w-20" : "w-72")
         }
       >
@@ -221,10 +235,10 @@ export function PainelShell({
         </div>
       ) : null}
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex h-dvh min-w-0 flex-1 flex-col overflow-hidden">
         {/* Header fixo */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b border-border bg-surface px-4 md:px-6">
-          <div className="flex items-center gap-3">
+        <header className="z-10 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-4 md:px-6">
+          <div className="flex min-w-0 items-center gap-3">
             <button
               aria-label="Abrir menu"
               className="rounded-lg p-2 text-foreground hover:bg-creme md:hidden"
@@ -234,8 +248,8 @@ export function PainelShell({
               <Menu className="size-5" aria-hidden="true" />
             </button>
 
-            <span className="hidden rounded-full bg-lilas/25 px-3 py-1 text-xs font-medium text-roxo md:inline">
-              {usuario.role === "profissional" ? "Área profissional" : "Recepção"}
+            <span className="truncate font-heading text-base font-semibold text-brand">
+              {paginaAtual}
             </span>
           </div>
 
@@ -248,21 +262,18 @@ export function PainelShell({
           />
         </header>
 
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.main
-            animate={{ opacity: 1, y: 0 }}
-            className="flex-1 px-4 py-4 md:px-6 md:py-6"
-            exit={reduzirMovimento ? { opacity: 0 } : { opacity: 0, y: 6 }}
-            initial={reduzirMovimento ? { opacity: 0 } : { opacity: 0, y: -12 }}
-            key={pathname}
-            transition={{
-              duration: reduzirMovimento ? 0.01 : 0.36,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-          >
-            {children}
-          </motion.main>
-        </AnimatePresence>
+        <motion.main
+          animate={{ opacity: 1 }}
+          className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 md:px-6 md:py-6"
+          initial={{ opacity: 0 }}
+          key={pathname}
+          transition={{
+            duration: reduzirMovimento ? 0.01 : 0.36,
+            ease: "easeInOut",
+          }}
+        >
+          {children}
+        </motion.main>
       </div>
 
       {assistenteDisponivel ? (

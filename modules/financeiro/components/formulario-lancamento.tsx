@@ -1,10 +1,15 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
-import { LoaderCircle, Wallet } from "lucide-react";
+import { LoaderCircle, Save, Wallet } from "lucide-react";
 
 import { CampoDataCalendario } from "@/components/ui/calendario-tailgrids";
-import { criarLancamento, type EstadoFormularioLancamento } from "@/modules/financeiro/actions";
+import { cn } from "@/lib/utils";
+import {
+  atualizarLancamento,
+  criarLancamento,
+  type EstadoFormularioLancamento,
+} from "@/modules/financeiro/actions";
 import {
   categoriasLancamento,
   formasPagamentoLancamento,
@@ -14,23 +19,49 @@ import {
   rotulosTipoLancamento,
   situacoesLancamento,
   tiposLancamento,
+  type SituacaoLancamento,
+  type TipoLancamento,
 } from "@/modules/financeiro/schema";
 import { useFecharModal } from "@/components/ui/modal-formulario";
 
 const estadoInicial: EstadoFormularioLancamento = { status: "inicial" };
+const classeCampo =
+  "h-11 w-full min-w-0 rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition outline-none placeholder:text-muted/70 focus:border-roxo focus:ring-2 focus:ring-roxo/20";
+const classeArea =
+  "min-h-20 w-full min-w-0 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground transition outline-none placeholder:text-muted/70 focus:border-roxo focus:ring-2 focus:ring-roxo/20";
 
 type Opcao = { id: string; nome: string };
+
+export type LancamentoFormulario = {
+  id: string;
+  tipo: TipoLancamento;
+  categoria: string;
+  descricao: string | null;
+  valorCentavos: number;
+  data: Date;
+  formaPagamento: string | null;
+  situacao: SituacaoLancamento;
+  clienteId: string | null;
+  pacoteId: string | null;
+};
+
+function formatarValor(valorCentavos: number) {
+  return String(valorCentavos / 100).replace(".", ",");
+}
+
+function formatarDataInput(data: Date) {
+  return data.toISOString().slice(0, 10);
+}
 
 function MensagemFormulario({ state }: { state: EstadoFormularioLancamento | undefined }) {
   if (!state?.mensagem) return null;
 
   return (
     <p
-      className={
-        state.status === "erro"
-          ? "text-sm font-medium text-perigo"
-          : "text-sm font-medium text-brand"
-      }
+      className={cn(
+        "rounded-xl px-3 py-2 text-sm font-medium",
+        state.status === "erro" ? "bg-perigo/10 text-perigo" : "bg-brand/10 text-brand",
+      )}
       role={state.status === "erro" ? "alert" : "status"}
     >
       {state.mensagem}
@@ -58,14 +89,14 @@ function CampoSelect({
   const errorId = `${name}-erro`;
 
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 gap-2">
       <label className="text-sm font-medium text-foreground" htmlFor={name}>
         {label}
       </label>
       <select
         aria-describedby={error?.length ? errorId : undefined}
         aria-invalid={error?.length ? true : undefined}
-        className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
+        className={classeCampo}
         defaultValue={defaultValue ?? ""}
         id={name}
         name={name}
@@ -90,31 +121,40 @@ function CampoSelect({
 }
 
 function CampoTexto({
+  defaultValue,
   error,
+  inputMode,
   label,
   name,
+  placeholder,
   required,
   type = "text",
 }: {
+  defaultValue?: string;
   error?: string[];
+  inputMode?: "none" | "text" | "tel" | "url" | "email" | "numeric" | "decimal" | "search";
   label: string;
   name: string;
+  placeholder?: string;
   required?: boolean;
   type?: string;
 }) {
   const errorId = `${name}-erro`;
 
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 gap-2">
       <label className="text-sm font-medium text-foreground" htmlFor={name}>
         {label}
       </label>
       <input
         aria-describedby={error?.length ? errorId : undefined}
         aria-invalid={error?.length ? true : undefined}
-        className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
+        className={classeCampo}
+        defaultValue={defaultValue}
         id={name}
+        inputMode={inputMode}
         name={name}
+        placeholder={placeholder}
         required={required}
         type={type}
       />
@@ -129,12 +169,17 @@ function CampoTexto({
 
 export function FormularioLancamento({
   clientes,
+  lancamento,
   pacotes,
 }: {
   clientes: Opcao[];
+  lancamento?: LancamentoFormulario;
   pacotes: Opcao[];
 }) {
-  const [state, formAction, pending] = useActionState(criarLancamento, estadoInicial);
+  const [state, formAction, pending] = useActionState(
+    lancamento ? atualizarLancamento : criarLancamento,
+    estadoInicial,
+  );
   const fecharModal = useFecharModal();
 
   useEffect(() => {
@@ -142,8 +187,11 @@ export function FormularioLancamento({
   }, [state, fecharModal]);
 
   return (
-    <form action={formAction} className="grid gap-6">
+    <form action={formAction} className="grid min-w-0 gap-6">
+      {lancamento ? <input name="id" type="hidden" value={lancamento.id} /> : null}
+
       <CampoSelect
+        defaultValue={lancamento?.tipo}
         error={state?.campos?.tipo}
         label="Tipo"
         name="tipo"
@@ -152,6 +200,7 @@ export function FormularioLancamento({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <CampoSelect
+          defaultValue={lancamento?.categoria}
           error={state?.campos?.categoria}
           label="Categoria"
           name="categoria"
@@ -160,9 +209,24 @@ export function FormularioLancamento({
             nome: rotulosCategoriaLancamento[categoria],
           }))}
         />
-        <CampoTexto error={state?.campos?.valorCentavos} label="Valor (R$)" name="valor" required />
-        <CampoDataCalendario error={state?.campos?.data} label="Data" name="data" required />
+        <CampoTexto
+          defaultValue={lancamento ? formatarValor(lancamento.valorCentavos) : undefined}
+          error={state?.campos?.valorCentavos}
+          inputMode="decimal"
+          label="Valor (R$)"
+          name="valor"
+          placeholder="Ex.: 150,00"
+          required
+        />
+        <CampoDataCalendario
+          defaultValue={lancamento ? formatarDataInput(lancamento.data) : undefined}
+          error={state?.campos?.data}
+          label="Data"
+          name="data"
+          required
+        />
         <CampoSelect
+          defaultValue={lancamento?.formaPagamento ?? undefined}
           error={state?.campos?.formaPagamento}
           label="Forma de pagamento"
           name="formaPagamento"
@@ -174,7 +238,7 @@ export function FormularioLancamento({
       </div>
 
       <CampoSelect
-        defaultValue="pendente"
+        defaultValue={lancamento?.situacao ?? "pendente"}
         error={state?.campos?.situacao}
         label="Situação"
         name="situacao"
@@ -186,6 +250,7 @@ export function FormularioLancamento({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <CampoSelect
+          defaultValue={lancamento?.clienteId ?? undefined}
           error={state?.campos?.clienteId}
           label="Cliente vinculado (opcional)"
           name="clienteId"
@@ -194,6 +259,7 @@ export function FormularioLancamento({
           required={false}
         />
         <CampoSelect
+          defaultValue={lancamento?.pacoteId ?? undefined}
           error={state?.campos?.pacoteId}
           label="Pacote vinculado (opcional)"
           name="pacoteId"
@@ -203,14 +269,16 @@ export function FormularioLancamento({
         />
       </div>
 
-      <div className="grid gap-2">
+      <div className="grid min-w-0 gap-2">
         <label className="text-sm font-medium text-foreground" htmlFor="descricao">
           Observações (opcional)
         </label>
         <textarea
-          className="min-h-20 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
+          className={classeArea}
+          defaultValue={lancamento?.descricao ?? undefined}
           id="descricao"
           name="descricao"
+          placeholder="Ex.: pagamento referente ao pacote de limpeza de pele"
         />
         {state?.campos?.descricao?.length ? (
           <p className="text-sm text-perigo">{state.campos.descricao[0]}</p>
@@ -219,18 +287,22 @@ export function FormularioLancamento({
 
       <MensagemFormulario state={state} />
 
-      <button
-        className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo disabled:cursor-not-allowed disabled:opacity-70"
-        disabled={pending}
-        type="submit"
-      >
-        {pending ? (
-          <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-        ) : (
-          <Wallet className="size-4" />
-        )}
-        Registrar lançamento
-      </button>
+      <div className="flex justify-end border-t border-border/70 pt-4">
+        <button
+          className="inline-flex h-11 min-w-44 items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo disabled:cursor-not-allowed disabled:opacity-70"
+          disabled={pending}
+          type="submit"
+        >
+          {pending ? (
+            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+          ) : lancamento ? (
+            <Save className="size-4" />
+          ) : (
+            <Wallet className="size-4" />
+          )}
+          {lancamento ? "Salvar alterações" : "Registrar lançamento"}
+        </button>
+      </div>
     </form>
   );
 }

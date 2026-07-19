@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
+import { agoraBrasilia } from "@/lib/utils";
 import { notificarCliente } from "@/modules/notificacoes/criar-notificacao";
 
 import { precisaLembreteDiaAnterior, precisaLembreteHorasAntes } from "./lembretes";
@@ -15,7 +16,7 @@ const formatadorDataHora = new Intl.DateTimeFormat("pt-BR", {
 
 /** Chamado só pela rota `app/api/cron/lembretes` — nunca por uma action de formulário. */
 export async function dispararLembretes() {
-  const agora = new Date();
+  const agora = agoraBrasilia();
   const candidatos = await listarAgendamentosParaLembretes();
 
   let diaAnteriorEnviados = 0;
