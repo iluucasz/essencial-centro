@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { and, eq, isNull } from "drizzle-orm";
+import QRCode from "qrcode";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -11,6 +12,8 @@ import { deveAvisarPacoteAcabando } from "@/modules/pacotes/progresso";
 import { obterProgressoPacote } from "@/modules/pacotes/queries";
 import { servico } from "@/modules/servicos/schema";
 
+import { urlCheckin } from "./checkin-url";
+import { mensagemAtendimentoCancelado, mensagemAtendimentoMarcado } from "./mensagem-notificacao";
 import { listarAgendamentosDoProfissionalNoDia } from "./queries";
 import {
   agendamento,
@@ -36,6 +39,26 @@ const estadoInicialExclusao: EstadoExclusaoAgendamento = { status: "inicial" };
 
 function getValor(formData: FormData, nome: string) {
   return formData.get(nome);
+}
+
+async function nomeDoServico(servicoId: string) {
+  const [registro] = await db
+    .select({ nome: servico.nome })
+    .from(servico)
+    .where(eq(servico.id, servicoId))
+    .limit(1);
+
+  return registro?.nome ?? "serviço";
+}
+
+/** QR de presença de um agendamento em base64 puro (sem prefixo data:), pra anexar no WhatsApp. */
+async function qrCheckinBase64(agendamentoId: string) {
+  const dataUrl = await QRCode.toDataURL(await urlCheckin(agendamentoId), {
+    margin: 1,
+    width: 320,
+  });
+
+  return dataUrl.split(",")[1] ?? "";
 }
 
 export async function criarAgendamento(
@@ -84,34 +107,29 @@ export async function criarAgendamento(
     } satisfies EstadoFormularioAgendamento;
   }
 
-  await db.insert(agendamento).values({
-    clienteId,
-    servicoId,
-    profissionalId,
-    pacoteId,
-    inicio,
-    duracaoMinutos,
-    modalidade,
-    observacoes,
-    criadoPorId: usuarioAtual.id,
-    atualizadoPorId: usuarioAtual.id,
-  });
-
-  const [servicoAgendado] = await db
-    .select({ nome: servico.nome })
-    .from(servico)
-    .where(eq(servico.id, servicoId))
-    .limit(1);
+  const [criado] = await db
+    .insert(agendamento)
+    .values({
+      clienteId,
+      servicoId,
+      profissionalId,
+      pacoteId,
+      inicio,
+      duracaoMinutos,
+      modalidade,
+      observacoes,
+      criadoPorId: usuarioAtual.id,
+      atualizadoPorId: usuarioAtual.id,
+    })
+    .returning({ id: agendamento.id });
 
   await notificarCliente({
     clienteId,
     tipo: "agendamento_criado",
     titulo: "Atendimento marcado",
-    mensagem: `Seu atendimento de ${servicoAgendado?.nome ?? "serviço"} está marcado para ${new Intl.DateTimeFormat(
-      "pt-BR",
-      { dateStyle: "long", timeStyle: "short", timeZone: "UTC" },
-    ).format(inicio)}.`,
+    mensagem: mensagemAtendimentoMarcado(await nomeDoServico(servicoId), inicio),
     link: "/portal/agendamentos",
+    whatsappImagemBase64: criado ? await qrCheckinBase64(criado.id) : undefined,
   });
 
   revalidatePath("/painel/agenda");
@@ -165,6 +183,12 @@ export async function atualizarAgendamento(
     } satisfies EstadoFormularioAgendamento;
   }
 
+  const [anterior] = await db
+    .select({ inicio: agendamento.inicio })
+    .from(agendamento)
+    .where(eq(agendamento.id, id))
+    .limit(1);
+
   const atualizados = await db
     .update(agendamento)
     .set({
@@ -187,6 +211,17 @@ export async function atualizarAgendamento(
       status: "erro",
       mensagem: "Agendamento não encontrado.",
     } satisfies EstadoFormularioAgendamento;
+  }
+
+  if (anterior && anterior.inicio.getTime() !== inicio.getTime()) {
+    await notificarCliente({
+      clienteId,
+      tipo: "geral",
+      titulo: "Atendimento remarcado",
+      mensagem: mensagemAtendimentoMarcado(await nomeDoServico(servicoId), inicio, true),
+      link: "/portal/agendamentos",
+      whatsappImagemBase64: await qrCheckinBase64(id),
+    });
   }
 
   revalidatePath("/painel/agenda");
@@ -222,6 +257,16 @@ export async function excluirAgendamento(
     } satisfies EstadoExclusaoAgendamento;
   }
 
+  const [aExcluir] = await db
+    .select({
+      clienteId: agendamento.clienteId,
+      servicoId: agendamento.servicoId,
+      inicio: agendamento.inicio,
+    })
+    .from(agendamento)
+    .where(eq(agendamento.id, id))
+    .limit(1);
+
   const excluidos = await db
     .delete(agendamento)
     .where(eq(agendamento.id, id))
@@ -232,6 +277,19 @@ export async function excluirAgendamento(
       status: "erro",
       mensagem: "Agendamento não encontrado.",
     } satisfies EstadoExclusaoAgendamento;
+  }
+
+  if (aExcluir) {
+    await notificarCliente({
+      clienteId: aExcluir.clienteId,
+      tipo: "geral",
+      titulo: "Atendimento cancelado",
+      mensagem: mensagemAtendimentoCancelado(
+        await nomeDoServico(aExcluir.servicoId),
+        aExcluir.inicio,
+      ),
+      link: "/portal/agendamentos",
+    });
   }
 
   revalidatePath("/painel/agenda");
@@ -263,7 +321,25 @@ export async function atualizarStatusAgendamento(formData: FormData) {
       atualizadoEm: new Date(),
     })
     .where(eq(agendamento.id, parsed.data.id))
-    .returning({ pacoteId: agendamento.pacoteId, clienteId: agendamento.clienteId });
+    .returning({
+      pacoteId: agendamento.pacoteId,
+      clienteId: agendamento.clienteId,
+      servicoId: agendamento.servicoId,
+      inicio: agendamento.inicio,
+    });
+
+  if (parsed.data.status === "cancelado" && atualizado) {
+    await notificarCliente({
+      clienteId: atualizado.clienteId,
+      tipo: "geral",
+      titulo: "Atendimento cancelado",
+      mensagem: mensagemAtendimentoCancelado(
+        await nomeDoServico(atualizado.servicoId),
+        atualizado.inicio,
+      ),
+      link: "/portal/agendamentos",
+    });
+  }
 
   if (parsed.data.status === "realizado" && atualizado?.pacoteId) {
     const info = await obterProgressoPacote(atualizado.pacoteId);

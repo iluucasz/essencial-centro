@@ -32,8 +32,11 @@ import { rotulosStatusAgendamento, type StatusAgendamento } from "@/modules/agen
 import { exigirUsuarioAtual, listarProfissionaisAtivos } from "@/modules/auth/queries";
 import { desativarBiometria } from "@/modules/biometria/actions";
 import { listarBiometriasDoCliente } from "@/modules/biometria/queries";
+import { podeExcluirClientes } from "@/modules/clientes/acesso";
 import { registrarConsentimentoBiometria } from "@/modules/clientes/actions";
+import { MenuAcoesCliente } from "@/modules/clientes/components/menu-acoes-cliente";
 import { getCliente } from "@/modules/clientes/queries";
+import type { Cliente } from "@/modules/clientes/schema";
 import { FormularioDocumento } from "@/modules/documentos/components/formulario-documento";
 import { listarDocumentosDoCliente } from "@/modules/documentos/queries";
 import { FormularioFichaEsteticaCorporal } from "@/modules/fichas/components/formulario-ficha-estetica-corporal";
@@ -137,6 +140,10 @@ function getIniciais(nome: string) {
   const partes = nome.trim().split(/\s+/).filter(Boolean).slice(0, 2);
 
   return partes.map((parte) => parte[0]?.toUpperCase()).join("") || "CL";
+}
+
+function ehClienteGestao(cliente: Awaited<ReturnType<typeof getCliente>>): cliente is Cliente {
+  return Boolean(cliente && "observacoesInternas" in cliente);
 }
 
 function formatarCm(valor: number) {
@@ -820,7 +827,7 @@ export default async function ClienteDetalhePage({
     listarPacotesDoCliente(id),
   ]);
 
-  if (!cliente) {
+  if (!ehClienteGestao(cliente)) {
     notFound();
   }
 
@@ -847,9 +854,7 @@ export default async function ClienteDetalhePage({
   const medicamentos = profissional ? await listarMedicamentosDoCliente(id) : null;
 
   const observacoesInternas =
-    "observacoesInternas" in cliente && typeof cliente.observacoesInternas === "string"
-      ? cliente.observacoesInternas
-      : null;
+    typeof cliente.observacoesInternas === "string" ? cliente.observacoesInternas : null;
 
   const sessoesParaSelecao = dadosSessoes
     ? dadosSessoes[0].map((s) => ({
@@ -892,6 +897,7 @@ export default async function ClienteDetalhePage({
 
   const pacotePrincipal = pacotes.find((pacote) => pacote.ativo) ?? pacotes[0] ?? null;
   const pacotesAtivos = pacotes.filter((pacote) => pacote.ativo).length;
+  const podeExcluirCliente = podeExcluirClientes(usuario);
   const statusCliente = pacotePrincipal?.ativo ? "Ativa" : "Cadastro";
   const proximaSessao = dadosSessoes?.[2]
     .filter(
@@ -967,11 +973,14 @@ export default async function ClienteDetalhePage({
               />
             </div>
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-3xl font-semibold text-foreground">{cliente.nome}</h1>
-                <span className="bg-menta rounded-full px-3 py-1 text-xs font-semibold text-brand">
-                  {statusCliente}
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <span className="flex min-w-0 flex-wrap items-center gap-3">
+                  <h1 className="min-w-0 text-3xl font-semibold text-foreground">{cliente.nome}</h1>
+                  <span className="bg-menta rounded-full px-3 py-1 text-xs font-semibold text-brand">
+                    {statusCliente}
+                  </span>
                 </span>
+                <MenuAcoesCliente cliente={cliente} podeExcluir={podeExcluirCliente} />
               </div>
               <p className="mt-2 text-sm text-muted">
                 {[cliente.profissao, formatarIdade(cliente.dataNascimento)]

@@ -255,9 +255,8 @@ export async function listarAgendamentosParaLembretes() {
     );
 }
 
-export async function listarMeusAgendamentos() {
-  const sessao = await auth();
-  const usuarioSessao = autorizarPapel(sessao, ["cliente"]);
+async function exigirClienteIdDaSessao() {
+  const usuarioSessao = autorizarPapel(await auth(), ["cliente"]);
 
   if (!usuarioSessao.clienteId) {
     throw new ErroAutorizacao(
@@ -266,14 +265,42 @@ export async function listarMeusAgendamentos() {
     );
   }
 
+  return usuarioSessao.clienteId;
+}
+
+/**
+ * Atendimentos ativos do cliente: os que ainda estão `marcado`. O status é a fonte de verdade, não
+ * o relógio — um horário que já passou continua "marcado" até a profissional resolvê-lo na agenda
+ * (marcar falta/realizado/cancelar). Por isso não filtramos por data aqui.
+ */
+export async function listarMeusAgendamentos() {
+  const clienteId = await exigirClienteIdDaSessao();
+
   return db
     .select(colunasAgendamento)
     .from(agendamento)
     .innerJoin(cliente, eq(cliente.id, agendamento.clienteId))
     .innerJoin(servico, eq(servico.id, agendamento.servicoId))
     .innerJoin(usuario, eq(usuario.id, agendamento.profissionalId))
-    .where(
-      and(eq(agendamento.clienteId, usuarioSessao.clienteId), gte(agendamento.inicio, new Date())),
-    )
+    .where(and(eq(agendamento.clienteId, clienteId), eq(agendamento.status, "marcado")))
     .orderBy(asc(agendamento.inicio));
+}
+
+/**
+ * Histórico do cliente: atendimentos já resolvidos pela profissional (realizado/falta/cancelado).
+ * Existe pra que, ao clicar numa notificação de um atendimento antigo, o cliente veja o registro e
+ * o estado ("Cancelado", "Falta"…) em vez de uma lista vazia.
+ */
+export async function listarMeuHistoricoAgendamentos(limite = 30) {
+  const clienteId = await exigirClienteIdDaSessao();
+
+  return db
+    .select(colunasAgendamento)
+    .from(agendamento)
+    .innerJoin(cliente, eq(cliente.id, agendamento.clienteId))
+    .innerJoin(servico, eq(servico.id, agendamento.servicoId))
+    .innerJoin(usuario, eq(usuario.id, agendamento.profissionalId))
+    .where(and(eq(agendamento.clienteId, clienteId), ne(agendamento.status, "marcado")))
+    .orderBy(desc(agendamento.inicio))
+    .limit(limite);
 }

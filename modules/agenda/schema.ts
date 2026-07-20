@@ -66,9 +66,35 @@ export const agendamento = pgTable("agendamento", {
 export const agendamentoSelectSchema = createSelectSchema(agendamento);
 export const agendamentoInsertSchema = createInsertSchema(agendamento);
 
+/**
+ * Interpreta o valor de um `<input type="datetime-local">` ("AAAA-MM-DDTHH:mm[:ss]", sem fuso) como
+ * horário de parede gravado nos campos UTC do Date — a mesma convenção que o formulário usa para
+ * *ler* o valor (getUTC* em formulario-agendamento) e que `agoraBrasilia()` assume (ver lib/utils).
+ * Não usar `new Date(string)`: ele interpreta a string no fuso do processo — UTC na Vercel, mas -3h
+ * num dev em Brasília —, gravando o horário deslocado (marcar 12:00 virava 15:00Z no dev). Retorna
+ * null quando o formato não bate, deixando o Zod reportar "Informe data e horário.".
+ */
+export function interpretarDataHoraParede(valor: string): Date | null {
+  const partes = valor.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!partes) return null;
+
+  const [, ano, mes, dia, hora, minuto, segundo] = partes;
+
+  return new Date(
+    Date.UTC(
+      Number(ano),
+      Number(mes) - 1,
+      Number(dia),
+      Number(hora),
+      Number(minuto),
+      Number(segundo ?? 0),
+    ),
+  );
+}
+
 const dataHoraSchema = z.preprocess((value) => {
   if (value instanceof Date) return value;
-  if (typeof value === "string" && value) return new Date(value);
+  if (typeof value === "string" && value) return interpretarDataHoraParede(value) ?? value;
   return value;
 }, z.date("Informe data e horário."));
 

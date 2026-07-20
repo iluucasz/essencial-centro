@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { escolherAgendamentoMaisProximo, podeConfirmarPresenca } from "./checkin";
+import {
+  escolherAgendamentoMaisProximo,
+  extrairAgendamentoIdDoQr,
+  podeConfirmarPresenca,
+} from "./checkin";
+
+const ID = "9fb63b59-f4bc-46c2-9e31-33ebd759c122";
 
 describe("podeConfirmarPresenca", () => {
   it("permite confirmar quando o agendamento está marcado e sem check-in prévio", () => {
@@ -44,5 +50,37 @@ describe("escolherAgendamentoMaisProximo", () => {
     const depois = { inicio: new Date("2026-07-16T13:00:00") };
 
     expect(escolherAgendamentoMaisProximo([antes, depois], agora)).toBe(antes);
+  });
+});
+
+describe("extrairAgendamentoIdDoQr", () => {
+  it("extrai o ID da URL completa gerada no portal", () => {
+    expect(
+      extrairAgendamentoIdDoQr(`https://essencial-centro.vercel.app/painel/checkin/${ID}`),
+    ).toBe(ID);
+  });
+
+  it("aceita http e localhost", () => {
+    expect(extrairAgendamentoIdDoQr(`http://localhost:3000/painel/checkin/${ID}`)).toBe(ID);
+  });
+
+  it("ignora barra final, query string e hash", () => {
+    expect(extrairAgendamentoIdDoQr(`https://x.com/painel/checkin/${ID}/`)).toBe(ID);
+    expect(extrairAgendamentoIdDoQr(`https://x.com/painel/checkin/${ID}?v=1`)).toBe(ID);
+    expect(extrairAgendamentoIdDoQr(`https://x.com/painel/checkin/${ID}#topo`)).toBe(ID);
+  });
+
+  it("aceita o UUID cru e normaliza maiúsculas", () => {
+    expect(extrairAgendamentoIdDoQr(`  ${ID.toUpperCase()}  `)).toBe(ID);
+  });
+
+  it("retorna null para QR que não é de check-in", () => {
+    expect(extrairAgendamentoIdDoQr("https://exemplo.com/outra-coisa")).toBeNull();
+    expect(extrairAgendamentoIdDoQr("texto qualquer")).toBeNull();
+    expect(extrairAgendamentoIdDoQr("")).toBeNull();
+  });
+
+  it("retorna null quando o segmento após checkin não é um UUID válido", () => {
+    expect(extrairAgendamentoIdDoQr("https://x.com/painel/checkin/123")).toBeNull();
   });
 });

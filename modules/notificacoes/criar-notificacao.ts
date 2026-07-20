@@ -7,7 +7,7 @@ import { cliente } from "@/modules/clientes/schema";
 import { enviarEmailNotificacao } from "./email";
 import { notificacao, type TipoNotificacao } from "./schema";
 import { canalDesativado, type ResultadoNotificacao } from "./tipos";
-import { enviarWhatsAppTexto } from "./whatsapp";
+import { enviarWhatsAppImagem, enviarWhatsAppTexto } from "./whatsapp";
 
 /**
  * Usado internamente por outros módulos (agenda, sessões…) logo após uma ação real do usuário —
@@ -24,6 +24,8 @@ export async function notificarCliente(params: {
   titulo: string;
   mensagem: string;
   link?: string;
+  /** Quando presente, o canal WhatsApp envia esta imagem (base64 puro) com a mensagem como legenda — ex.: o QR de presença. */
+  whatsappImagemBase64?: string;
 }): Promise<ResultadoNotificacao> {
   const [usuarioCliente] = await db
     .select({ id: usuario.id, email: usuario.email, nome: usuario.name })
@@ -58,10 +60,16 @@ export async function notificarCliente(params: {
       link: params.link,
     }),
     registroCliente?.telefone
-      ? enviarWhatsAppTexto({
-          telefone: registroCliente.telefone,
-          mensagem: `${params.titulo}\n\n${params.mensagem}`,
-        })
+      ? params.whatsappImagemBase64
+        ? enviarWhatsAppImagem({
+            telefone: registroCliente.telefone,
+            imagemBase64: params.whatsappImagemBase64,
+            legenda: `${params.titulo}\n\n${params.mensagem}`,
+          })
+        : enviarWhatsAppTexto({
+            telefone: registroCliente.telefone,
+            mensagem: `${params.titulo}\n\n${params.mensagem}`,
+          })
       : Promise.resolve(canalDesativado),
   ]);
 

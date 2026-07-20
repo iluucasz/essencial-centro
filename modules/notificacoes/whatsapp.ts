@@ -88,6 +88,72 @@ export async function enviarWhatsAppTexto(params: {
   }
 }
 
+/**
+ * Envio de imagem (ex.: QR de presença) via Evolution API (`sendMedia`). Mesma postura do
+ * `enviarWhatsAppTexto`: nunca lança, é reforço não-bloqueante. `imagemBase64` é o conteúdo puro
+ * (sem o prefixo `data:image/...;base64,`).
+ */
+export async function enviarWhatsAppImagem(params: {
+  telefone: string;
+  imagemBase64: string;
+  legenda: string;
+  nomeArquivo?: string;
+}): Promise<ResultadoEnvioCanal> {
+  if (!configuracaoWhatsAppValida()) return canalDesativado;
+
+  const numero = normalizarTelefone(params.telefone);
+  if (!numero) {
+    return { attempted: false, sent: false, error: "Telefone inválido para envio por WhatsApp." };
+  }
+
+  const apiUrl = process.env.EVOLUTION_API_URL!;
+  const apiKey = process.env.EVOLUTION_API_KEY!;
+  const instancia = process.env.EVOLUTION_INSTANCE!;
+
+  const controlador = new AbortController();
+  const timeoutId = setTimeout(() => controlador.abort(), TIMEOUT_MS);
+
+  try {
+    const resposta = await fetch(`${apiUrl}/message/sendMedia/${encodeURIComponent(instancia)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: apiKey },
+      body: JSON.stringify({
+        number: numero,
+        mediatype: "image",
+        mimetype: "image/png",
+        media: params.imagemBase64,
+        fileName: params.nomeArquivo ?? "qr-presenca.png",
+        caption: params.legenda,
+      }),
+      signal: controlador.signal,
+    });
+
+    if (!resposta.ok) {
+      const corpo = await resposta.text().catch(() => "");
+      console.error(
+        "Falha ao enviar imagem no WhatsApp via Evolution API:",
+        resposta.status,
+        corpo,
+      );
+      return { attempted: true, sent: false, error: `Evolution API respondeu ${resposta.status}.` };
+    }
+
+    return { attempted: true, sent: true, error: null };
+  } catch (error) {
+    const timeout = error instanceof Error && error.name === "AbortError";
+    console.error("Erro ao enviar imagem no WhatsApp via Evolution API:", error);
+    return {
+      attempted: true,
+      sent: false,
+      error: timeout
+        ? "Tempo limite ao chamar a Evolution API."
+        : "Erro ao chamar a Evolution API.",
+    };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export type StatusConexaoWhatsApp = {
   configured: boolean;
   connected: boolean;
