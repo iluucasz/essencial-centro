@@ -7,5 +7,7 @@ pnpm-lock.yaml
 db/migrations
 docs/context/brief.md
 docs/design-reference
+login_site
 ponte-biometria
 pulkitxm claude-directory main templates-premium_tailgrids_dashspace
+site-login

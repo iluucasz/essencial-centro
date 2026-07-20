@@ -73,6 +73,23 @@
   --font-sans: var(--font-jakarta-sans);
   --font-heading: var(--font-inter);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-fraunces), ui-serif, Georgia, serif;
+
+  /* Paleta do site público + login, importada do protótipo login_site. São tokens NOVOS
+     (forest/cream/ink/sage/line…) que não colidem com os da marca (brand/creme/foreground…) —
+     usados só pelos componentes em components/marketing e nas rotas pública/entrar. */
+  --color-cream: oklch(0.972 0.012 92);
+  --color-cream-deep: oklch(0.945 0.016 92);
+  --color-ink: oklch(0.27 0.018 155);
+  --color-ink-soft: oklch(0.44 0.02 155);
+  --color-forest: oklch(0.46 0.055 158);
+  --color-forest-deep: oklch(0.36 0.05 158);
+  --color-forest-soft: oklch(0.62 0.045 158);
+  --color-sage: oklch(0.9 0.025 150);
+  --color-sage-deep: oklch(0.84 0.03 150);
+  --color-clay: oklch(0.66 0.1 46);
+  --color-clay-soft: oklch(0.82 0.06 60);
+  --color-line: oklch(0.88 0.012 120);
 
   --radius: 0.75rem;
 }

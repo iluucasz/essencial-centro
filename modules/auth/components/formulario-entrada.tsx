@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
-import { LoaderCircle } from "lucide-react";
+import { useActionState, type ReactNode } from "react";
+import { LoaderCircle, LogIn } from "lucide-react";
 
+import { Field, TextInput } from "@/components/marketing/ui/field";
 import { criarPrimeiroAcesso, entrar, type EstadoFormularioAuth } from "@/modules/auth/actions";
 
 const estadoInicial: EstadoFormularioAuth = { status: "inicial" };
@@ -14,8 +15,8 @@ function MensagemFormulario({ state }: { state: EstadoFormularioAuth }) {
     <p
       className={
         state.status === "erro"
-          ? "text-sm font-medium text-perigo"
-          : "text-sm font-medium text-brand"
+          ? "rounded-xl border border-perigo/20 bg-perigo/10 px-3 py-2 text-sm font-medium text-perigo"
+          : "rounded-xl border border-forest/20 bg-sage/50 px-3 py-2 text-sm font-medium text-forest"
       }
       role={state.status === "erro" ? "alert" : "status"}
     >
@@ -24,14 +25,18 @@ function MensagemFormulario({ state }: { state: EstadoFormularioAuth }) {
   );
 }
 
-function BotaoSubmit({ children, pending }: { children: string; pending: boolean }) {
+function BotaoSubmit({ children, pending }: { children: ReactNode; pending: boolean }) {
   return (
     <button
-      className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo disabled:cursor-not-allowed disabled:opacity-70"
+      className="mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-forest px-5 text-sm font-semibold text-cream shadow-sm transition hover:bg-forest-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest disabled:cursor-not-allowed disabled:opacity-70"
       disabled={pending}
       type="submit"
     >
-      {pending ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}
+      {pending ? (
+        <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+      ) : (
+        <LogIn className="size-4" aria-hidden="true" />
+      )}
       {children}
     </button>
   );
@@ -55,15 +60,11 @@ function CampoTexto({
   const errorId = `${id}-erro`;
 
   return (
-    <div className="grid gap-2">
-      <label className="text-sm font-medium text-foreground" htmlFor={id}>
-        {label}
-      </label>
-      <input
+    <Field htmlFor={id} label={label}>
+      <TextInput
         aria-describedby={error?.length ? errorId : undefined}
         aria-invalid={error?.length ? true : undefined}
         autoComplete={autoComplete}
-        className="h-11 rounded-lg border border-border bg-surface px-3 text-sm text-foreground transition outline-none placeholder:text-muted focus:border-roxo focus:ring-2 focus:ring-roxo/20"
         id={id}
         name={name}
         type={type}
@@ -73,7 +74,7 @@ function CampoTexto({
           {error[0]}
         </p>
       ) : null}
-    </div>
+    </Field>
   );
 }
 
@@ -85,45 +86,54 @@ export function FormularioEntrada({ permitirPrimeiroAcesso }: { permitirPrimeiro
   );
 
   return (
-    <div className="grid w-full max-w-md gap-8">
-      <form
-        action={entradaAction}
-        className="grid gap-5 rounded-lg border border-border bg-surface p-6 shadow-sm"
-      >
-        <div className="grid gap-1">
-          <h1 className="text-2xl font-semibold text-brand">Entrar</h1>
-          <p className="text-sm text-muted">Acesse sua área da Essencial Centro.</p>
-        </div>
+    <div className="grid w-full max-w-sm gap-8">
+      <section>
+        <h2 className="font-serif text-3xl font-semibold text-ink">Entrar</h2>
+        <p className="mt-2 text-sm text-ink-soft">Acesse sua área com segurança.</p>
 
-        <CampoTexto
-          autoComplete="email"
-          error={entradaState.campos?.email}
-          id="entrada-email"
-          label="E-mail"
-          name="email"
-          type="email"
-        />
-        <CampoTexto
-          autoComplete="current-password"
-          error={entradaState.campos?.senha}
-          id="entrada-senha"
-          label="Senha"
-          name="senha"
-          type="password"
-        />
+        <form action={entradaAction} className="mt-6 flex flex-col gap-4">
+          <CampoTexto
+            autoComplete="email"
+            error={entradaState.campos?.email}
+            id="entrada-email"
+            label="E-mail"
+            name="email"
+            type="email"
+          />
+          <CampoTexto
+            autoComplete="current-password"
+            error={entradaState.campos?.senha}
+            id="entrada-senha"
+            label="Senha"
+            name="senha"
+            type="password"
+          />
 
-        <MensagemFormulario state={entradaState} />
-        <BotaoSubmit pending={entradaPending}>Entrar</BotaoSubmit>
-      </form>
+          <label className="flex items-center gap-2 text-sm text-ink-soft">
+            <input
+              className="size-4 rounded border-line text-forest focus:ring-forest"
+              type="checkbox"
+            />
+            Manter conectado
+          </label>
+
+          <MensagemFormulario state={entradaState} />
+          <BotaoSubmit pending={entradaPending}>Entrar</BotaoSubmit>
+        </form>
+
+        <p className="mt-6 text-center text-xs text-ink-soft">
+          Primeiro acesso? Sua senha inicial é enviada pela clínica ao cadastrar seu tratamento.
+        </p>
+      </section>
 
       {permitirPrimeiroAcesso ? (
         <form
           action={primeiroAcessoAction}
-          className="grid gap-5 rounded-lg border border-border bg-surface p-6 shadow-sm"
+          className="grid gap-5 rounded-3xl border border-line bg-surface p-6 shadow-sm"
         >
           <div className="grid gap-1">
-            <h2 className="text-lg font-semibold text-roxo">Primeiro acesso</h2>
-            <p className="text-sm text-muted">Crie a conta profissional inicial.</p>
+            <h2 className="font-serif text-xl font-semibold text-ink">Primeiro acesso</h2>
+            <p className="text-sm text-ink-soft">Crie a conta profissional inicial.</p>
           </div>
 
           <CampoTexto

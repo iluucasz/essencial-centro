@@ -41,6 +41,12 @@ dashboard pedem contraste mais fraco que o `#E7DCD6` do site público). Como os 
 continuam usando as classes `bg-creme`/`hover:bg-creme`/`border-border` normalmente, essa troca é
 automática por cascata de CSS — não precisa (nem deve) trocar a classe componente por componente.
 
+**Site público e login importados do protótipo `login_site`:** a home `/` e `/entrar` usam os
+componentes copiados para `components/marketing/` e os tokens adicionais `cream`, `ink`, `forest`,
+`sage`, `clay` e `line` declarados em `app/globals.css`. Esses tokens são deliberadamente restritos
+ao namespace de marketing/login para preservar o visual do protótipo; as áreas internas continuam
+usando `brand`, `roxo`, `creme`, `surface`, `border` e demais tokens oficiais.
+
 ## Direção visual
 
 - Fundo creme muito claro; cartões brancos; títulos em verde ou roxo.
