@@ -4,9 +4,20 @@ import {
   limitarLista,
   reshapeCliente,
   reshapeDocumento,
+  reshapeMedicamento,
   reshapeSessao,
+  serializarDatas,
   truncarTexto,
 } from "./reshape";
+
+/** Procura recursivamente por qualquer instância de Date no valor. */
+function contemDate(valor: unknown): boolean {
+  if (valor instanceof Date) return true;
+  if (Array.isArray(valor)) return valor.some(contemDate);
+  if (valor !== null && typeof valor === "object") return Object.values(valor).some(contemDate);
+
+  return false;
+}
 
 describe("truncarTexto", () => {
   it("retorna null quando o texto é null", () => {
@@ -136,5 +147,52 @@ describe("reshapeSessao — garantia LGPD", () => {
     expect(saida.escalaDorAntes).toBe(6);
     expect(saida.escalaDorDepois).toBe(3);
     expect(saida.regiaoTratada).toBe("Abdômen");
+  });
+});
+
+describe("serializarDatas", () => {
+  it("converte Date em string ISO", () => {
+    expect(serializarDatas(new Date("2026-07-20T14:30:00.000Z"))).toBe("2026-07-20T14:30:00.000Z");
+  });
+
+  it("converte datas aninhadas em objetos e arrays", () => {
+    const entrada = {
+      medicamentos: [{ dataInicio: new Date("2026-01-02T00:00:00.000Z"), nome: "X" }],
+      evolucaoMedidas: [{ itens: [{ data: new Date("2026-03-04T00:00:00.000Z"), valorCm: 30 }] }],
+    };
+
+    const saida = serializarDatas(entrada);
+
+    expect(contemDate(saida)).toBe(false);
+    expect(saida.medicamentos[0].dataInicio).toBe("2026-01-02T00:00:00.000Z");
+    expect(saida.evolucaoMedidas[0].itens[0].data).toBe("2026-03-04T00:00:00.000Z");
+  });
+
+  it("preserva null, string e number sem alterar", () => {
+    expect(serializarDatas(null)).toBeNull();
+    expect(serializarDatas("texto")).toBe("texto");
+    expect(serializarDatas(42)).toBe(42);
+    expect(serializarDatas({ a: null, b: "x", c: 1 })).toEqual({ a: null, b: "x", c: 1 });
+  });
+
+  // Regressão: reshapeMedicamento devolve Date cru — a saída da ferramenta virava JSON no
+  // histórico e o AI SDK rejeitava "received Date" no turno seguinte, derrubando o assistente.
+  it("elimina os Date que reshapeMedicamento deixa passar", () => {
+    const reshaped = reshapeMedicamento({
+      nome: "Losartana",
+      dosagem: "50mg",
+      frequencia: "1x ao dia",
+      profissionalPrescritor: "Dra. Ana",
+      dataInicio: new Date("2026-05-01T00:00:00.000Z"),
+      alergiaRelacionada: null,
+      alertaInteracao: null,
+      fonteAlerta: null,
+      verificadoEm: new Date("2026-05-02T00:00:00.000Z"),
+      verificadoPorNome: "Ana",
+      criadoEm: new Date("2026-05-03T00:00:00.000Z"),
+    });
+
+    expect(contemDate(reshaped)).toBe(true);
+    expect(contemDate(serializarDatas(reshaped))).toBe(false);
   });
 });

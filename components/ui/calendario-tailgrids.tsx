@@ -7,11 +7,19 @@ import { CalendarDays, ChevronLeft, ChevronRight, Clock3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const formatadorMes = new Intl.DateTimeFormat("pt-BR", {
+  month: "long",
+  timeZone: "UTC",
+});
 const formatadorMesAno = new Intl.DateTimeFormat("pt-BR", {
   month: "long",
   timeZone: "UTC",
   year: "numeric",
 });
+const nomesMeses = Array.from({ length: 12 }, (_, mes) =>
+  formatadorMes.format(criarDataUtc(2024, mes, 1)),
+);
+
 function criarDataUtc(ano: number, mes: number, dia: number) {
   return new Date(Date.UTC(ano, mes, dia));
 }
@@ -49,6 +57,17 @@ function parseDataIso(valor?: string | null) {
 
 function adicionarMeses(data: Date, meses: number) {
   return criarDataUtc(data.getUTCFullYear(), data.getUTCMonth() + meses, 1);
+}
+
+function montarAnosDisponiveis(anoVisivel: number) {
+  const anoAtual = new Date().getUTCFullYear();
+  const limiteSuperior = Math.max(anoAtual + 10, anoVisivel + 10);
+  const limiteInferior = Math.min(anoAtual - 120, anoVisivel - 120);
+
+  return Array.from(
+    { length: limiteSuperior - limiteInferior + 1 },
+    (_, indice) => limiteSuperior - indice,
+  );
 }
 
 function montarDiasDoMes(dataReferencia: Date) {
@@ -109,6 +128,7 @@ function SeletorData({
 }) {
   const dataSelecionada = parseDataIso(valor);
   const [aberto, setAberto] = useState(false);
+  const [modoCalendario, setModoCalendario] = useState<"dias" | "mesAno">("dias");
   const [mesVisivel, setMesVisivel] = useState(() => dataSelecionada ?? parseDataIso(hojeIso())!);
   const [destinoCalendario, setDestinoCalendario] = useState<HTMLElement | null>(null);
   const [posicaoCalendario, setPosicaoCalendario] = useState<{
@@ -123,6 +143,8 @@ function SeletorData({
   const dias = useMemo(() => montarDiasDoMes(mesVisivel), [mesVisivel]);
   const hoje = hojeIso();
   const mesAtual = mesVisivel.getUTCMonth();
+  const anoVisivel = mesVisivel.getUTCFullYear();
+  const anosDisponiveis = useMemo(() => montarAnosDisponiveis(anoVisivel), [anoVisivel]);
 
   const atualizarPosicaoCalendario = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -214,10 +236,11 @@ function SeletorData({
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [aberto, mesVisivel, posicaoCalendario?.maxHeight]);
+  }, [aberto, mesVisivel, modoCalendario, posicaoCalendario?.maxHeight]);
 
   function fecharCalendario() {
     setAberto(false);
+    setModoCalendario("dias");
     setDestinoCalendario(null);
   }
 
@@ -230,6 +253,7 @@ function SeletorData({
     }
 
     atualizarPosicaoCalendario();
+    setModoCalendario("dias");
     setAberto(true);
   }
 
@@ -259,60 +283,128 @@ function SeletorData({
             <div className="mb-3 flex items-center justify-between gap-2">
               <button
                 className="inline-flex size-9 items-center justify-center rounded-xl border border-border text-muted transition hover:bg-roxo/5 hover:text-roxo focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
-                onClick={() => setMesVisivel((data) => adicionarMeses(data, -1))}
+                onClick={() =>
+                  setMesVisivel((data) =>
+                    adicionarMeses(data, modoCalendario === "dias" ? -1 : -12),
+                  )
+                }
                 type="button"
               >
                 <ChevronLeft className="size-4" aria-hidden="true" />
-                <span className="sr-only">Mes anterior</span>
+                <span className="sr-only">
+                  {modoCalendario === "dias" ? "Mês anterior" : "Ano anterior"}
+                </span>
               </button>
-              <p className="text-sm font-semibold text-foreground">
+              <button
+                aria-label={`Escolher mês e ano, mês atual ${formatadorMesAno.format(mesVisivel)}`}
+                className="min-w-0 rounded-lg px-3 py-2 text-sm font-semibold text-foreground transition hover:bg-roxo/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+                onClick={() =>
+                  setModoCalendario((modoAtual) => (modoAtual === "dias" ? "mesAno" : "dias"))
+                }
+                type="button"
+              >
                 {formatadorMesAno.format(mesVisivel)}
-              </p>
+              </button>
               <button
                 className="inline-flex size-9 items-center justify-center rounded-xl border border-border text-muted transition hover:bg-roxo/5 hover:text-roxo focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
-                onClick={() => setMesVisivel((data) => adicionarMeses(data, 1))}
+                onClick={() =>
+                  setMesVisivel((data) => adicionarMeses(data, modoCalendario === "dias" ? 1 : 12))
+                }
                 type="button"
               >
                 <ChevronRight className="size-4" aria-hidden="true" />
-                <span className="sr-only">Proximo mes</span>
+                <span className="sr-only">
+                  {modoCalendario === "dias" ? "Próximo mês" : "Próximo ano"}
+                </span>
               </button>
             </div>
 
-            <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted">
-              {diasSemana.map((dia) => (
-                <span key={dia} className="py-1">
-                  {dia}
-                </span>
-              ))}
-            </div>
-            <div className="mt-1 grid grid-cols-7 gap-1">
-              {dias.map((dia) => {
-                const iso = formatarDataIso(dia);
-                const selecionado = iso === valor;
-                const foraDoMes = dia.getUTCMonth() !== mesAtual;
-
-                return (
-                  <button
-                    key={iso}
-                    className={cn(
-                      "flex aspect-square items-center justify-center rounded-xl text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
-                      foraDoMes
-                        ? "text-muted/60 hover:bg-roxo/5"
-                        : "text-foreground hover:bg-roxo/5",
-                      iso === hoje && "ring-1 ring-brand/40",
-                      selecionado && "bg-brand text-brand-foreground hover:bg-brand",
-                    )}
-                    onClick={() => {
-                      onChange(iso);
-                      fecharCalendario();
-                    }}
-                    type="button"
+            {modoCalendario === "mesAno" ? (
+              <div className="grid gap-3">
+                <label className="grid gap-1 text-xs font-medium text-muted" htmlFor={`${id}-ano`}>
+                  Ano
+                  <select
+                    className="h-10 rounded-xl border border-border bg-surface px-3 text-sm font-semibold text-foreground transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
+                    id={`${id}-ano`}
+                    onChange={(event) =>
+                      setMesVisivel((data) =>
+                        criarDataUtc(Number(event.target.value), data.getUTCMonth(), 1),
+                      )
+                    }
+                    value={anoVisivel}
                   >
-                    {dia.getUTCDate()}
-                  </button>
-                );
-              })}
-            </div>
+                    {anosDisponiveis.map((ano) => (
+                      <option key={ano} value={ano}>
+                        {ano}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {nomesMeses.map((mes, indice) => {
+                    const selecionado = indice === mesAtual;
+
+                    return (
+                      <button
+                        className={cn(
+                          "rounded-xl border border-border px-2 py-2 text-xs font-medium capitalize transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
+                          selecionado
+                            ? "bg-brand text-brand-foreground hover:bg-brand"
+                            : "text-foreground hover:bg-roxo/5",
+                        )}
+                        key={mes}
+                        onClick={() => {
+                          setMesVisivel((data) => criarDataUtc(data.getUTCFullYear(), indice, 1));
+                          setModoCalendario("dias");
+                        }}
+                        type="button"
+                      >
+                        {mes}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted">
+                  {diasSemana.map((dia) => (
+                    <span key={dia} className="py-1">
+                      {dia}
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-1 grid grid-cols-7 gap-1">
+                  {dias.map((dia) => {
+                    const iso = formatarDataIso(dia);
+                    const selecionado = iso === valor;
+                    const foraDoMes = dia.getUTCMonth() !== mesAtual;
+
+                    return (
+                      <button
+                        key={iso}
+                        className={cn(
+                          "flex aspect-square items-center justify-center rounded-xl text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
+                          foraDoMes
+                            ? "text-muted/60 hover:bg-roxo/5"
+                            : "text-foreground hover:bg-roxo/5",
+                          iso === hoje && "ring-1 ring-brand/40",
+                          selecionado && "bg-brand text-brand-foreground hover:bg-brand",
+                        )}
+                        onClick={() => {
+                          onChange(iso);
+                          fecharCalendario();
+                        }}
+                        type="button"
+                      >
+                        {dia.getUTCDate()}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
             {valor && !required ? (
               <button
                 className="mt-3 w-full rounded-xl border border-border px-3 py-2 text-sm font-medium text-muted transition hover:bg-roxo/5 hover:text-roxo focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"

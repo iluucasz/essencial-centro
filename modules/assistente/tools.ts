@@ -1,4 +1,4 @@
-import { tool } from "ai";
+import { tool, type Tool } from "ai";
 import { z } from "zod";
 
 import { listarAgendamentosDoDia } from "@/modules/agenda/queries";
@@ -27,6 +27,7 @@ import {
   reshapeProduto,
   reshapeResumoEvolucao,
   reshapeSessao,
+  serializarDatas,
 } from "./reshape";
 import { buscarClientesInputSchema } from "./tool-schemas";
 
@@ -259,7 +260,26 @@ const sessoesDoClienteTool = tool({
   },
 });
 
-export const ferramentasAssistente = {
+/**
+ * Envolve o `execute` de cada ferramenta para serializar datas (ver serializarDatas) num único
+ * ponto — impossível esquecer uma ferramenta e cobre automaticamente as futuras.
+ */
+function comDatasSerializadas<T extends Record<string, Tool>>(ferramentas: T): T {
+  const entradas = Object.entries(ferramentas).map(([nome, ferramenta]) => {
+    const execOriginal = ferramenta.execute;
+
+    if (typeof execOriginal !== "function") return [nome, ferramenta] as const;
+
+    const execute: typeof execOriginal = (input, options) =>
+      Promise.resolve(execOriginal(input, options)).then(serializarDatas);
+
+    return [nome, { ...ferramenta, execute }] as const;
+  });
+
+  return Object.fromEntries(entradas) as T;
+}
+
+export const ferramentasAssistente = comDatasSerializadas({
   buscar_clientes: buscarClientesTool,
   resumo_evolucao_cliente: resumoEvolucaoClienteTool,
   medicamentos_do_cliente: medicamentosDoClienteTool,
@@ -270,4 +290,4 @@ export const ferramentasAssistente = {
   documentos_do_cliente: documentosDoClienteTool,
   relatorio_periodo: relatorioPeriodoTool,
   sessoes_do_cliente: sessoesDoClienteTool,
-};
+});

@@ -6,6 +6,27 @@ export function truncarTexto(texto: string | null, limite: number): string | nul
   return texto.length <= limite ? texto : `${texto.slice(0, limite)}…`;
 }
 
+/**
+ * Converte recursivamente qualquer `Date` em string ISO. A saída das ferramentas vira JSON no
+ * histórico do chat (useChat) e é revalidada pelo AI SDK ao remontar as mensagens do modelo no
+ * turno seguinte — um `Date` cru quebra essa validação ("expected string, received Date") e
+ * derruba o assistente inteiro. Aplicado a toda ferramenta em tools.ts, então nenhum campo de data
+ * (inclusive os aninhados em `unknown`, como evolução de medidas) escapa.
+ */
+export function serializarDatas<T>(valor: T): T {
+  if (valor instanceof Date) return valor.toISOString() as unknown as T;
+
+  if (Array.isArray(valor)) return valor.map(serializarDatas) as unknown as T;
+
+  if (valor !== null && typeof valor === "object") {
+    return Object.fromEntries(
+      Object.entries(valor).map(([chave, item]) => [chave, serializarDatas(item)]),
+    ) as T;
+  }
+
+  return valor;
+}
+
 export function limitarLista<T>(lista: T[], limite: number): T[] {
   return lista.slice(0, limite);
 }
