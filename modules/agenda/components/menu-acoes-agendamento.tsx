@@ -2,55 +2,21 @@
 
 import { useActionState, useEffect, useState, type FocusEvent } from "react";
 import { Modal, useOverlayState } from "@heroui/react";
-import { Check, Ellipsis, LoaderCircle, Pencil, Trash2, UserX, X } from "lucide-react";
+import { Ellipsis, LoaderCircle, Pencil, Trash2 } from "lucide-react";
 
 import { usePosicaoMenuAcoes } from "@/components/ui/menu-acoes";
 import { ConteudoModal, FecharModalProvider } from "@/components/ui/modal-formulario";
-import {
-  atualizarStatusAgendamento,
-  excluirAgendamento,
-  type EstadoExclusaoAgendamento,
-} from "@/modules/agenda/actions";
+import { excluirAgendamento, type EstadoExclusaoAgendamento } from "@/modules/agenda/actions";
 import type { StatusAgendamento } from "@/modules/agenda/schema";
+import type { SituacaoPagamento } from "@/modules/pacotes/schema";
 
 import { FormularioAgendamento, type AgendamentoFormulario } from "./formulario-agendamento";
+import { BotaoRealizarAgendamento } from "./modal-realizar-agendamento";
+import { BotaoConfirmarStatusAgendamento } from "./modal-status-agendamento";
 
 const estadoInicialExclusao: EstadoExclusaoAgendamento = { status: "inicial" };
 
 type Opcao = { id: string; nome: string };
-
-function BotaoStatus({
-  agendamentoId,
-  clienteId,
-  fechar,
-  icone: Icone,
-  label,
-  status,
-}: {
-  agendamentoId: string;
-  clienteId: string;
-  fechar: () => void;
-  icone: typeof Check;
-  label: string;
-  status: StatusAgendamento;
-}) {
-  return (
-    <form action={atualizarStatusAgendamento}>
-      <input name="id" type="hidden" value={agendamentoId} />
-      <input name="clienteId" type="hidden" value={clienteId} />
-      <input name="status" type="hidden" value={status} />
-      <button
-        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
-        onClick={fechar}
-        role="menuitem"
-        type="submit"
-      >
-        <Icone className="size-4 text-roxo" aria-hidden="true" />
-        {label}
-      </button>
-    </form>
-  );
-}
 
 export function MenuAcoesAgendamento({
   agendamento,
@@ -60,7 +26,16 @@ export function MenuAcoesAgendamento({
   profissionais,
   servicos,
 }: {
-  agendamento: AgendamentoFormulario & { status: StatusAgendamento };
+  agendamento: AgendamentoFormulario & {
+    status: StatusAgendamento;
+    checkinEm?: Date | null;
+    clienteNome?: string;
+    pacoteQuantidadeSessoes?: number | null;
+    pacoteSituacaoPagamento?: SituacaoPagamento | null;
+    pacoteValorCentavos?: number | null;
+    servicoNome: string;
+    servicoValorCentavos?: number | null;
+  };
   clienteFixoId?: string;
   clientes: Opcao[];
   pacotes: Opcao[];
@@ -123,29 +98,40 @@ export function MenuAcoesAgendamento({
 
             {agendamento.status === "marcado" ? (
               <>
-                <BotaoStatus
-                  agendamentoId={agendamento.id}
-                  clienteId={agendamento.clienteId}
-                  fechar={() => setMenuAberto(false)}
-                  icone={Check}
-                  label="Marcar como realizado"
-                  status="realizado"
+                <BotaoRealizarAgendamento
+                  agendamento={{
+                    id: agendamento.id,
+                    clienteNome: agendamento.clienteNome,
+                    checkinEm: agendamento.checkinEm ?? null,
+                    inicio: agendamento.inicio,
+                    pacoteId: agendamento.pacoteId,
+                    pacoteQuantidadeSessoes: agendamento.pacoteQuantidadeSessoes ?? null,
+                    pacoteSituacaoPagamento: agendamento.pacoteSituacaoPagamento ?? null,
+                    pacoteValorCentavos: agendamento.pacoteValorCentavos ?? null,
+                    servicoNome: agendamento.servicoNome,
+                    servicoValorCentavos: agendamento.servicoValorCentavos ?? null,
+                    status: agendamento.status,
+                  }}
+                  onFechar={() => setMenuAberto(false)}
+                  variante="menu"
                 />
-                <BotaoStatus
+                <BotaoConfirmarStatusAgendamento
                   agendamentoId={agendamento.id}
-                  clienteId={agendamento.clienteId}
-                  fechar={() => setMenuAberto(false)}
-                  icone={UserX}
-                  label="Marcar falta"
+                  clienteNome={agendamento.clienteNome}
+                  inicio={agendamento.inicio}
+                  onFechar={() => setMenuAberto(false)}
+                  servicoNome={agendamento.servicoNome}
                   status="falta"
+                  variante="menu"
                 />
-                <BotaoStatus
+                <BotaoConfirmarStatusAgendamento
                   agendamentoId={agendamento.id}
-                  clienteId={agendamento.clienteId}
-                  fechar={() => setMenuAberto(false)}
-                  icone={X}
-                  label="Cancelar agendamento"
+                  clienteNome={agendamento.clienteNome}
+                  inicio={agendamento.inicio}
+                  onFechar={() => setMenuAberto(false)}
+                  servicoNome={agendamento.servicoNome}
                   status="cancelado"
+                  variante="menu"
                 />
               </>
             ) : null}

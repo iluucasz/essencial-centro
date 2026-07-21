@@ -24,6 +24,8 @@ export type EstadoFormularioServico = {
   status: "inicial" | "erro" | "sucesso";
   mensagem?: string;
   campos?: Record<string, string[] | undefined>;
+  /** Preenchido ao criar — o formulário usa para redirecionar à página do novo serviço. */
+  novoId?: string;
 };
 
 export type EstadoExclusaoServico = {
@@ -68,33 +70,26 @@ function parseFormularioServico(formData: FormData) {
     indicacao: getValor(formData, "indicacao"),
     contraindicacoes: getValor(formData, "contraindicacoes"),
     duracaoMinutos: getValor(formData, "duracaoMinutos"),
-    periodicidade: getValor(formData, "periodicidade"),
     valorCentavos: getValor(formData, "valor"),
     preparo: getValor(formData, "preparo"),
     cuidadosPosteriores: getValor(formData, "cuidadosPosteriores"),
   });
 }
 
-/** Toda vez que um serviço é salvo, o grupo/periodicidade usados entram (se ainda não
- * existirem) na lista de opções do formulário — é assim que "Outro" fica disponível pra
- * próxima seleção, sem precisar de uma tela separada de cadastro. */
+/** Toda vez que um serviço é salvo, o grupo usado entra (se ainda não existir) na lista de opções
+ * do formulário — é assim que "Outro" fica disponível pra próxima seleção, sem precisar de uma tela
+ * separada de cadastro. */
 async function garantirOpcoesServico(dados: CriarServicoInput, criadoPorId: string) {
-  const valores = [
-    { tipo: "grupo" as const, nome: dados.grupo },
-    ...(dados.periodicidade ? [{ tipo: "periodicidade" as const, nome: dados.periodicidade }] : []),
-  ];
-
-  await Promise.all(
-    valores.map((valor) =>
-      db
-        .insert(opcaoServico)
-        .values({ ...valor, criadoPorId })
-        .onConflictDoNothing({ target: [opcaoServico.tipo, opcaoServico.nome] }),
-    ),
-  );
+  await db
+    .insert(opcaoServico)
+    .values({ tipo: "grupo", nome: dados.grupo, criadoPorId })
+    .onConflictDoNothing({ target: [opcaoServico.tipo, opcaoServico.nome] });
 }
 
-export async function criarServico(_: EstadoFormularioServico = estadoInicial, formData: FormData) {
+export async function criarServico(
+  _: EstadoFormularioServico = estadoInicial,
+  formData: FormData,
+): Promise<EstadoFormularioServico> {
   const usuario = autorizarPapel(await auth(), ["profissional"]);
   const parsed = parseFormularioServico(formData);
 
@@ -106,11 +101,14 @@ export async function criarServico(_: EstadoFormularioServico = estadoInicial, f
     } satisfies EstadoFormularioServico;
   }
 
-  await db.insert(servico).values({
-    ...parsed.data,
-    criadoPorId: usuario.id,
-    atualizadoPorId: usuario.id,
-  });
+  const [criado] = await db
+    .insert(servico)
+    .values({
+      ...parsed.data,
+      criadoPorId: usuario.id,
+      atualizadoPorId: usuario.id,
+    })
+    .returning({ id: servico.id });
   await garantirOpcoesServico(parsed.data, usuario.id);
 
   revalidatePath("/painel/servicos");
@@ -118,13 +116,14 @@ export async function criarServico(_: EstadoFormularioServico = estadoInicial, f
   return {
     status: "sucesso",
     mensagem: "Serviço cadastrado com sucesso.",
+    novoId: criado?.id,
   } satisfies EstadoFormularioServico;
 }
 
 export async function atualizarServico(
   _: EstadoFormularioServico = estadoInicial,
   formData: FormData,
-) {
+): Promise<EstadoFormularioServico> {
   const usuario = autorizarPapel(await auth(), ["profissional"]);
   const servicoId = servicoIdSchema.safeParse(getValor(formData, "id"));
   const parsed = parseFormularioServico(formData);

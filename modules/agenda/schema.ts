@@ -3,6 +3,7 @@ import { integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-
 import { z } from "zod";
 
 import { cliente } from "@/modules/clientes/schema";
+import { formasPagamentoLancamento } from "@/modules/financeiro/schema";
 import { pacote } from "@/modules/pacotes/schema";
 import { servico } from "@/modules/servicos/schema";
 import { usuario } from "@/modules/auth/schema";
@@ -131,6 +132,45 @@ export const atualizarStatusAgendamentoSchema = z.object({
     "cancelado",
   ] as const satisfies readonly StatusAgendamento[]),
 });
+
+export const confirmarPresencaSchema = z.object({
+  id: z.string().uuid("Agendamento inválido."),
+});
+
+const situacoesPagamentoSessao = ["nao_lancar", "pago", "pendente"] as const;
+
+const valorSessaoSchema = z.preprocess((value) => {
+  if (typeof value !== "string" || value.trim() === "") return undefined;
+
+  const normalizado = value.trim().replace(/\./g, "").replace(",", ".");
+  const numero = Number(normalizado);
+
+  return Number.isFinite(numero) ? Math.round(numero * 100) : NaN;
+}, z.number("Informe um valor válido.").int().positive("O valor deve ser maior que zero.").optional());
+
+const formaPagamentoOpcional = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.enum(formasPagamentoLancamento).optional(),
+);
+
+export const concluirAgendamentoSchema = z
+  .object({
+    id: z.string().uuid("Agendamento inválido."),
+    situacaoPagamentoSessao: z.enum(situacoesPagamentoSessao).default("nao_lancar"),
+    valorSessaoCentavos: valorSessaoSchema,
+    formaPagamento: formaPagamentoOpcional,
+  })
+  .superRefine((dados, ctx) => {
+    if (dados.situacaoPagamentoSessao === "nao_lancar") return;
+
+    if (!dados.valorSessaoCentavos) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Informe o valor desta sessão.",
+        path: ["valorSessaoCentavos"],
+      });
+    }
+  });
 
 export const atualizarAgendamentoSchema = criarAgendamentoSchema.extend({
   id: z.string().uuid("Agendamento inválido."),

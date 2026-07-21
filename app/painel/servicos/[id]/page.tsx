@@ -16,12 +16,13 @@ import { rotulosStatusAgendamento, type StatusAgendamento } from "@/modules/agen
 import { exigirUsuarioAtual } from "@/modules/auth/queries";
 import { listarPacotesDoServico } from "@/modules/pacotes/queries";
 import { rotulosSituacaoPagamento, type SituacaoPagamento } from "@/modules/pacotes/schema";
+import { PacotesDoServico } from "@/modules/planos/components/pacotes-do-servico";
+import { listarPlanosDoServico } from "@/modules/planos/queries";
 import { podeGerenciarServicos } from "@/modules/servicos/acesso";
 import { MenuAcoesServico } from "@/modules/servicos/components/menu-acoes-servico";
 import { listarOpcoesServico, obterServico } from "@/modules/servicos/queries";
 
 const formatadorMoeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const formatadorData = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "UTC" });
 const formatadorDataHora = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
   timeStyle: "short",
@@ -56,24 +57,30 @@ function CampoDetalhe({ label, valor }: { label: string; valor: string | null })
   );
 }
 
-export default async function ServicoDetalhePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ServicoDetalhePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ novo?: string }>;
+}) {
   const { id } = await params;
+  const { novo } = await searchParams;
   const usuarioAtual = await exigirUsuarioAtual(["profissional", "recepcao"]);
   const podeGerenciar = podeGerenciarServicos(usuarioAtual);
 
-  const [servico, pacotes, agendamentos] = await Promise.all([
+  const [servico, pacotes, agendamentos, planos] = await Promise.all([
     obterServico(id),
     listarPacotesDoServico(id),
     listarAgendamentosDoServico(id),
+    listarPlanosDoServico(id),
   ]);
 
   if (!servico) {
     notFound();
   }
 
-  const [opcoesGrupo, opcoesPeriodicidade] = podeGerenciar
-    ? await Promise.all([listarOpcoesServico("grupo"), listarOpcoesServico("periodicidade")])
-    : [[], []];
+  const opcoesGrupo = podeGerenciar ? await listarOpcoesServico("grupo") : [];
 
   const receitaCentavos = pacotes.reduce((total, p) => total + (p.valorCentavos ?? 0), 0);
   const agora = agoraBrasilia();
@@ -109,28 +116,17 @@ export default async function ServicoDetalhePage({ params }: { params: Promise<{
               >
                 {servico.ativo ? "Ativo" : "Inativo"}
               </span>
-              {servico.periodicidade ? (
-                <span className="rounded-full bg-creme px-2.5 py-1 text-xs font-medium text-muted">
-                  {servico.periodicidade}
-                </span>
-              ) : null}
             </div>
           </div>
         </div>
-        {podeGerenciar ? (
-          <MenuAcoesServico
-            opcoesGrupo={opcoesGrupo}
-            opcoesPeriodicidade={opcoesPeriodicidade}
-            servico={servico}
-          />
-        ) : null}
+        {podeGerenciar ? <MenuAcoesServico opcoesGrupo={opcoesGrupo} servico={servico} /> : null}
       </header>
 
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <CardKpi
           cor="roxo"
           icone={PackageCheck}
-          label="Pacotes vinculados"
+          label="Contratos vinculados"
           valor={String(pacotes.length)}
         />
         <CardKpi
@@ -142,7 +138,7 @@ export default async function ServicoDetalhePage({ params }: { params: Promise<{
         <CardKpi
           cor="dourado"
           icone={Wallet}
-          label="Receita em pacotes"
+          label="Receita em contratos"
           valor={formatarValor(receitaCentavos)}
         />
         <CardKpi
@@ -168,11 +164,18 @@ export default async function ServicoDetalhePage({ params }: { params: Promise<{
         </div>
       </section>
 
+      <PacotesDoServico
+        planos={planos}
+        podeGerenciar={podeGerenciar}
+        promptInicial={novo === "1"}
+        servicoId={servico.id}
+      />
+
       <section className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
         <div className="border-b border-border pb-5">
-          <h2 className="text-base font-semibold text-foreground">Pacotes vinculados</h2>
+          <h2 className="text-base font-semibold text-foreground">Contratos vinculados</h2>
           <p className="mt-1 text-sm text-muted">
-            {pacotes.length} {pacotes.length === 1 ? "pacote" : "pacotes"}
+            {pacotes.length} {pacotes.length === 1 ? "contrato" : "contratos"}
           </p>
         </div>
         {pacotes.length === 0 ? (
@@ -191,9 +194,6 @@ export default async function ServicoDetalhePage({ params }: { params: Promise<{
                     <span className="block font-medium text-foreground">{pacote.clienteNome}</span>
                     <span className="mt-1 block text-sm text-muted">
                       {pacote.quantidadeSessoes} sessões · {formatarValor(pacote.valorCentavos)}
-                      {pacote.validade
-                        ? ` · válido até ${formatadorData.format(pacote.validade)}`
-                        : ""}
                       {pacote.ativo ? "" : " · inativo"}
                     </span>
                   </span>

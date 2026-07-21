@@ -9,9 +9,10 @@ import { Field, TextInput, TextArea, Select } from "@/components/marketing/ui/fi
 
 const CONTACT_ROWS = [
   { icon: MapPin, label: "Endereço", value: CLINIC.address },
-  { icon: Clock, label: "Horário", value: "Seg a Sex, 9h às 19h · Sáb, 9h às 14h" },
+  { icon: Clock, label: "Horário", value: "Horário de atendimento a combinar" },
   { icon: Phone, label: "Telefone / WhatsApp", value: CLINIC.phone },
   { icon: AtSign, label: "Instagram", value: CLINIC.instagram },
+  { icon: Mail, label: "E-mail", value: CLINIC.email },
 ];
 
 export function ContactSection() {

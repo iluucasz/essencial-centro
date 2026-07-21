@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   escolherAgendamentoMaisProximo,
   extrairAgendamentoIdDoQr,
+  podeConcluirAtendimento,
   podeConfirmarPresenca,
 } from "./checkin";
 
@@ -21,6 +22,22 @@ describe("podeConfirmarPresenca", () => {
     expect(podeConfirmarPresenca("realizado", null)).toBe(false);
     expect(podeConfirmarPresenca("falta", null)).toBe(false);
     expect(podeConfirmarPresenca("cancelado", null)).toBe(false);
+  });
+});
+
+describe("podeConcluirAtendimento", () => {
+  it("libera conclusão somente para agendamento marcado com presença confirmada", () => {
+    expect(podeConcluirAtendimento("marcado", new Date())).toBe(true);
+  });
+
+  it("bloqueia conclusão sem presença confirmada", () => {
+    expect(podeConcluirAtendimento("marcado", null)).toBe(false);
+  });
+
+  it("bloqueia quando o agendamento já foi resolvido", () => {
+    expect(podeConcluirAtendimento("realizado", new Date())).toBe(false);
+    expect(podeConcluirAtendimento("falta", new Date())).toBe(false);
+    expect(podeConcluirAtendimento("cancelado", new Date())).toBe(false);
   });
 });
 

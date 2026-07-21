@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { criarAgendamentoSchema, interpretarDataHoraParede } from "./schema";
+import {
+  concluirAgendamentoSchema,
+  confirmarPresencaSchema,
+  criarAgendamentoSchema,
+  interpretarDataHoraParede,
+} from "./schema";
 
 describe("interpretarDataHoraParede", () => {
   // Regressão do bug de fuso: num dev em Brasília (TZ do processo = America/Sao_Paulo, onde estes
@@ -36,5 +41,49 @@ describe("criarAgendamentoSchema — parse de inicio", () => {
     const parsed = criarAgendamentoSchema.parse({ ...base, inicio: "2026-07-20T12:00" });
 
     expect(parsed.inicio.toISOString()).toBe("2026-07-20T12:00:00.000Z");
+  });
+});
+
+describe("concluirAgendamentoSchema", () => {
+  const id = "44444444-4444-4444-8444-444444444444";
+
+  it("exige valor quando a sessão será lançada como paga ou pendente", () => {
+    expect(
+      concluirAgendamentoSchema.safeParse({
+        id,
+        situacaoPagamentoSessao: "pago",
+        valorSessaoCentavos: "",
+      }).success,
+    ).toBe(false);
+
+    expect(
+      concluirAgendamentoSchema.safeParse({
+        id,
+        situacaoPagamentoSessao: "pendente",
+        valorSessaoCentavos: "120,00",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("não exige valor quando a sessão já estava paga no contrato", () => {
+    expect(
+      concluirAgendamentoSchema.safeParse({
+        id,
+        situacaoPagamentoSessao: "nao_lancar",
+        valorSessaoCentavos: "",
+      }).success,
+    ).toBe(true);
+  });
+});
+
+describe("confirmarPresencaSchema", () => {
+  it("aceita apenas UUID válido de agendamento", () => {
+    expect(
+      confirmarPresencaSchema.safeParse({
+        id: "55555555-5555-4555-8555-555555555555",
+      }).success,
+    ).toBe(true);
+
+    expect(confirmarPresencaSchema.safeParse({ id: "123" }).success).toBe(false);
   });
 });

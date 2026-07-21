@@ -172,8 +172,8 @@ const agendamentosDoDiaTool = tool({
 
 const pacotesDoClienteTool = tool({
   description:
-    "Lista os pacotes de sessões contratados por um cliente com progresso " +
-    "(realizadas/restantes), validade e situação de pagamento.",
+    "Lista os contratos (pacotes de sessões) de um cliente com progresso " +
+    "(realizadas/restantes) e situação de pagamento.",
   inputSchema: z.object({ clienteId: z.string().uuid() }),
   execute: async ({ clienteId }) => {
     try {

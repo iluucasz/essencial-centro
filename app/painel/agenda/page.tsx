@@ -5,8 +5,9 @@ import { ModalFormulario } from "@/components/ui/modal-formulario";
 import { agoraBrasilia, cn } from "@/lib/utils";
 import { listarProfissionaisAtivos } from "@/modules/auth/queries";
 import { FiltrosAgenda } from "@/modules/agenda/components/filtros-agenda";
-import { FormularioAgendamento } from "@/modules/agenda/components/formulario-agendamento";
+import { FormularioContrato } from "@/modules/agenda/components/formulario-contrato";
 import { ListaAgenda } from "@/modules/agenda/components/lista-agenda";
+import { BotaoDiaAgenda } from "@/modules/agenda/components/modal-dia-agenda";
 import { RotaDomiciliar } from "@/modules/agenda/components/rota-domiciliar";
 import {
   listarAgendamentosDaAgenda,
@@ -21,8 +22,7 @@ import {
   type StatusAgendamento,
 } from "@/modules/agenda/schema";
 import { listarClientes } from "@/modules/clientes/queries";
-import { listarPacotesParaSelecao } from "@/modules/pacotes/queries";
-import { listarServicos } from "@/modules/servicos/queries";
+import { listarServicosComPlanos } from "@/modules/planos/queries";
 
 const visualizacoesAgenda = ["mes", "semana", "dia"] as const;
 type VisualizacaoAgenda = (typeof visualizacoesAgenda)[number];
@@ -260,7 +260,6 @@ function DiasAgendaMobile({
   profissional,
   servico,
   status,
-  visualizacao,
 }: {
   agendamentosPorDia: Map<string, AgendamentoDaAgenda[]>;
   busca: string;
@@ -271,7 +270,6 @@ function DiasAgendaMobile({
   profissional: string;
   servico: string;
   status: string;
-  visualizacao: VisualizacaoAgenda;
 }) {
   const diaSelecionado = formatarDataParam(dataSelecionada);
 
@@ -283,12 +281,14 @@ function DiasAgendaMobile({
         const selecionado = iso === diaSelecionado;
 
         return (
-          <Link
+          <BotaoDiaAgenda
+            agendamentos={agendamentos}
             className={cn(
-              "grid gap-3 rounded-2xl border border-border bg-surface p-3 transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
+              "grid w-full gap-3 rounded-2xl border border-border bg-surface p-3 text-left transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
               selecionado && "border-roxo bg-lilas/15",
             )}
-            href={hrefAgenda({
+            data={dia}
+            hrefDia={hrefAgenda({
               busca,
               cliente,
               data: iso,
@@ -296,7 +296,7 @@ function DiasAgendaMobile({
               profissional,
               servico,
               status,
-              visualizacao,
+              visualizacao: "dia",
             })}
             key={iso}
           >
@@ -325,7 +325,7 @@ function DiasAgendaMobile({
                 </span>
               ) : null}
             </span>
-          </Link>
+          </BotaoDiaAgenda>
         );
       })}
     </div>
@@ -341,7 +341,6 @@ function GradeMensal({
   profissional,
   servico,
   status,
-  visualizacao,
 }: {
   agendamentosPorDia: Map<string, AgendamentoDaAgenda[]>;
   busca: string;
@@ -351,7 +350,6 @@ function GradeMensal({
   profissional: string;
   servico: string;
   status: string;
-  visualizacao: VisualizacaoAgenda;
 }) {
   const inicio = inicioDaGradeMensal(dataSelecionada);
   const dias = montarDias(inicio, 42);
@@ -371,7 +369,6 @@ function GradeMensal({
         profissional={profissional}
         servico={servico}
         status={status}
-        visualizacao={visualizacao}
       />
       <div className="hidden overflow-x-auto md:block">
         <div className="min-w-[980px]">
@@ -390,14 +387,16 @@ function GradeMensal({
               const foraDoMes = dia.getUTCMonth() !== mesSelecionado;
 
               return (
-                <Link
+                <BotaoDiaAgenda
+                  agendamentos={agendamentos}
                   key={iso}
                   className={cn(
-                    "min-h-36 border-r border-b border-border p-3 transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
+                    "block min-h-36 w-full border-r border-b border-border p-3 text-left transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
                     foraDoMes && "text-muted/60",
                     selecionado && "bg-lilas/15 ring-1 ring-roxo/30",
                   )}
-                  href={hrefAgenda({
+                  data={dia}
+                  hrefDia={hrefAgenda({
                     busca,
                     cliente,
                     data: iso,
@@ -405,7 +404,7 @@ function GradeMensal({
                     profissional,
                     servico,
                     status,
-                    visualizacao,
+                    visualizacao: "dia",
                   })}
                 >
                   <span className="text-sm font-semibold text-foreground">{dia.getUTCDate()}</span>
@@ -419,7 +418,7 @@ function GradeMensal({
                       </span>
                     ) : null}
                   </span>
-                </Link>
+                </BotaoDiaAgenda>
               );
             })}
           </div>
@@ -438,7 +437,6 @@ function GradeSemana({
   profissional,
   servico,
   status,
-  visualizacao,
 }: {
   agendamentosPorDia: Map<string, AgendamentoDaAgenda[]>;
   busca: string;
@@ -448,7 +446,6 @@ function GradeSemana({
   profissional: string;
   servico: string;
   status: string;
-  visualizacao: VisualizacaoAgenda;
 }) {
   const dias = montarDias(inicioDaSemana(dataSelecionada), 7);
   const diaSelecionado = formatarDataParam(dataSelecionada);
@@ -465,7 +462,6 @@ function GradeSemana({
         profissional={profissional}
         servico={servico}
         status={status}
-        visualizacao={visualizacao}
       />
       <div className="hidden overflow-x-auto md:block">
         <div className="grid min-w-[980px] grid-cols-7 divide-x divide-border border-t border-border">
@@ -474,13 +470,15 @@ function GradeSemana({
             const agendamentos = agendamentosPorDia.get(iso) ?? [];
 
             return (
-              <Link
+              <BotaoDiaAgenda
+                agendamentos={agendamentos}
                 key={iso}
                 className={cn(
-                  "min-h-96 p-4 transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
+                  "block min-h-96 w-full p-4 text-left transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
                   iso === diaSelecionado && "bg-lilas/15",
                 )}
-                href={hrefAgenda({
+                data={dia}
+                hrefDia={hrefAgenda({
                   busca,
                   cliente,
                   data: iso,
@@ -488,7 +486,7 @@ function GradeSemana({
                   profissional,
                   servico,
                   status,
-                  visualizacao,
+                  visualizacao: "dia",
                 })}
               >
                 <span className="text-xs font-medium text-muted">
@@ -503,7 +501,7 @@ function GradeSemana({
                     ))
                   )}
                 </span>
-              </Link>
+              </BotaoDiaAgenda>
             );
           })}
         </div>
@@ -537,14 +535,13 @@ export default async function AgendaPage({
   const modalidadeFiltro = normalizarModalidade(params.modalidade);
   const periodo = obterPeriodoBusca(dataSelecionada, visualizacao);
 
-  const [agendamentosPeriodo, paradasDomiciliares, clientes, servicos, profissionais, pacotes] =
+  const [agendamentosPeriodo, paradasDomiciliares, clientes, servicos, profissionais] =
     await Promise.all([
       listarAgendamentosDaAgenda(periodo.inicio, periodo.fim),
       listarParadasDomiciliaresDoDia(dataSelecionada),
       listarClientes(),
-      listarServicos(),
+      listarServicosComPlanos(),
       listarProfissionaisAtivos(),
-      listarPacotesParaSelecao(),
     ]);
 
   const agendamentosFiltrados = filtrarAgendamentos({
@@ -591,18 +588,13 @@ export default async function AgendaPage({
           rotuloBotao="Novo agendamento"
           titulo="Novo agendamento"
         >
-          <FormularioAgendamento
+          <FormularioContrato
             clientes={clientes.map((c) => ({ id: c.id, nome: c.nome }))}
-            dataInicial={formatarDataParam(dataSelecionada)}
-            pacotes={pacotes.map((p) => ({
-              id: p.id,
-              nome: `${p.clienteNome} · ${p.servicoNome}`,
-            }))}
             profissionais={profissionais.map((p) => ({
               id: p.id,
               nome: p.name ?? p.email ?? "",
             }))}
-            servicos={servicos.map((s) => ({ id: s.id, nome: s.nome }))}
+            servicos={servicos}
           />
         </ModalFormulario>
       </header>
@@ -728,7 +720,6 @@ export default async function AgendaPage({
             profissional={profissionalFiltro}
             servico={servicoFiltro}
             status={statusFiltro}
-            visualizacao={visualizacao}
           />
         ) : visualizacao === "dia" ? (
           <div className="border-t border-border p-4">
@@ -744,7 +735,6 @@ export default async function AgendaPage({
             profissional={profissionalFiltro}
             servico={servicoFiltro}
             status={statusFiltro}
-            visualizacao={visualizacao}
           />
         )}
       </section>

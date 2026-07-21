@@ -1,12 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import QRCode from "qrcode";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { autorizarPapel } from "@/modules/auth/rbac";
+import { lancamentoFinanceiro } from "@/modules/financeiro/schema";
 import { notificarCliente } from "@/modules/notificacoes/criar-notificacao";
 import { deveAvisarPacoteAcabando } from "@/modules/pacotes/progresso";
 import { obterProgressoPacote } from "@/modules/pacotes/queries";
@@ -19,6 +20,8 @@ import {
   agendamento,
   atualizarAgendamentoSchema,
   atualizarStatusAgendamentoSchema,
+  concluirAgendamentoSchema,
+  confirmarPresencaSchema,
   criarAgendamentoSchema,
 } from "./schema";
 import { encontrarConflito } from "./sobreposicao";
@@ -36,9 +39,14 @@ export type EstadoExclusaoAgendamento = {
 
 const estadoInicial: EstadoFormularioAgendamento = { status: "inicial" };
 const estadoInicialExclusao: EstadoExclusaoAgendamento = { status: "inicial" };
+const formatadorDataDescricao = new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" });
 
 function getValor(formData: FormData, nome: string) {
   return formData.get(nome);
+}
+
+function dataFinanceiraDoAgendamento(data: Date) {
+  return new Date(Date.UTC(data.getUTCFullYear(), data.getUTCMonth(), data.getUTCDate()));
 }
 
 async function nomeDoServico(servicoId: string) {
@@ -59,6 +67,25 @@ async function qrCheckinBase64(agendamentoId: string) {
   });
 
   return dataUrl.split(",")[1] ?? "";
+}
+
+async function notificarPacoteAcabandoSeNecessario(pacoteId: string | null) {
+  if (!pacoteId) return;
+
+  const info = await obterProgressoPacote(pacoteId);
+  if (!info || !deveAvisarPacoteAcabando(info.progresso.sessoesRestantes)) return;
+
+  const acabou = info.progresso.sessoesRestantes === 0;
+
+  await notificarCliente({
+    clienteId: info.clienteId,
+    tipo: "pacote_acabando",
+    titulo: acabou ? "Pacote concluído" : "Última sessão do seu pacote",
+    mensagem: acabou
+      ? "Você concluiu todas as sessões do seu pacote. Fale com a gente para renovar!"
+      : "Você tem apenas 1 sessão restante no seu pacote atual.",
+    link: "/portal/evolucao",
+  });
 }
 
 export async function criarAgendamento(
@@ -303,7 +330,7 @@ export async function excluirAgendamento(
   } satisfies EstadoExclusaoAgendamento;
 }
 
-export async function atualizarStatusAgendamento(formData: FormData) {
+async function aplicarStatusAgendamento(formData: FormData): Promise<EstadoFormularioAgendamento> {
   const usuarioAtual = autorizarPapel(await auth(), ["profissional", "recepcao"]);
 
   const parsed = atualizarStatusAgendamentoSchema.safeParse({
@@ -311,7 +338,18 @@ export async function atualizarStatusAgendamento(formData: FormData) {
     status: getValor(formData, "status"),
   });
 
-  if (!parsed.success) return;
+  if (!parsed.success) {
+    return {
+      status: "erro",
+      mensagem: "Status de agendamento inválido.",
+      campos: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const filtroAtualizacao =
+    parsed.data.status === "realizado"
+      ? and(eq(agendamento.id, parsed.data.id), isNotNull(agendamento.checkinEm))
+      : eq(agendamento.id, parsed.data.id);
 
   const [atualizado] = await db
     .update(agendamento)
@@ -320,13 +358,27 @@ export async function atualizarStatusAgendamento(formData: FormData) {
       atualizadoPorId: usuarioAtual.id,
       atualizadoEm: new Date(),
     })
-    .where(eq(agendamento.id, parsed.data.id))
+    .where(filtroAtualizacao)
     .returning({
       pacoteId: agendamento.pacoteId,
       clienteId: agendamento.clienteId,
       servicoId: agendamento.servicoId,
       inicio: agendamento.inicio,
     });
+
+  if (!atualizado && parsed.data.status === "realizado") {
+    return {
+      status: "erro",
+      mensagem: "Confirme a presença antes de concluir o atendimento.",
+    };
+  }
+
+  if (!atualizado) {
+    return {
+      status: "erro",
+      mensagem: "Agendamento não encontrado.",
+    };
+  }
 
   if (parsed.data.status === "cancelado" && atualizado) {
     await notificarCliente({
@@ -360,25 +412,192 @@ export async function atualizarStatusAgendamento(formData: FormData) {
   }
 
   revalidatePath("/painel/agenda");
-  if (atualizado?.clienteId) {
-    revalidatePath(`/painel/clientes/${atualizado.clienteId}`);
+  revalidatePath(`/painel/clientes/${atualizado.clienteId}`);
+
+  return {
+    status: "sucesso",
+    mensagem:
+      parsed.data.status === "cancelado"
+        ? "Agendamento cancelado."
+        : parsed.data.status === "falta"
+          ? "Falta registrada."
+          : "Atendimento marcado como realizado.",
+  };
+}
+
+export async function atualizarStatusAgendamento(formData: FormData) {
+  await aplicarStatusAgendamento(formData);
+}
+
+export async function confirmarStatusAgendamento(
+  _: EstadoFormularioAgendamento = estadoInicial,
+  formData: FormData,
+): Promise<EstadoFormularioAgendamento> {
+  return aplicarStatusAgendamento(formData);
+}
+
+export async function concluirAgendamento(
+  _: EstadoFormularioAgendamento = estadoInicial,
+  formData: FormData,
+): Promise<EstadoFormularioAgendamento> {
+  const usuarioAtual = autorizarPapel(await auth(), ["profissional", "recepcao"]);
+
+  const parsed = concluirAgendamentoSchema.safeParse({
+    id: getValor(formData, "id"),
+    situacaoPagamentoSessao: getValor(formData, "situacaoPagamentoSessao"),
+    valorSessaoCentavos: getValor(formData, "valorSessao"),
+    formaPagamento: getValor(formData, "formaPagamento"),
+  });
+
+  if (!parsed.success) {
+    return {
+      status: "erro",
+      mensagem: "Revise os dados para concluir o atendimento.",
+      campos: parsed.error.flatten().fieldErrors,
+    };
   }
+
+  const [registro] = await db
+    .select({
+      id: agendamento.id,
+      clienteId: agendamento.clienteId,
+      pacoteId: agendamento.pacoteId,
+      servicoNome: servico.nome,
+      inicio: agendamento.inicio,
+      status: agendamento.status,
+      checkinEm: agendamento.checkinEm,
+    })
+    .from(agendamento)
+    .innerJoin(servico, eq(servico.id, agendamento.servicoId))
+    .where(eq(agendamento.id, parsed.data.id))
+    .limit(1);
+
+  if (!registro) {
+    return { status: "erro", mensagem: "Agendamento não encontrado." };
+  }
+
+  if (registro.status !== "marcado") {
+    return { status: "erro", mensagem: "Este agendamento já foi resolvido." };
+  }
+
+  if (!registro.checkinEm) {
+    return {
+      status: "erro",
+      mensagem: "Confirme a presença antes de concluir o atendimento.",
+    } satisfies EstadoFormularioAgendamento;
+  }
+
+  const atualizados = await db
+    .update(agendamento)
+    .set({
+      status: "realizado",
+      atualizadoPorId: usuarioAtual.id,
+      atualizadoEm: new Date(),
+    })
+    .where(
+      and(
+        eq(agendamento.id, parsed.data.id),
+        eq(agendamento.status, "marcado"),
+        isNotNull(agendamento.checkinEm),
+      ),
+    )
+    .returning({ id: agendamento.id });
+
+  if (atualizados.length === 0) {
+    return { status: "erro", mensagem: "Este agendamento já foi resolvido." };
+  }
+
+  const deveLancarPagamento = parsed.data.situacaoPagamentoSessao !== "nao_lancar";
+
+  if (deveLancarPagamento && parsed.data.valorSessaoCentavos) {
+    const situacaoLancamento = parsed.data.situacaoPagamentoSessao === "pago" ? "pago" : "pendente";
+
+    await db.insert(lancamentoFinanceiro).values({
+      tipo: "receita",
+      categoria: "atendimento",
+      descricao: `Sessão realizada - ${registro.servicoNome} (${formatadorDataDescricao.format(
+        registro.inicio,
+      )})`,
+      valorCentavos: parsed.data.valorSessaoCentavos,
+      data: dataFinanceiraDoAgendamento(registro.inicio),
+      formaPagamento: parsed.data.formaPagamento,
+      situacao: situacaoLancamento,
+      clienteId: registro.clienteId,
+      pacoteId: registro.pacoteId,
+      criadoPorId: usuarioAtual.id,
+      atualizadoPorId: usuarioAtual.id,
+    });
+  }
+
+  await notificarPacoteAcabandoSeNecessario(registro.pacoteId);
+
+  revalidatePath("/painel/agenda");
+  revalidatePath("/painel/financeiro");
+  revalidatePath("/painel/pacotes");
+  revalidatePath(`/painel/clientes/${registro.clienteId}`);
+
+  return {
+    status: "sucesso",
+    mensagem: deveLancarPagamento
+      ? "Atendimento concluído e pagamento registrado."
+      : "Atendimento concluído.",
+  };
 }
 
 /** Confirma presença (chegada na clínica) — destino do QR Code mostrado ao cliente no portal. */
-export async function confirmarPresenca(formData: FormData) {
+async function aplicarConfirmacaoPresenca(
+  formData: FormData,
+): Promise<EstadoFormularioAgendamento> {
   autorizarPapel(await auth(), ["profissional", "recepcao"]);
 
-  const id = getValor(formData, "id");
-  if (typeof id !== "string") return;
+  const parsed = confirmarPresencaSchema.safeParse({
+    id: getValor(formData, "id"),
+  });
 
-  await db
+  if (!parsed.success) {
+    return {
+      status: "erro",
+      mensagem: "Agendamento inválido para confirmação de presença.",
+      campos: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const [atualizado] = await db
     .update(agendamento)
     .set({ checkinEm: new Date() })
     .where(
-      and(eq(agendamento.id, id), eq(agendamento.status, "marcado"), isNull(agendamento.checkinEm)),
-    );
+      and(
+        eq(agendamento.id, parsed.data.id),
+        eq(agendamento.status, "marcado"),
+        isNull(agendamento.checkinEm),
+      ),
+    )
+    .returning({ clienteId: agendamento.clienteId });
+
+  if (!atualizado) {
+    return {
+      status: "erro",
+      mensagem: "Este agendamento não pode confirmar presença agora.",
+    };
+  }
 
   revalidatePath("/painel/agenda");
-  revalidatePath(`/painel/checkin/${id}`);
+  revalidatePath(`/painel/checkin/${parsed.data.id}`);
+  revalidatePath(`/painel/clientes/${atualizado.clienteId}`);
+
+  return {
+    status: "sucesso",
+    mensagem: "Presença confirmada.",
+  };
+}
+
+export async function confirmarPresenca(formData: FormData) {
+  await aplicarConfirmacaoPresenca(formData);
+}
+
+export async function confirmarPresencaAgendamento(
+  _: EstadoFormularioAgendamento = estadoInicial,
+  formData: FormData,
+): Promise<EstadoFormularioAgendamento> {
+  return aplicarConfirmacaoPresenca(formData);
 }

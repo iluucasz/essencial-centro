@@ -75,7 +75,7 @@ export function MenuAcoesPacote({
               type="button"
             >
               <Pencil className="size-4 text-roxo" aria-hidden="true" />
-              Editar pacote
+              Editar contrato
             </button>
             {podeExcluir ? (
               <button
@@ -89,7 +89,7 @@ export function MenuAcoesPacote({
                 type="button"
               >
                 <Trash2 className="size-4" aria-hidden="true" />
-                Excluir pacote
+                Excluir contrato
               </button>
             ) : (
               <p className="px-3 py-2 text-xs text-muted" role="note">
@@ -103,7 +103,7 @@ export function MenuAcoesPacote({
       <Modal state={modalEdicao}>
         <Modal.Backdrop variant="opaque">
           <Modal.Container size="lg">
-            <ConteudoModal titulo="Editar pacote">
+            <ConteudoModal titulo="Editar contrato">
               <FecharModalProvider value={modalEdicao.close}>
                 <FormularioPacote clientes={clientes} pacote={pacote} servicos={servicos} />
               </FecharModalProvider>
@@ -115,11 +115,11 @@ export function MenuAcoesPacote({
       <Modal state={modalExclusao}>
         <Modal.Backdrop variant="opaque">
           <Modal.Container size="sm">
-            <ConteudoModal corTitulo="text-perigo" titulo="Excluir pacote">
+            <ConteudoModal corTitulo="text-perigo" titulo="Excluir contrato">
               <form action={formAction} className="grid gap-4">
                 <input name="pacoteId" type="hidden" value={pacote.id} />
                 <p className="text-sm text-foreground">
-                  Você está prestes a excluir o pacote de {pacote.clienteNome} para{" "}
+                  Você está prestes a excluir o contrato de {pacote.clienteNome} para{" "}
                   {pacote.servicoNome}. Agendamentos e lançamentos vinculados podem perder esse
                   vínculo.
                 </p>

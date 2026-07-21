@@ -46,14 +46,9 @@ export function SiteHeader() {
             <LogIn className="h-4 w-4" />
             Login
           </Link>
-          <a
-            href={`https://wa.me/5511912345678`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={buttonVariants({ variant: "primary", size: "sm" })}
-          >
+          <Link href="/#contato" className={buttonVariants({ variant: "primary", size: "sm" })}>
             Agendar
-          </a>
+          </Link>
         </div>
 
         <button
@@ -92,14 +87,13 @@ export function SiteHeader() {
                 <LogIn className="h-4 w-4" />
                 Login
               </Link>
-              <a
-                href={`https://wa.me/5511912345678`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/#contato"
+                onClick={() => setOpen(false)}
                 className={buttonVariants({ variant: "primary", fullWidth: true })}
               >
-                Agendar pelo WhatsApp
-              </a>
+                Ir para contato
+              </Link>
             </div>
           </nav>
         </div>

@@ -10,20 +10,33 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
 - **Cliente** — pessoa atendida. Dados pessoais reutilizáveis (nome, nascimento, telefone,
   e-mail, endereço, contato de emergência, profissão), mais objetivo do tratamento,
   alergias, medicamentos, condições de saúde, cirurgias, contraindicações e consentimentos.
-- **Servico** — oferta clínica (ver catálogo em `00-produto.md`/`brief.md`). Grupo e
-  periodicidade são texto livre com lista de sugestões extensível (`opcaoServico`, ver
-  `modules/servicos/schema.ts`) — padrão inicial: massoterapia/terapias, estética corporal,
-  estética facial, saúde integrativa, pré/pós-operatório; a profissional pode adicionar outras
-  digitando "Outro" no formulário, e excluir as que ela mesma criou (não as padrão).
-  Campos: descrição, indicação, contraindicações, duração, periodicidade, valor, preparo, cuidados.
-- **Pacote** — conjunto de sessões contratadas de um serviço para um cliente: quantidade,
-  realizadas, restantes, contratação, validade, valor, forma/situação de pagamento, faltas.
+- **Servico** — oferta clínica (ver catálogo em `00-produto.md`/`brief.md`). Grupo é texto livre com
+  lista de sugestões extensível (`opcaoServico`, ver `modules/servicos/schema.ts`) — padrão inicial:
+  massoterapia/terapias, estética corporal, estética facial, saúde integrativa, pré/pós-operatório; a
+  profissional pode adicionar outras digitando "Outro" no formulário, e excluir as que ela mesma criou
+  (não as padrão). Campos: descrição, indicação, contraindicações, duração, valor (**da sessão
+  avulsa**), preparo, cuidados. **Sem periodicidade** (removida). Ao ser criado, redireciona para a
+  página do serviço, que oferece cadastrar os pacotes dele.
+- **Pacote** (tabela `plano_pacote`, `modules/planos`) — a **faixa de pacote de um serviço** (ex.: 5
+  sessões = R$X, 10 = R$Y). Template ligado ao serviço, **sem cliente**. Serviço só-avulso = nenhum
+  pacote. Campos: serviço, nome (opcional), quantidade de sessões, valor.
+- **Contrato** (o nome de domínio; tabela `pacote` por compatibilidade — `agendamento`/`sessao`/
+  `lancamento_financeiro` apontam pra `pacoteId`) — registro do cliente que agrupa as sessões: cliente,
+  serviço, `planoPacoteId` (nulo = sessão avulsa), profissional, quantidade de sessões, valor pago,
+  forma + situação de pagamento, modalidade, observações. **Sem validade**. Nasce no modal "Novo
+  agendamento" da agenda (`/painel/agenda`): escolhe serviço → pacote/avulsa → tabela de N datas editáveis
+  (pré-preenchida por frequência via `modules/recorrencia/gerar.ts`) → cria 1 contrato + N agendamentos.
+  Consumir 1 sessão = marcar um `Agendamento` como `realizado` (derivado). Ver `04-roadmap.md`.
 - **Agendamento** — atendimento marcado: cliente, serviço, profissional, data/hora, duração,
-  vínculo com pacote, status (marcado, realizado, falta, cancelado), observações. `checkinEm`
-  registra a confirmação de presença (chegada na clínica, via QR Code) — independente do status
+  vínculo com contrato (`pacoteId`), status (marcado, realizado, falta, cancelado), observações. `checkinEm`
+  registra a confirmação de presença (chegada na clínica; pela agenda, em modal; e via QR Code/link direto
+  em `/painel/checkin/[id]`) — independente do status
   "realizado", que só a profissional marca ao concluir o atendimento. `lembreteDiaAnteriorEm`/
   `lembreteHorasAntesEm` (Fase 2) marcam quando cada lembrete baseado em tempo foi disparado pelo
-  scheduler — ver `04-roadmap.md`.
+  scheduler — ver `04-roadmap.md`. **Concluir atendimento** só fica disponível depois da presença
+  confirmada (`checkinEm` preenchido); ao concluir, a agenda abre confirmação em modal: se o contrato
+  estiver pendente/parcial (ou a sessão for avulsa), pode lançar a receita daquela sessão no
+  financeiro como `pago` ou `pendente`, com valor editável.
 - **Ficha / Anamnese** — formulário estruturado por serviço, vinculado ao prontuário do cliente.
   Dinâmica (campos inteligentes). Tem versionamento e status. Detalhe em `07-fichas.md`.
 - **Sessao** — registro de um atendimento realizado: serviço, região, equipamentos, parâmetros,
@@ -65,10 +78,12 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
 
 ## Relações-chave
 
-`Cliente 1—N Pacote`, `Cliente 1—N Agendamento`, `Cliente 1—N Ficha`, `Cliente 1—N Sessao`,
-`Cliente 1—N Documento`.
-`Pacote 1—N Sessao` (consome sessões). `Sessao 1—N Medida`, `Sessao 1—N Foto`, `Sessao 1—N DorRegistro`.
-`Servico` referenciado por `Pacote`, `Agendamento`, `Ficha`, `Sessao`.
+`Cliente 1—N Contrato` (tabela `pacote`), `Cliente 1—N Agendamento`, `Cliente 1—N Ficha`,
+`Cliente 1—N Sessao`, `Cliente 1—N Documento`.
+`Servico 1—N Pacote` (`plano_pacote`, as faixas); `Servico`/`Pacote` 1—N `Contrato`.
+`Contrato 1—N Agendamento` (o fluxo "Novo agendamento" cria o contrato + as N sessões);
+`Contrato 1—N Sessao` (consome sessões). `Sessao 1—N Medida`, `Sessao 1—N Foto`, `Sessao 1—N DorRegistro`.
+`Servico` referenciado por `Pacote`(plano), `Contrato`, `Agendamento`, `Ficha`, `Sessao`.
 `Produto 1—N Lote 1—N MovimentacaoEstoque` — desacoplado do resto do domínio clínico por ora.
 `Cliente 1—N MedicamentoInformado`.
 

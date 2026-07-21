@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { agoraBrasilia } from "@/lib/utils";
 import { autorizarPapel, ErroAutorizacao } from "@/modules/auth/rbac";
 import { cliente } from "@/modules/clientes/schema";
+import { pacote } from "@/modules/pacotes/schema";
 import { servico } from "@/modules/servicos/schema";
 import { usuario } from "@/modules/auth/schema";
 
@@ -31,9 +32,14 @@ const colunasAgendamento = {
   modalidade: agendamento.modalidade,
   observacoes: agendamento.observacoes,
   checkinEm: agendamento.checkinEm,
+  pacoteId: agendamento.pacoteId,
   clienteNome: cliente.nome,
   servicoNome: servico.nome,
+  servicoValorCentavos: servico.valorCentavos,
   profissionalNome: usuario.name,
+  pacoteQuantidadeSessoes: pacote.quantidadeSessoes,
+  pacoteValorCentavos: pacote.valorCentavos,
+  pacoteSituacaoPagamento: pacote.situacaoPagamento,
 };
 
 /** Usado pelo gráfico de tendência do painel — volume de agendamentos por dia. */
@@ -61,6 +67,7 @@ export async function listarAgendamentosDoDia(data: Date) {
     .innerJoin(cliente, eq(cliente.id, agendamento.clienteId))
     .innerJoin(servico, eq(servico.id, agendamento.servicoId))
     .innerJoin(usuario, eq(usuario.id, agendamento.profissionalId))
+    .leftJoin(pacote, eq(pacote.id, agendamento.pacoteId))
     .where(and(gte(agendamento.inicio, inicioDoDia), lt(agendamento.inicio, inicioDoDiaSeguinte)))
     .orderBy(asc(agendamento.inicio));
 }
@@ -74,6 +81,7 @@ export async function listarAgendamentosDaAgenda(inicio: Date, fim: Date) {
     .innerJoin(cliente, eq(cliente.id, agendamento.clienteId))
     .innerJoin(servico, eq(servico.id, agendamento.servicoId))
     .innerJoin(usuario, eq(usuario.id, agendamento.profissionalId))
+    .leftJoin(pacote, eq(pacote.id, agendamento.pacoteId))
     .where(and(gte(agendamento.inicio, inicio), lt(agendamento.inicio, fim)))
     .orderBy(asc(agendamento.inicio));
 }
@@ -161,6 +169,29 @@ export async function listarAgendamentosDoProfissionalNoDia(profissionalId: stri
     );
 }
 
+/**
+ * Usado pela criação de série recorrente (modules/recorrencia) para checar conflitos de todas as
+ * ocorrências de uma vez — sem checagem de role própria (a action que chama já validou o papel).
+ * Só os `marcado` do intervalo importam para sobreposição.
+ */
+export async function listarAgendamentosMarcadosDoProfissionalNoPeriodo(
+  profissionalId: string,
+  inicio: Date,
+  fim: Date,
+) {
+  return db
+    .select({ inicio: agendamento.inicio, duracaoMinutos: agendamento.duracaoMinutos })
+    .from(agendamento)
+    .where(
+      and(
+        eq(agendamento.profissionalId, profissionalId),
+        gte(agendamento.inicio, inicio),
+        lt(agendamento.inicio, fim),
+        eq(agendamento.status, "marcado"),
+      ),
+    );
+}
+
 /** Usado pelo formulário de sessão (vincular o registro clínico a um atendimento marcado) e pela
  * aba "Agendamentos" do perfil do cliente (lista com CRUD completo). */
 export async function listarAgendamentosDoCliente(clienteId: string) {
@@ -179,12 +210,17 @@ export async function listarAgendamentosDoCliente(clienteId: string) {
       modalidade: agendamento.modalidade,
       observacoes: agendamento.observacoes,
       checkinEm: agendamento.checkinEm,
+      pacoteQuantidadeSessoes: pacote.quantidadeSessoes,
+      pacoteValorCentavos: pacote.valorCentavos,
+      pacoteSituacaoPagamento: pacote.situacaoPagamento,
       servicoNome: servico.nome,
+      servicoValorCentavos: servico.valorCentavos,
       profissionalNome: usuario.name,
     })
     .from(agendamento)
     .innerJoin(servico, eq(servico.id, agendamento.servicoId))
     .leftJoin(usuario, eq(usuario.id, agendamento.profissionalId))
+    .leftJoin(pacote, eq(pacote.id, agendamento.pacoteId))
     .where(eq(agendamento.clienteId, clienteId))
     .orderBy(desc(agendamento.inicio))
     .limit(50);
@@ -219,6 +255,7 @@ export async function obterAgendamentoParaCheckin(id: string) {
     .innerJoin(cliente, eq(cliente.id, agendamento.clienteId))
     .innerJoin(servico, eq(servico.id, agendamento.servicoId))
     .innerJoin(usuario, eq(usuario.id, agendamento.profissionalId))
+    .leftJoin(pacote, eq(pacote.id, agendamento.pacoteId))
     .where(eq(agendamento.id, id))
     .limit(1);
 
@@ -282,6 +319,7 @@ export async function listarMeusAgendamentos() {
     .innerJoin(cliente, eq(cliente.id, agendamento.clienteId))
     .innerJoin(servico, eq(servico.id, agendamento.servicoId))
     .innerJoin(usuario, eq(usuario.id, agendamento.profissionalId))
+    .leftJoin(pacote, eq(pacote.id, agendamento.pacoteId))
     .where(and(eq(agendamento.clienteId, clienteId), eq(agendamento.status, "marcado")))
     .orderBy(asc(agendamento.inicio));
 }
@@ -300,6 +338,7 @@ export async function listarMeuHistoricoAgendamentos(limite = 30) {
     .innerJoin(cliente, eq(cliente.id, agendamento.clienteId))
     .innerJoin(servico, eq(servico.id, agendamento.servicoId))
     .innerJoin(usuario, eq(usuario.id, agendamento.profissionalId))
+    .leftJoin(pacote, eq(pacote.id, agendamento.pacoteId))
     .where(and(eq(agendamento.clienteId, clienteId), ne(agendamento.status, "marcado")))
     .orderBy(desc(agendamento.inicio))
     .limit(limite);

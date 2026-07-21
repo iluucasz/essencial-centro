@@ -205,39 +205,39 @@ export async function excluirCliente(
       } satisfies EstadoExclusaoCliente;
     }
 
-    await db.transaction(async (tx) => {
-      await tx
+    // O driver neon-http não suporta `transaction()`; `batch()` roda tudo numa única transação HTTP,
+    // preservando esta ordem (dependente de FK: soltar/limpar vínculos antes de apagar o cadastro).
+    await db.batch([
+      db
         .update(usuario)
         .set({ clienteId: null, atualizadoEm: new Date() })
-        .where(eq(usuario.clienteId, clienteId.data));
+        .where(eq(usuario.clienteId, clienteId.data)),
 
-      await tx
+      db
         .update(lancamentoFinanceiro)
         .set({
           clienteId: null,
           atualizadoPorId: usuarioAtual.id,
           atualizadoEm: new Date(),
         })
-        .where(eq(lancamentoFinanceiro.clienteId, clienteId.data));
+        .where(eq(lancamentoFinanceiro.clienteId, clienteId.data)),
 
-      await tx
+      db
         .update(tentativaIdentificacaoBiometrica)
         .set({ clienteId: null })
-        .where(eq(tentativaIdentificacaoBiometrica.clienteId, clienteId.data));
+        .where(eq(tentativaIdentificacaoBiometrica.clienteId, clienteId.data)),
 
-      await tx.delete(biometriaCliente).where(eq(biometriaCliente.clienteId, clienteId.data));
-      await tx.delete(foto).where(eq(foto.clienteId, clienteId.data));
-      await tx.delete(medida).where(eq(medida.clienteId, clienteId.data));
-      await tx.delete(documento).where(eq(documento.clienteId, clienteId.data));
-      await tx.delete(ficha).where(eq(ficha.clienteId, clienteId.data));
-      await tx
-        .delete(medicamentoInformado)
-        .where(eq(medicamentoInformado.clienteId, clienteId.data));
-      await tx.delete(sessao).where(eq(sessao.clienteId, clienteId.data));
-      await tx.delete(agendamento).where(eq(agendamento.clienteId, clienteId.data));
-      await tx.delete(pacote).where(eq(pacote.clienteId, clienteId.data));
-      await tx.delete(cliente).where(eq(cliente.id, clienteId.data));
-    });
+      db.delete(biometriaCliente).where(eq(biometriaCliente.clienteId, clienteId.data)),
+      db.delete(foto).where(eq(foto.clienteId, clienteId.data)),
+      db.delete(medida).where(eq(medida.clienteId, clienteId.data)),
+      db.delete(documento).where(eq(documento.clienteId, clienteId.data)),
+      db.delete(ficha).where(eq(ficha.clienteId, clienteId.data)),
+      db.delete(medicamentoInformado).where(eq(medicamentoInformado.clienteId, clienteId.data)),
+      db.delete(sessao).where(eq(sessao.clienteId, clienteId.data)),
+      db.delete(agendamento).where(eq(agendamento.clienteId, clienteId.data)),
+      db.delete(pacote).where(eq(pacote.clienteId, clienteId.data)),
+      db.delete(cliente).where(eq(cliente.id, clienteId.data)),
+    ]);
   } catch {
     return {
       status: "erro",

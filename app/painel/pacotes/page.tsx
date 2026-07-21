@@ -8,7 +8,6 @@ import { ListaPacotes } from "@/modules/pacotes/components/lista-pacotes";
 import {
   normalizarAtivoPacote,
   normalizarSituacaoPagamentoPacote,
-  normalizarValidadePacote,
   textoFiltroPacote,
 } from "@/modules/pacotes/filtros";
 import { listarPacotesPainelDetalhados } from "@/modules/pacotes/queries";
@@ -25,7 +24,6 @@ export default async function PacotesPage({ searchParams }: { searchParams: Sear
   const servico = textoFiltroPacote(params.servico);
   const pagamento = normalizarSituacaoPagamentoPacote(params.pagamento);
   const ativo = normalizarAtivoPacote(params.ativo);
-  const validade = normalizarValidadePacote(params.validade);
   const [pacotes, clientes, servicos] = await Promise.all([
     listarPacotesPainelDetalhados({
       ativo,
@@ -33,30 +31,27 @@ export default async function PacotesPage({ searchParams }: { searchParams: Sear
       clienteId: cliente || undefined,
       servicoId: servico || undefined,
       situacaoPagamento: pagamento,
-      validade,
     }),
     listarClientes(),
     listarServicos(),
   ]);
   const clientesSelecao = clientes.map((c) => ({ id: c.id, nome: c.nome }));
   const servicosSelecao = servicos.map((s) => ({ id: s.id, nome: s.nome }));
-  const chaveFiltros = [busca, cliente, servico, pagamento ?? "", ativo ?? "", validade ?? ""].join(
-    "|",
-  );
+  const chaveFiltros = [busca, cliente, servico, pagamento ?? "", ativo ?? ""].join("|");
 
   return (
     <div className="grid gap-8">
       <header>
-        <h1 className="text-2xl font-semibold text-brand">Pacotes</h1>
+        <h1 className="text-2xl font-semibold text-brand">Contratos</h1>
         <p className="mt-2 max-w-2xl text-sm text-foreground">
-          Sessões contratadas, realizadas e restantes por cliente.
+          Registros de clientes: sessões contratadas, realizadas e restantes.
         </p>
       </header>
 
       <section className="grid gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-foreground">Cadastrados</h2>
-          <ModalFormulario rotuloBotao="Novo pacote" titulo="Novo pacote">
+          <ModalFormulario rotuloBotao="Novo contrato" titulo="Novo contrato">
             <FormularioPacote clientes={clientesSelecao} servicos={servicosSelecao} />
           </ModalFormulario>
         </div>
@@ -74,12 +69,6 @@ export default async function PacotesPage({ searchParams }: { searchParams: Sear
           }))}
           servico={servico}
           servicos={servicosSelecao}
-          validade={validade ?? ""}
-          validadeOpcoes={[
-            { id: "validos", nome: "Vigentes" },
-            { id: "vencidos", nome: "Vencidos" },
-            { id: "sem_validade", nome: "Sem validade" },
-          ]}
         />
         <ListaPacotes
           clientes={clientesSelecao}

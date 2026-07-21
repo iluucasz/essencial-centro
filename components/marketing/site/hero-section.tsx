@@ -24,15 +24,10 @@ export function HeroSection() {
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <a
-              href="https://wa.me/5511912345678"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={buttonVariants({ variant: "primary", size: "lg" })}
-            >
+            <Link href="/#contato" className={buttonVariants({ variant: "primary", size: "lg" })}>
               Agendar avaliação
               <ArrowRight className="h-4 w-4" />
-            </a>
+            </Link>
             <Link href="/#servicos" className={buttonVariants({ variant: "outline", size: "lg" })}>
               Conhecer serviços
             </Link>

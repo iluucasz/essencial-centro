@@ -4,6 +4,10 @@ export function podeConfirmarPresenca(status: StatusAgendamento, checkinEm: Date
   return status === "marcado" && checkinEm === null;
 }
 
+export function podeConcluirAtendimento(status: StatusAgendamento, checkinEm: Date | null) {
+  return status === "marcado" && checkinEm !== null;
+}
+
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**

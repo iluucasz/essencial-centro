@@ -14,11 +14,11 @@ export type Service = {
 export const CLINIC = {
   name: "Essencial Centro",
   tagline: "Estética, saúde e bem-estar",
-  phone: "(11) 91234-5678",
-  whatsapp: "5511912345678",
-  email: "contato@essencialcentro.com.br",
-  address: "Rua das Palmeiras, 210 — Jardim Botânico, São Paulo",
-  instagram: "@essencialcentro",
+  phone: "(00) 00000-0000",
+  whatsapp: "5500000000000",
+  email: "contato@seudominio.com.br",
+  address: "Endereço da clínica",
+  instagram: "@sua_clinica",
 } as const;
 
 export const NAV_LINKS = [

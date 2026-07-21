@@ -14,7 +14,6 @@ type ServicoResumo = {
   contraindicacoes: string | null;
   duracaoMinutos: number;
   valorCentavos: number | null;
-  periodicidade: string | null;
   preparo: string | null;
   cuidadosPosteriores: string | null;
   ativo: boolean;
@@ -71,12 +70,10 @@ function ValorCompacto({
 
 function CartaoServicoMobile({
   opcoesGrupo,
-  opcoesPeriodicidade,
   podeGerenciar,
   servico,
 }: {
   opcoesGrupo: OpcaoServicoResumo[];
-  opcoesPeriodicidade: OpcaoServicoResumo[];
   podeGerenciar: boolean;
   servico: ServicoResumo;
 }) {
@@ -112,13 +109,7 @@ function CartaoServicoMobile({
             </span>
           </Link>
 
-          {podeGerenciar ? (
-            <MenuAcoesServico
-              opcoesGrupo={opcoesGrupo}
-              opcoesPeriodicidade={opcoesPeriodicidade}
-              servico={servico}
-            />
-          ) : null}
+          {podeGerenciar ? <MenuAcoesServico opcoesGrupo={opcoesGrupo} servico={servico} /> : null}
         </div>
 
         {servico.descricao ? (
@@ -126,7 +117,7 @@ function CartaoServicoMobile({
         ) : null}
 
         <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-          <ValorCompacto label="Valor" valor={formatarValor(servico.valorCentavos)} />
+          <ValorCompacto label="Valor avulso" valor={formatarValor(servico.valorCentavos)} />
           <ValorCompacto
             label="Duração"
             valor={
@@ -135,11 +126,6 @@ function CartaoServicoMobile({
                 {servico.duracaoMinutos} min
               </span>
             }
-          />
-          <ValorCompacto
-            className="min-[380px]:col-span-2"
-            label="Periodicidade"
-            valor={servico.periodicidade ?? "Sem periodicidade"}
           />
         </div>
       </div>
@@ -157,12 +143,10 @@ function CartaoServicoMobile({
 
 export function ListaServicos({
   opcoesGrupo,
-  opcoesPeriodicidade,
   podeGerenciar,
   servicos,
 }: {
   opcoesGrupo: OpcaoServicoResumo[];
-  opcoesPeriodicidade: OpcaoServicoResumo[];
   podeGerenciar: boolean;
   servicos: ServicoResumo[];
 }) {
@@ -187,7 +171,6 @@ export function ListaServicos({
             <CartaoServicoMobile
               key={servico.id}
               opcoesGrupo={opcoesGrupo}
-              opcoesPeriodicidade={opcoesPeriodicidade}
               podeGerenciar={podeGerenciar}
               servico={servico}
             />
@@ -199,17 +182,16 @@ export function ListaServicos({
         <table className="w-full min-w-[860px] table-fixed border-collapse text-left text-sm">
           <thead className="border-b border-border text-xs font-semibold tracking-wide text-muted uppercase">
             <tr>
-              <th className="w-[32%] px-5 py-4 font-semibold">Serviço</th>
-              <th className="w-[18%] px-5 py-4 font-semibold">Grupo</th>
-              <th className="w-[18%] px-5 py-4 font-semibold">Periodicidade</th>
-              <th className="w-[16%] px-5 py-4 font-semibold">Valor</th>
-              <th className="w-[16%] px-5 py-4 text-right font-semibold">Ações</th>
+              <th className="w-[38%] px-5 py-4 font-semibold">Serviço</th>
+              <th className="w-[24%] px-5 py-4 font-semibold">Grupo</th>
+              <th className="w-[20%] px-5 py-4 font-semibold">Valor avulso</th>
+              <th className="w-[18%] px-5 py-4 text-right font-semibold">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {servicos.length === 0 ? (
               <tr>
-                <td className="px-5 py-10 text-center text-muted" colSpan={5}>
+                <td className="px-5 py-10 text-center text-muted" colSpan={4}>
                   Nenhum serviço cadastrado ainda.
                 </td>
               </tr>
@@ -245,24 +227,13 @@ export function ListaServicos({
                       </CelulaLink>
                     </td>
                     <td className="align-middle">
-                      <CelulaLink className="text-muted" href={href}>
-                        <span className="truncate">
-                          {servico.periodicidade ?? "Sem periodicidade"}
-                        </span>
-                      </CelulaLink>
-                    </td>
-                    <td className="align-middle">
                       <CelulaLink className="font-medium text-foreground" href={href}>
                         {formatarValor(servico.valorCentavos)}
                       </CelulaLink>
                     </td>
                     <td className="px-5 py-4 text-right align-middle">
                       {podeGerenciar ? (
-                        <MenuAcoesServico
-                          opcoesGrupo={opcoesGrupo}
-                          opcoesPeriodicidade={opcoesPeriodicidade}
-                          servico={servico}
-                        />
+                        <MenuAcoesServico opcoesGrupo={opcoesGrupo} servico={servico} />
                       ) : null}
                     </td>
                   </tr>

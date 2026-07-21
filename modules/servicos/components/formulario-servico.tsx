@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { LoaderCircle, Save } from "lucide-react";
 
 import { useFecharModal } from "@/components/ui/modal-formulario";
@@ -30,7 +31,6 @@ export type ServicoFormulario = {
   indicacao: string | null;
   contraindicacoes: string | null;
   duracaoMinutos: number;
-  periodicidade: string | null;
   valorCentavos: number | null;
   preparo: string | null;
   cuidadosPosteriores: string | null;
@@ -230,11 +230,9 @@ function CampoOpcao({
 
 export function FormularioServico({
   opcoesGrupo,
-  opcoesPeriodicidade,
   servico,
 }: {
   opcoesGrupo: OpcaoServicoResumo[];
-  opcoesPeriodicidade: OpcaoServicoResumo[];
   servico?: ServicoFormulario;
 }) {
   const [state, formAction, pending] = useActionState(
@@ -242,10 +240,15 @@ export function FormularioServico({
     estadoInicial,
   );
   const fecharModal = useFecharModal();
+  const router = useRouter();
 
   useEffect(() => {
-    if (state.status === "sucesso") fecharModal();
-  }, [state, fecharModal]);
+    if (state.status !== "sucesso") return;
+
+    fecharModal();
+    // Ao criar, abre a página do novo serviço já oferecendo criar pacotes (?novo=1).
+    if (state.novoId) router.push(`/painel/servicos/${state.novoId}?novo=1`);
+  }, [state, fecharModal, router]);
 
   return (
     <form action={formAction} className="grid min-w-0 gap-6">
@@ -284,23 +287,9 @@ export function FormularioServico({
           defaultValue={formatarValor(servico?.valorCentavos)}
           error={state?.campos?.valorCentavos}
           inputMode="decimal"
-          label="Valor (R$)"
+          label="Valor da sessão avulsa (R$)"
           name="valor"
           placeholder="Ex.: 150,00"
-        />
-        <CampoOpcao
-          defaultValue={valorInicial(servico?.periodicidade)}
-          error={state?.campos?.periodicidade}
-          gerenciar={
-            <GerenciarOpcoesServico
-              opcoes={opcoesPeriodicidade}
-              titulo="Gerenciar periodicidades"
-            />
-          }
-          label="Periodicidade"
-          name="periodicidade"
-          opcoes={opcoesPeriodicidade}
-          tipo="periodicidade"
         />
       </div>
 

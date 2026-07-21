@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Search, SlidersHorizontal } from "lucide-react";
 
 type OpcaoFiltro = { id: string; nome: string };
-type CampoFiltroPacotes = "ativo" | "busca" | "cliente" | "pagamento" | "servico" | "validade";
+type CampoFiltroPacotes = "ativo" | "busca" | "cliente" | "pagamento" | "servico";
 type ValoresFiltroPacotes = Record<CampoFiltroPacotes, string>;
 
 function SelectFiltro({
@@ -53,8 +53,6 @@ export function FiltrosPacotes({
   pagamentos,
   servico,
   servicos,
-  validade,
-  validadeOpcoes,
 }: {
   ativo: string;
   busca: string;
@@ -65,8 +63,6 @@ export function FiltrosPacotes({
   pagamentos: OpcaoFiltro[];
   servico: string;
   servicos: OpcaoFiltro[];
-  validade: string;
-  validadeOpcoes: OpcaoFiltro[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const timerBuscaRef = useRef<number | null>(null);
@@ -76,7 +72,6 @@ export function FiltrosPacotes({
     cliente,
     pagamento,
     servico,
-    validade,
   });
 
   function enviarAgora() {
@@ -106,7 +101,6 @@ export function FiltrosPacotes({
       cliente: "",
       pagamento: "",
       servico: "",
-      validade: "",
     });
   }
 
@@ -120,11 +114,11 @@ export function FiltrosPacotes({
     <section className="rounded-2xl border border-border bg-surface p-4">
       <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
         <SlidersHorizontal className="size-4 text-roxo" aria-hidden="true" />
-        Filtros de pacotes
+        Filtros de contratos
       </div>
       <form
         action="/painel/pacotes"
-        className="grid gap-3 lg:grid-cols-[1.4fr_repeat(5,minmax(0,1fr))_auto]"
+        className="grid gap-3 lg:grid-cols-[1.4fr_repeat(4,minmax(0,1fr))_auto]"
         method="get"
         ref={formRef}
       >
@@ -169,7 +163,7 @@ export function FiltrosPacotes({
           value={valores.pagamento}
         />
         <SelectFiltro
-          label="Pacote"
+          label="Contrato"
           name="ativo"
           onChange={atualizarSelect}
           opcoes={[
@@ -177,13 +171,6 @@ export function FiltrosPacotes({
             { id: "inativos", nome: "Inativos" },
           ]}
           value={valores.ativo}
-        />
-        <SelectFiltro
-          label="Validade"
-          name="validade"
-          onChange={atualizarSelect}
-          opcoes={validadeOpcoes}
-          value={valores.validade}
         />
         <div className="flex items-end">
           <Link

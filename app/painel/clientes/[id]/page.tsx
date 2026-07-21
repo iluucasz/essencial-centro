@@ -322,9 +322,14 @@ type AgendamentoPerfil = {
   inicio: Date;
   duracaoMinutos: number;
   status: StatusAgendamento;
+  checkinEm: Date | null;
   modalidade: "presencial" | "domiciliar";
   observacoes: string | null;
+  pacoteQuantidadeSessoes: number | null;
+  pacoteSituacaoPagamento: SituacaoPagamento | null;
+  pacoteValorCentavos: number | null;
   servicoNome: string;
+  servicoValorCentavos: number | null;
   profissionalNome: string | null;
 };
 
@@ -611,7 +616,7 @@ function ListaPacotesPerfil({
   pacotes: {
     id: string;
     servicoNome: string;
-    validade: Date | null;
+    quantidadeSessoes: number;
     valorCentavos: number | null;
     situacaoPagamento: SituacaoPagamento;
     ativo: boolean;
@@ -620,7 +625,10 @@ function ListaPacotesPerfil({
 }) {
   if (pacotes.length === 0) {
     return (
-      <PainelVazio icone={<PackageCheck className="size-4" />} texto="Nenhum pacote cadastrado." />
+      <PainelVazio
+        icone={<PackageCheck className="size-4" />}
+        texto="Nenhum contrato cadastrado."
+      />
     );
   }
 
@@ -632,10 +640,7 @@ function ListaPacotesPerfil({
             <div>
               <h3 className="text-lg font-semibold text-foreground">{pacote.servicoNome}</h3>
               <p className="mt-1 text-sm text-muted">
-                {pacote.validade
-                  ? `Validade em ${formatadorData.format(pacote.validade)}`
-                  : "Sem validade definida"}
-                {pacote.ativo ? "" : " · inativo"}
+                {pacote.quantidadeSessoes} sessões{pacote.ativo ? "" : " · inativo"}
               </p>
             </div>
             <span

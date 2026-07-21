@@ -172,7 +172,6 @@ export function reshapePacote(p: {
   servicoNome: string;
   quantidadeSessoes: number;
   progresso: unknown;
-  validade: Date | null;
   valorCentavos: number | null;
   situacaoPagamento: string;
   ativo: boolean;
@@ -182,7 +181,6 @@ export function reshapePacote(p: {
     servicoNome: p.servicoNome,
     quantidadeSessoes: p.quantidadeSessoes,
     progresso: p.progresso,
-    validade: p.validade,
     valorReais: p.valorCentavos === null ? null : p.valorCentavos / 100,
     situacaoPagamento: p.situacaoPagamento,
     ativo: p.ativo,

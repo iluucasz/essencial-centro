@@ -3,7 +3,6 @@
 import { useActionState, useEffect, useState } from "react";
 import { LoaderCircle, PackagePlus } from "lucide-react";
 
-import { CampoDataCalendario } from "@/components/ui/calendario-tailgrids";
 import { useFecharModal } from "@/components/ui/modal-formulario";
 import { cn } from "@/lib/utils";
 import {
@@ -37,22 +36,11 @@ export type PacoteFormulario = {
   clienteId: string;
   servicoId: string;
   quantidadeSessoes: number;
-  validade: Date | null;
   valorCentavos: number | null;
   formaPagamento: string | null;
   situacaoPagamento: SituacaoPagamento;
   ativo: boolean;
 };
-
-function formatarDataInput(data?: Date | null) {
-  if (!data) return undefined;
-
-  const ano = data.getUTCFullYear();
-  const mes = String(data.getUTCMonth() + 1).padStart(2, "0");
-  const dia = String(data.getUTCDate()).padStart(2, "0");
-
-  return `${ano}-${mes}-${dia}`;
-}
 
 function formatarValor(valorCentavos?: number | null) {
   if (valorCentavos === null || valorCentavos === undefined) return undefined;
@@ -266,12 +254,6 @@ export function FormularioPacote({
           required
           type="number"
         />
-        <CampoDataCalendario
-          defaultValue={formatarDataInput(pacote?.validade)}
-          error={state?.campos?.validade}
-          label="Validade"
-          name="validade"
-        />
         <CampoTexto
           defaultValue={formatarValor(pacote?.valorCentavos)}
           error={state?.campos?.valorCentavos}
@@ -284,15 +266,14 @@ export function FormularioPacote({
           defaultValue={pacote?.formaPagamento ?? undefined}
           error={state?.campos?.formaPagamento}
         />
+        <CampoSelect
+          defaultValue={pacote?.situacaoPagamento ?? "pendente"}
+          error={state?.campos?.situacaoPagamento}
+          label="Situação do pagamento"
+          name="situacaoPagamento"
+          opcoes={situacoesPagamento.map((s) => ({ id: s, nome: rotulosSituacaoPagamento[s] }))}
+        />
       </div>
-
-      <CampoSelect
-        defaultValue={pacote?.situacaoPagamento ?? "pendente"}
-        error={state?.campos?.situacaoPagamento}
-        label="Situação do pagamento"
-        name="situacaoPagamento"
-        opcoes={situacoesPagamento.map((s) => ({ id: s, nome: rotulosSituacaoPagamento[s] }))}
-      />
 
       {pacote ? (
         <label className="flex items-start gap-3 rounded-lg bg-creme p-3 text-sm text-foreground">
@@ -303,7 +284,7 @@ export function FormularioPacote({
             type="checkbox"
             value="true"
           />
-          <span>Pacote ativo para novos agendamentos.</span>
+          <span>Contrato ativo para novos agendamentos.</span>
         </label>
       ) : null}
 
@@ -320,7 +301,7 @@ export function FormularioPacote({
           ) : (
             <PackagePlus className="size-4" />
           )}
-          {pacote ? "Atualizar pacote" : "Salvar pacote"}
+          {pacote ? "Atualizar contrato" : "Salvar contrato"}
         </button>
       </div>
     </form>

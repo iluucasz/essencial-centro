@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, ilike, inArray, isNotNull, isNull, lte, or } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, isNotNull, or } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -14,7 +14,6 @@ import { calcularProgressoPacote } from "./progresso";
 import { pacote, type SituacaoPagamento } from "./schema";
 
 export type StatusAtivoPacoteFiltro = "ativos" | "inativos";
-export type ValidadePacoteFiltro = "validos" | "vencidos" | "sem_validade";
 
 export type FiltrosPacotes = {
   ativo?: StatusAtivoPacoteFiltro;
@@ -22,18 +21,10 @@ export type FiltrosPacotes = {
   clienteId?: string;
   servicoId?: string;
   situacaoPagamento?: SituacaoPagamento;
-  validade?: ValidadePacoteFiltro;
 };
-
-function hojeUtc() {
-  const hoje = new Date();
-
-  return new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate()));
-}
 
 function montarCondicoesPacote(filtro?: FiltrosPacotes) {
   const termo = filtro?.busca?.trim();
-  const hoje = hojeUtc();
 
   const condicoes = [
     termo
@@ -48,9 +39,6 @@ function montarCondicoesPacote(filtro?: FiltrosPacotes) {
     filtro?.situacaoPagamento ? eq(pacote.situacaoPagamento, filtro.situacaoPagamento) : undefined,
     filtro?.ativo === "ativos" ? eq(pacote.ativo, true) : undefined,
     filtro?.ativo === "inativos" ? eq(pacote.ativo, false) : undefined,
-    filtro?.validade === "validos" ? gte(pacote.validade, hoje) : undefined,
-    filtro?.validade === "vencidos" ? lte(pacote.validade, hoje) : undefined,
-    filtro?.validade === "sem_validade" ? isNull(pacote.validade) : undefined,
   ].filter((condicao) => condicao !== undefined);
 
   return condicoes.length > 0 ? and(...condicoes) : undefined;
@@ -67,7 +55,6 @@ async function buscarPacotesComProgresso(filtro?: FiltrosPacotes) {
         servicoId: pacote.servicoId,
         quantidadeSessoes: pacote.quantidadeSessoes,
         dataContratacao: pacote.dataContratacao,
-        validade: pacote.validade,
         valorCentavos: pacote.valorCentavos,
         formaPagamento: pacote.formaPagamento,
         situacaoPagamento: pacote.situacaoPagamento,
@@ -256,6 +243,23 @@ export async function obterProgressoPacote(pacoteId: string) {
     clienteId: registro.clienteId,
     progresso: calcularProgressoPacote(registro.quantidadeSessoes, realizados),
   };
+}
+
+/**
+ * Contratos ativos para o seletor do formulário de agendamento, já com o saldo de sessões no rótulo.
+ * Não filtramos por saldo: mostrar "0 restantes" ajuda a escolher.
+ */
+export async function listarPacotesParaSelecaoComSaldo() {
+  autorizarPapel(await auth(), ["profissional", "recepcao"]);
+
+  const pacotes = await buscarPacotesComProgresso({ ativo: "ativos" });
+
+  return pacotes.map((p) => ({
+    id: p.id,
+    clienteNome: p.clienteNome,
+    servicoNome: p.servicoNome,
+    sessoesRestantes: p.progresso.sessoesRestantes,
+  }));
 }
 
 /** Opções simples para seletores (ex.: vincular um agendamento a um pacote). */

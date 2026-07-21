@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser";
 import { ArrowRight, Camera, CheckCircle2, LoaderCircle, TriangleAlert, X } from "lucide-react";
 
-import { confirmarPresenca } from "@/modules/agenda/actions";
+import { confirmarPresencaAgendamento } from "@/modules/agenda/actions";
 import { extrairAgendamentoIdDoQr } from "@/modules/agenda/checkin";
 
 type Estado =
@@ -15,6 +15,7 @@ type Estado =
   | { tipo: "confirmando" }
   | { tipo: "confirmado" }
   | { tipo: "erro-camera" }
+  | { tipo: "erro-confirmacao"; mensagem: string }
   | { tipo: "outro-agendamento"; agendamentoId: string }
   | { tipo: "nao-reconhecido" };
 
@@ -24,7 +25,15 @@ type Estado =
  * agendamento aberto — se for de outro, oferece o link em vez de confirmar o errado. É um reforço à
  * confirmação manual (o botão continua na página, funciona sem câmera/JS).
  */
-export function LeitorQrPresenca({ agendamentoId }: { agendamentoId: string }) {
+export function LeitorQrPresenca({
+  agendamentoId,
+  mostrarLinkOutroAgendamento = true,
+  onConfirmado,
+}: {
+  agendamentoId: string;
+  mostrarLinkOutroAgendamento?: boolean;
+  onConfirmado?: () => void;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
   const [estado, setEstado] = useState<Estado>({ tipo: "parado" });
@@ -56,12 +65,23 @@ export function LeitorQrPresenca({ agendamentoId }: { agendamentoId: string }) {
       iniciarTransicao(async () => {
         const formData = new FormData();
         formData.set("id", agendamentoId);
-        await confirmarPresenca(formData);
+        const resultado = await confirmarPresencaAgendamento({ status: "inicial" }, formData);
+
+        if (resultado.status === "erro") {
+          setEstado({
+            tipo: "erro-confirmacao",
+            mensagem: resultado.mensagem ?? "Não foi possível confirmar a presença.",
+          });
+          router.refresh();
+          return;
+        }
+
         setEstado({ tipo: "confirmado" });
         router.refresh();
+        onConfirmado?.();
       });
     },
-    [agendamentoId, pararCamera, router],
+    [agendamentoId, onConfirmado, pararCamera, router],
   );
 
   useEffect(() => {
@@ -166,6 +186,16 @@ export function LeitorQrPresenca({ agendamentoId }: { agendamentoId: string }) {
         </p>
       ) : null}
 
+      {estado.tipo === "erro-confirmacao" ? (
+        <p
+          className="flex items-center gap-2 rounded-lg bg-perigo/10 px-3 py-2 text-sm font-medium text-perigo"
+          role="alert"
+        >
+          <TriangleAlert className="size-4 shrink-0" aria-hidden="true" />
+          {estado.mensagem}
+        </p>
+      ) : null}
+
       {estado.tipo === "outro-agendamento" ? (
         <div
           className="grid gap-2 rounded-lg bg-dourado/10 px-3 py-2 text-sm font-medium text-dourado"
@@ -175,13 +205,15 @@ export function LeitorQrPresenca({ agendamentoId }: { agendamentoId: string }) {
             <TriangleAlert className="size-4 shrink-0" aria-hidden="true" />
             Esse QR é de outro agendamento.
           </span>
-          <Link
-            className="inline-flex w-fit items-center gap-1.5 rounded-lg bg-surface px-3 py-1.5 text-xs font-semibold text-roxo transition hover:bg-creme"
-            href={`/painel/checkin/${estado.agendamentoId}`}
-          >
-            Abrir o check-in desse agendamento
-            <ArrowRight className="size-3.5" aria-hidden="true" />
-          </Link>
+          {mostrarLinkOutroAgendamento ? (
+            <Link
+              className="inline-flex w-fit items-center gap-1.5 rounded-lg bg-surface px-3 py-1.5 text-xs font-semibold text-roxo transition hover:bg-creme"
+              href={`/painel/checkin/${estado.agendamentoId}`}
+            >
+              Abrir o check-in desse agendamento
+              <ArrowRight className="size-3.5" aria-hidden="true" />
+            </Link>
+          ) : null}
         </div>
       ) : null}
     </div>

@@ -7,7 +7,11 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
 - ✅ Login profissional e cliente (Auth.js) + controle de permissões (RBAC) — `modules/auth`.
 - ✅ Cadastro de clientes (dados pessoais reutilizáveis) — `modules/clientes`.
 - ✅ Cadastro de serviços — `modules/servicos`.
-- ✅ Agenda (criar/remarcar/cancelar, status, vínculo a pacote) — `modules/agenda`.
+- ✅ Agenda (criar/remarcar/cancelar, status, vínculo a pacote) — `modules/agenda`. Agendamento
+  recorrente ("toda segunda", "todo dia 15") é configurado no **pacote** e gerado pelo botão "Gerar
+  agenda" (`modules/recorrencia`) — ver Fase 2 abaixo. Clicar em um dia do calendário abre um modal
+  com o resumo daquele dia; clicar em um item da agenda abre o detalhe individual com status,
+  presença, contrato/pagamento, observações e ações pertinentes.
 - ✅ Ficha de avaliação (anamnese estruturada por serviço) — `modules/fichas`. Só o tipo
   `estetica_corporal` implementado; os outros 10 do catálogo entram um de cada vez (ver `07-fichas.md`).
 - ✅ Registro de sessões — `modules/sessoes`.
@@ -31,10 +35,9 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
   existente na Fase 1 (`modules/pacotes`), por isso não liberado para `recepcao`.
 - ✅ Presença por QR Code — em `modules/agenda` (`checkin.ts`, coluna `checkinEm`). O cliente vê um
   QR Code (gerado com a lib `qrcode`, sem dependência de canvas nativo) em `/portal/agendamentos`
-  para cada atendimento marcado; mostra na recepção, que abre com a câmera do celular (sem scanner
-  dentro do app) e cai em `/painel/checkin/[id]` — página do painel (profissional/recepção) que
-  confirma a presença com um clique. Distinto do status "Realizado" (que só a profissional marca
-  ao concluir o atendimento).
+  para cada atendimento marcado; mostra na recepção, que pode abrir `/painel/checkin/[id]` por link
+  direto/QR. Na agenda do painel, o botão "Presença" confirma em modal, sem navegar para uma rota.
+  Distinto do status "Realizado" (que só a profissional marca ao concluir o atendimento).
 
 - ✅ Relatórios avançados — `modules/relatorios` (`/painel/relatorios`, restrito a `profissional`).
   Agrega, por período (padrão: mês atual), o financeiro (`calcularResumoFinanceiro`), agendamentos
@@ -87,6 +90,32 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
   endpoint autenticado com mais frequência — o endpoint em si já funciona corretamente com
   qualquer frequência de chamada, só a pontualidade do "algumas horas antes" depende de quem/como
   ele é disparado.
+
+- ✅ Serviço → Pacote (template) → Contrato → agendamento em massa. Redesenho do relacionamento
+  (baseado no catálogo real da clínica):
+  - **Serviço** (`modules/servicos`): sem `periodicidade`; `valorCentavos` = preço da **sessão avulsa**.
+  - **Pacote** (`modules/planos`, tabela `plano_pacote`): a **faixa de pacote de um serviço** (5 = R$X,
+    10 = R$Y) — template ligado ao serviço, sem cliente. Serviço só-avulso = nenhum `plano_pacote`. Ao
+    criar um serviço, redireciona para `/painel/servicos/{id}?novo=1`, que abre o modal "Deseja criar
+    pacotes?" e o CRUD dos pacotes (`PacotesDoServico`).
+  - **Contrato** (o nome de domínio; a tabela mantém o nome `pacote` por compatibilidade com
+    `agendamento`/`sessao`/`lancamento_financeiro`, que apontam pra `pacoteId`): registro do cliente que
+    agrupa as sessões — cliente, serviço, `planoPacoteId` (nulo = avulsa), profissional, pagamento
+    (forma + situação), modalidade, observações. **Sem** validade (removida). Consumir 1 sessão = marcar
+    um agendamento `realizado` (derivado, igual antes).
+  - **Novo agendamento** (modal em `/painel/agenda`, `FormularioContrato` + action `agendarContrato` em
+    `modules/pacotes/actions`): escolhe cliente → serviço → "avulsa" ou um pacote do serviço; monta uma
+    **tabela de N datas editáveis** (N = sessões do pacote, 1 na avulsa), com **pré-preenchimento por
+    frequência** (semanal/mensal) reusando a função pura `modules/recorrencia/gerar.ts` — cada data
+    editável. Duração de cada sessão = a do serviço. Ao confirmar, cria **1 contrato + N agendamentos**
+    num `db.batch` (neon-http **não** suporta `transaction()`; `contratoId` pré-gerado). **Conflito é
+    bloqueante** (reusa `ocorrenciasEmConflito`/`encontrarConflito`). Notifica o cliente uma vez.
+  - **Concluir atendimento**: a ação só é liberada depois da presença confirmada (`checkinEm`). O botão
+    "Concluir atendimento" na agenda abre modal de confirmação. O modal mostra a situação de pagamento
+    do contrato e permite lançar a receita daquela sessão (`pago` ou `pendente`) com valor editável; se
+    o contrato já estava pago, a opção padrão é não lançar cobrança extra.
+  - `modules/recorrencia` não tem tabela própria: só o enum de frequência + `gerar.ts` (semanal por dia
+    da semana; mensal por dia do mês, pulando meses sem o dia, ex. 31 em fevereiro).
 
 - ✅ Alertas de medicamentos — `modules/medicamentos` (`medicamentoInformado`, seção "Medicamentos
   informados e alertas de segurança" em `/painel/clientes/[id]`, restrito a `profissional`). Campos

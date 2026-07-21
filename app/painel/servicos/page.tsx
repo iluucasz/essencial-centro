@@ -7,10 +7,9 @@ import { listarOpcoesServico, listarServicos } from "@/modules/servicos/queries"
 
 export default async function ServicosPage() {
   const usuario = await exigirUsuarioAtual(["profissional", "recepcao"]);
-  const [servicos, opcoesGrupo, opcoesPeriodicidade] = await Promise.all([
+  const [servicos, opcoesGrupo] = await Promise.all([
     listarServicos(),
     listarOpcoesServico("grupo"),
-    listarOpcoesServico("periodicidade"),
   ]);
   const podeGerenciar = podeGerenciarServicos(usuario);
 
@@ -26,20 +25,12 @@ export default async function ServicosPage() {
 
         {podeGerenciar ? (
           <ModalFormulario rotuloBotao="Novo serviço" titulo="Novo serviço">
-            <FormularioServico
-              opcoesGrupo={opcoesGrupo}
-              opcoesPeriodicidade={opcoesPeriodicidade}
-            />
+            <FormularioServico opcoesGrupo={opcoesGrupo} />
           </ModalFormulario>
         ) : null}
       </header>
 
-      <ListaServicos
-        opcoesGrupo={opcoesGrupo}
-        opcoesPeriodicidade={opcoesPeriodicidade}
-        podeGerenciar={podeGerenciar}
-        servicos={servicos}
-      />
+      <ListaServicos opcoesGrupo={opcoesGrupo} podeGerenciar={podeGerenciar} servicos={servicos} />
     </div>
   );
 }

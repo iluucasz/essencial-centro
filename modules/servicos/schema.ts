@@ -63,7 +63,6 @@ export const servico = pgTable("servico", {
   indicacao: text("indicacao"),
   contraindicacoes: text("contraindicacoes"),
   duracaoMinutos: integer("duracao_minutos").notNull(),
-  periodicidade: text("periodicidade"),
   valorCentavos: integer("valor_centavos"),
   preparo: text("preparo"),
   cuidadosPosteriores: text("cuidados_posteriores"),
@@ -90,7 +89,6 @@ export const criarServicoSchema = z.object({
     .int()
     .min(5, "A duração mínima é de 5 minutos.")
     .max(480, "A duração máxima é de 8 horas."),
-  periodicidade: textoLongoOpcional,
   valorCentavos: valorSchema,
   preparo: textoLongoOpcional,
   cuidadosPosteriores: textoLongoOpcional,

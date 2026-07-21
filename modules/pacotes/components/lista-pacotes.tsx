@@ -80,7 +80,6 @@ type PacoteResumo = {
   servicoNome: string;
   quantidadeSessoes: number;
   dataContratacao?: Date;
-  validade: Date | null;
   valorCentavos: number | null;
   formaPagamento: string | null;
   situacaoPagamento: SituacaoPagamento;
@@ -199,9 +198,8 @@ function DetalhesPacote({ pacote }: { pacote: PacoteResumo }) {
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-3">
           <InfoResumo label="Contratação" valor={formatarData(pacote.dataContratacao)} />
-          <InfoResumo label="Validade" valor={formatarData(pacote.validade)} />
           <InfoResumo label="Valor" valor={formatarValor(pacote.valorCentavos)} />
           <InfoResumo label="Pagamento" valor={pacote.formaPagamento ?? "Não informado"} />
         </div>
@@ -393,7 +391,7 @@ function ItemPacote({
             {pacote.servicoNome}
           </span>
           <span className="mt-1 block text-sm text-muted">
-            {formatarValor(pacote.valorCentavos)} · validade {formatarData(pacote.validade)}
+            {pacote.quantidadeSessoes} sessões · {formatarValor(pacote.valorCentavos)}
           </span>
         </span>
 

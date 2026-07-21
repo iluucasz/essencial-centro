@@ -22,11 +22,9 @@ const estadoInicialExclusao: EstadoExclusaoServico = { status: "inicial" };
 
 export function MenuAcoesServico({
   opcoesGrupo,
-  opcoesPeriodicidade,
   servico,
 }: {
   opcoesGrupo: OpcaoServicoResumo[];
-  opcoesPeriodicidade: OpcaoServicoResumo[];
   servico: ServicoFormulario;
 }) {
   const modalEdicao = useOverlayState();
@@ -121,11 +119,7 @@ export function MenuAcoesServico({
           <Modal.Container className="w-[calc(100vw-1rem)] sm:w-full" size="lg">
             <ConteudoModal titulo="Editar serviço">
               <FecharModalProvider value={modalEdicao.close}>
-                <FormularioServico
-                  opcoesGrupo={opcoesGrupo}
-                  opcoesPeriodicidade={opcoesPeriodicidade}
-                  servico={servico}
-                />
+                <FormularioServico opcoesGrupo={opcoesGrupo} servico={servico} />
               </FecharModalProvider>
             </ConteudoModal>
           </Modal.Container>

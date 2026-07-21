@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   normalizarAtivoPacote,
   normalizarSituacaoPagamentoPacote,
-  normalizarValidadePacote,
   textoFiltroPacote,
 } from "./filtros";
 
@@ -22,7 +21,5 @@ describe("filtros de pacotes", () => {
   it("aceita apenas filtros estruturados válidos", () => {
     expect(normalizarAtivoPacote("ativos")).toBe("ativos");
     expect(normalizarAtivoPacote("todos")).toBeUndefined();
-    expect(normalizarValidadePacote("vencidos")).toBe("vencidos");
-    expect(normalizarValidadePacote("expirados")).toBeUndefined();
   });
 });

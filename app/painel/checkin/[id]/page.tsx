@@ -5,6 +5,7 @@ import { ArrowLeft, CalendarClock, CheckCircle2, Clock, MapPin, User } from "luc
 import { podeConfirmarPresenca } from "@/modules/agenda/checkin";
 import { ConfirmacaoManualPresenca } from "@/modules/agenda/components/confirmacao-manual-presenca";
 import { LeitorQrPresenca } from "@/modules/agenda/components/leitor-qr-presenca";
+import { formatarHorarioPresenca } from "@/modules/agenda/formatacao";
 import {
   rotulosModalidadeAtendimento,
   rotulosStatusAgendamento,
@@ -16,14 +17,6 @@ function formatarDataHora(data: Date) {
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "long",
     timeStyle: "short",
-    timeZone: "UTC",
-  }).format(data);
-}
-
-function formatarHorario(data: Date) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
     timeZone: "UTC",
   }).format(data);
 }
@@ -121,7 +114,7 @@ export default async function CheckinAgendamentoPage({
             <p className="font-semibold text-brand">Presença confirmada</p>
             <p className="flex items-center gap-1.5 text-sm text-brand/80">
               <Clock className="size-3.5" aria-hidden="true" />
-              às {formatarHorario(agendamento.checkinEm)}
+              às {formatarHorarioPresenca(agendamento.checkinEm)}
             </p>
           </div>
         </div>
