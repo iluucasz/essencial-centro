@@ -31,6 +31,36 @@ describe("normalizarTelefone", () => {
     expect(normalizarTelefone("5521999999999")).toBe("5521999999999");
   });
 
+  it("insere o 9º dígito em celular no formato antigo (DDD + 8 dígitos)", () => {
+    // "2197316015" = DDD 21 + celular antigo "97316015" → vira "5521997316015".
+    expect(normalizarTelefone("2197316015")).toBe("5521997316015");
+    // Mesmo número já com o 9 e um espaço no meio → estável.
+    expect(normalizarTelefone("21 997316015")).toBe("5521997316015");
+    // Idempotente com o código do país presente mas sem o 9º dígito.
+    expect(normalizarTelefone("552197316015")).toBe("5521997316015");
+  });
+
+  it("não insere 9 em telefone fixo (número começando por 2–5)", () => {
+    expect(normalizarTelefone("2133334444")).toBe("552133334444");
+  });
+
+  it("aceita variações de digitação do mesmo número", () => {
+    for (const entrada of [
+      "21 973165015",
+      "(21) 97316-5015",
+      "+55 21 97316-5015",
+      "021 97316-5015",
+      "55 21 97316 5015",
+    ]) {
+      expect(normalizarTelefone(entrada)).toBe("5521973165015");
+    }
+  });
+
+  it("não confunde o DDD 55 (Santa Maria) com o código do país", () => {
+    // DDD 55 + celular 9 dígitos, sem código do país → prefixa 55 (país) sem remover o DDD 55.
+    expect(normalizarTelefone("55999912345")).toBe("5555999912345");
+  });
+
   it("nunca inclui @s.whatsapp.net no resultado", () => {
     expect(normalizarTelefone("5521999999999")?.includes("@")).toBe(false);
   });
@@ -38,6 +68,7 @@ describe("normalizarTelefone", () => {
   it("retorna null pra formato não reconhecível", () => {
     expect(normalizarTelefone("123")).toBeNull();
     expect(normalizarTelefone("")).toBeNull();
+    expect(normalizarTelefone("abc def")).toBeNull();
   });
 });
 

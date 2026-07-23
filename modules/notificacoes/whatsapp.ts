@@ -11,27 +11,39 @@ export function configuracaoWhatsAppValida() {
 }
 
 /**
- * Normaliza um telefone brasileiro pro formato esperado pela Evolution API (só dígitos, com
- * código do país, sem `@s.whatsapp.net`). Retorna `null` quando o formato não é reconhecível.
+ * Normaliza um telefone brasileiro pro formato esperado pela Evolution API (só dígitos, com código
+ * do país 55, sem `@s.whatsapp.net`). Tolerante à bagunça de digitação: espaços, parênteses, hífen,
+ * `+`, zero à esquerda (`021…`), com ou sem o código do país. Celular no formato antigo (8 dígitos
+ * começando por 6–9) recebe o 9º dígito. Retorna `null` só quando não dá pra reconhecer um telefone.
  *
- * Cuidado: DDD 55 existe de verdade (Santa Maria/RS) — por isso a checagem usa o **tamanho** do
- * número, não só o prefixo, pra não confundir "código do país 55" com "DDD 55".
+ * Cuidado: DDD 55 existe de verdade (Santa Maria/RS) — a remoção do código do país 55 só acontece
+ * quando o tamanho indica que ele está presente (12 ou 13 dígitos), nunca em 10/11 (local), pra não
+ * confundir "código do país 55" com "DDD 55".
  */
 export function normalizarTelefone(telefone: string): string | null {
-  const digitos = telefone.replace(/\D/g, "");
+  const digitos = telefone.replace(/\D/g, "").replace(/^0+/, "");
   if (!digitos) return null;
 
-  // Já tem código do país: 55 + DDD (2) + número (8 ou 9 dígitos) = 12 ou 13 dígitos.
-  if (digitos.startsWith("55") && (digitos.length === 12 || digitos.length === 13)) {
-    return digitos;
+  // Descarta o código do país 55 só quando o tamanho indica que ele está presente (12–13 dígitos).
+  const local =
+    digitos.startsWith("55") && (digitos.length === 12 || digitos.length === 13)
+      ? digitos.slice(2)
+      : digitos;
+
+  // Depois disso, `local` precisa ser DDD (2 dígitos) + número (8 ou 9 dígitos).
+  if (local.length !== 10 && local.length !== 11) return null;
+
+  const ddd = local.slice(0, 2);
+  if (Number(ddd) < 11) return null;
+
+  let numero = local.slice(2);
+
+  // Celular no formato antigo (8 dígitos começando por 6–9) → insere o 9º dígito. Fixo (2–5) fica.
+  if (numero.length === 8 && /^[6-9]/.test(numero)) {
+    numero = `9${numero}`;
   }
 
-  // Número local (DDD + número, sem código do país) — adiciona o 55.
-  if (digitos.length === 10 || digitos.length === 11) {
-    return `55${digitos}`;
-  }
-
-  return null;
+  return `55${ddd}${numero}`;
 }
 
 /**
