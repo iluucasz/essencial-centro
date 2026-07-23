@@ -77,7 +77,7 @@ export default async function DadosClientePage() {
             <LinhaInfo label="Profissão" valor={cliente.profissao} />
             <LinhaInfo label="Objetivo do tratamento" valor={cliente.objetivoTratamento} />
             <LinhaInfo label="Alergias" valor={cliente.alergias} />
-            <LinhaInfo label="Medicamentos" valor={cliente.medicamentos} />
+            <LinhaInfo label="Medicamentos em uso" valor={cliente.medicamentos} />
             <LinhaInfo label="Condições de saúde" valor={cliente.condicoesSaude} />
             <LinhaInfo label="Cirurgias" valor={cliente.cirurgias} />
             <LinhaInfo label="Contraindicações" valor={cliente.contraindicacoes} />

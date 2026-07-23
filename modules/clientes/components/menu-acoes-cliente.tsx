@@ -1,10 +1,26 @@
 "use client";
 
 import { useActionState, useEffect, useState, type FocusEvent } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Modal, useOverlayState } from "@heroui/react";
-import { Ellipsis, Eye, LoaderCircle, Pencil, Trash2 } from "lucide-react";
+import {
+  Activity,
+  CalendarDays,
+  CheckCircle2,
+  ClipboardList,
+  Ellipsis,
+  Eye,
+  HeartPulse,
+  LoaderCircle,
+  Mail,
+  MapPin,
+  Pencil,
+  Phone,
+  Pill,
+  ShieldCheck,
+  Trash2,
+  UserRound,
+} from "lucide-react";
 
 import { usePosicaoMenuAcoes } from "@/components/ui/menu-acoes";
 import {
@@ -18,14 +34,188 @@ import { FormularioCliente, type ClienteFormulario } from "./formulario-cliente"
 
 const estadoInicialExclusao: EstadoExclusaoCliente = { status: "inicial" };
 
+const formatadorData = new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" });
+
+function valorTexto(valor: string | null | undefined) {
+  return valor?.trim() || "Não informado";
+}
+
+function valorBooleano(valor: boolean) {
+  return valor ? "Sim" : "Não";
+}
+
+function CampoVisualizacao({
+  icone,
+  label,
+  valor,
+}: {
+  icone: React.ReactNode;
+  label: string;
+  valor: React.ReactNode;
+}) {
+  return (
+    <div className="grid gap-1 rounded-2xl border border-border bg-surface p-4">
+      <span className="flex items-center gap-2 text-xs font-semibold text-muted">
+        <span className="text-roxo">{icone}</span>
+        {label}
+      </span>
+      <span className="text-sm leading-6 font-medium text-foreground">{valor}</span>
+    </div>
+  );
+}
+
+function BlocoVisualizacao({
+  icone,
+  label,
+  valor,
+}: {
+  icone: React.ReactNode;
+  label: string;
+  valor: string | null | undefined;
+}) {
+  return (
+    <section className="grid gap-2 rounded-2xl border border-border bg-surface p-4">
+      <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+        <span className="rounded-xl bg-lilas/20 p-2 text-roxo">{icone}</span>
+        {label}
+      </h3>
+      <p className="text-sm leading-6 whitespace-pre-wrap text-foreground">{valorTexto(valor)}</p>
+    </section>
+  );
+}
+
+function VisualizacaoCliente({
+  cliente,
+  medicamentosEmUso,
+}: {
+  cliente: ClienteFormulario;
+  medicamentosEmUso?: string | null;
+}) {
+  return (
+    <div className="grid gap-5">
+      <div className="rounded-2xl border border-roxo/10 bg-lilas/15 p-4">
+        <div className="flex items-start gap-3">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-surface text-roxo">
+            <UserRound className="size-5" aria-hidden="true" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-base font-semibold text-foreground">
+              {cliente.nome}
+            </span>
+            <span className="mt-1 block text-sm text-muted">
+              {valorTexto(cliente.profissao)} · {formatadorData.format(cliente.dataNascimento)}
+            </span>
+          </span>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <CampoVisualizacao
+          icone={<CalendarDays className="size-4" aria-hidden="true" />}
+          label="Data de nascimento"
+          valor={formatadorData.format(cliente.dataNascimento)}
+        />
+        <CampoVisualizacao
+          icone={<UserRound className="size-4" aria-hidden="true" />}
+          label="Profissão"
+          valor={valorTexto(cliente.profissao)}
+        />
+        <CampoVisualizacao
+          icone={<Phone className="size-4" aria-hidden="true" />}
+          label="Telefone"
+          valor={valorTexto(cliente.telefone)}
+        />
+        <CampoVisualizacao
+          icone={<Mail className="size-4" aria-hidden="true" />}
+          label="E-mail"
+          valor={valorTexto(cliente.email)}
+        />
+        <CampoVisualizacao
+          icone={<Phone className="size-4" aria-hidden="true" />}
+          label="Contato de emergência"
+          valor={
+            <span>
+              {valorTexto(cliente.contatoEmergenciaNome)}
+              <span className="block text-muted">
+                {valorTexto(cliente.contatoEmergenciaTelefone)}
+              </span>
+            </span>
+          }
+        />
+        <CampoVisualizacao
+          icone={<MapPin className="size-4" aria-hidden="true" />}
+          label="Endereço"
+          valor={valorTexto(cliente.endereco)}
+        />
+      </div>
+
+      <div className="grid gap-3">
+        <BlocoVisualizacao
+          icone={<HeartPulse className="size-4" aria-hidden="true" />}
+          label="Objetivo do tratamento"
+          valor={cliente.objetivoTratamento}
+        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <BlocoVisualizacao
+            icone={<ShieldCheck className="size-4" aria-hidden="true" />}
+            label="Alergias"
+            valor={cliente.alergias || "Sem alergias conhecidas"}
+          />
+          <BlocoVisualizacao
+            icone={<Pill className="size-4" aria-hidden="true" />}
+            label="Medicamentos em uso"
+            valor={medicamentosEmUso ?? cliente.medicamentos}
+          />
+          <BlocoVisualizacao
+            icone={<Activity className="size-4" aria-hidden="true" />}
+            label="Condições de saúde"
+            valor={cliente.condicoesSaude}
+          />
+          <BlocoVisualizacao
+            icone={<ClipboardList className="size-4" aria-hidden="true" />}
+            label="Cirurgias"
+            valor={cliente.cirurgias}
+          />
+        </div>
+        <BlocoVisualizacao
+          icone={<ShieldCheck className="size-4" aria-hidden="true" />}
+          label="Contraindicações"
+          valor={cliente.contraindicacoes}
+        />
+        <BlocoVisualizacao
+          icone={<ClipboardList className="size-4" aria-hidden="true" />}
+          label="Observações internas"
+          valor={cliente.observacoesInternas}
+        />
+      </div>
+
+      <div className="grid gap-3 rounded-2xl border border-border bg-creme/70 p-4 sm:grid-cols-2">
+        <CampoVisualizacao
+          icone={<CheckCircle2 className="size-4" aria-hidden="true" />}
+          label="Consentimento de dados"
+          valor={valorBooleano(cliente.consentimentoDados)}
+        />
+        <CampoVisualizacao
+          icone={<CheckCircle2 className="size-4" aria-hidden="true" />}
+          label="Consentimento de imagem"
+          valor={valorBooleano(cliente.consentimentoImagem)}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function MenuAcoesCliente({
   cliente,
+  medicamentosEmUso,
   podeExcluir,
 }: {
   cliente: ClienteFormulario;
+  medicamentosEmUso?: string | null;
   podeExcluir: boolean;
 }) {
   const router = useRouter();
+  const modalVisualizacao = useOverlayState();
   const modalEdicao = useOverlayState();
   const modalExclusao = useOverlayState();
   const [menuAberto, setMenuAberto] = useState(false);
@@ -68,15 +258,18 @@ export function MenuAcoesCliente({
             className={`absolute right-0 z-40 w-56 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-surface p-1 shadow-md ${abrirParaCima ? "bottom-10" : "top-10"}`}
             role="menu"
           >
-            <Link
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
-              href={`/painel/clientes/${cliente.id}`}
-              onClick={() => setMenuAberto(false)}
+            <button
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+              onClick={() => {
+                setMenuAberto(false);
+                modalVisualizacao.open();
+              }}
               role="menuitem"
+              type="button"
             >
               <Eye className="size-4 text-roxo" aria-hidden="true" />
               Ver cadastro
-            </Link>
+            </button>
             <button
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
               onClick={() => {
@@ -111,6 +304,16 @@ export function MenuAcoesCliente({
           </div>
         ) : null}
       </div>
+
+      <Modal state={modalVisualizacao}>
+        <Modal.Backdrop variant="opaque">
+          <Modal.Container className="w-[calc(100vw-1rem)] sm:w-full" size="lg">
+            <ConteudoModal titulo="Cadastro do cliente">
+              <VisualizacaoCliente cliente={cliente} medicamentosEmUso={medicamentosEmUso} />
+            </ConteudoModal>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
 
       <Modal state={modalEdicao}>
         <Modal.Backdrop variant="opaque">

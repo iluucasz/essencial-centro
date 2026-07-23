@@ -6,11 +6,11 @@ import {
   CheckCircle2,
   ChevronRight,
   ClipboardList,
-  FilePlus2,
   Fingerprint,
   FileText,
   HeartPulse,
   ImagePlus,
+  LayoutTemplate,
   Mail,
   MapPin,
   NotebookPen,
@@ -24,25 +24,32 @@ import {
 } from "lucide-react";
 
 import { ModalFormulario } from "@/components/ui/modal-formulario";
-import { agoraBrasilia } from "@/lib/utils";
+import { agoraBrasilia, cn } from "@/lib/utils";
 import { FormularioAgendamento } from "@/modules/agenda/components/formulario-agendamento";
-import { MenuAcoesAgendamento } from "@/modules/agenda/components/menu-acoes-agendamento";
 import { listarAgendamentosDoCliente } from "@/modules/agenda/queries";
-import { rotulosStatusAgendamento, type StatusAgendamento } from "@/modules/agenda/schema";
 import { exigirUsuarioAtual, listarProfissionaisAtivos } from "@/modules/auth/queries";
 import { desativarBiometria } from "@/modules/biometria/actions";
 import { listarBiometriasDoCliente } from "@/modules/biometria/queries";
 import { podeExcluirClientes } from "@/modules/clientes/acesso";
 import { registrarConsentimentoBiometria } from "@/modules/clientes/actions";
+import { AbasPerfilCliente } from "@/modules/clientes/components/abas-perfil-cliente";
+import {
+  ListaAgendamentosCliente,
+  type AgendamentoClienteLista,
+} from "@/modules/clientes/components/lista-agendamentos-cliente";
 import { MenuAcoesCliente } from "@/modules/clientes/components/menu-acoes-cliente";
 import { getCliente } from "@/modules/clientes/queries";
 import type { Cliente } from "@/modules/clientes/schema";
 import { FormularioDocumento } from "@/modules/documentos/components/formulario-documento";
 import { listarDocumentosDoCliente } from "@/modules/documentos/queries";
-import { FormularioFichaEsteticaCorporal } from "@/modules/fichas/components/formulario-ficha-estetica-corporal";
-import { FormularioFichaExtensaoCilios } from "@/modules/fichas/components/formulario-ficha-extensao-cilios";
-import { ListaFichas, type FichaLista } from "@/modules/fichas/components/lista-fichas";
+import {
+  ListaFichas,
+  type FichaLista,
+  type ModeloResumo,
+} from "@/modules/fichas/components/lista-fichas";
+import { SeletorModeloFicha } from "@/modules/fichas/components/seletor-modelo-ficha";
 import { listarFichasDoCliente } from "@/modules/fichas/queries";
+import { listarModelosFicha } from "@/modules/fichas/modelos-queries";
 import { FormularioFoto } from "@/modules/fotos/components/formulario-foto";
 import { GaleriaFotos } from "@/modules/fotos/components/galeria-fotos";
 import { MenuFotoCliente } from "@/modules/fotos/components/menu-foto-cliente";
@@ -70,15 +77,22 @@ import {
   type MedicamentoLista,
 } from "@/modules/medicamentos/components/lista-medicamentos";
 import { listarMedicamentosDoCliente } from "@/modules/medicamentos/queries";
-import { listarPacotesDoCliente, listarPacotesParaSelecao } from "@/modules/pacotes/queries";
+import { DestaquePacoteCliente } from "@/modules/pacotes/components/destaque-pacote-cliente";
+import { montarPacotesEmDestaque } from "@/modules/pacotes/destaque";
+import { listarPacotesDoCliente } from "@/modules/pacotes/queries";
 import { rotulosSituacaoPagamento, type SituacaoPagamento } from "@/modules/pacotes/schema";
 import { listarServicos } from "@/modules/servicos/queries";
-import { FormularioSessao } from "@/modules/sessoes/components/formulario-sessao";
+import {
+  FormularioSessao,
+  type AgendamentoSessaoFormulario,
+} from "@/modules/sessoes/components/formulario-sessao";
 import {
   ListaSessoes as ListaSessoesGerenciavel,
   type SessaoLista,
 } from "@/modules/sessoes/components/lista-sessoes";
+import { AvisoPendenciasRegistroSessaoCliente } from "@/modules/sessoes/components/aviso-pendencias-registro-sessao";
 import { listarSessoesDoCliente } from "@/modules/sessoes/queries";
+import { filtrarAgendamentosRealizadosSemSessao } from "@/modules/sessoes/pendencias";
 import { rotulosStatusDocumento, rotulosTipoDocumento } from "@/modules/documentos/schema";
 import { rotulosDedoBiometria, type DedoBiometria } from "@/modules/biometria/schema";
 import type { StatusDocumento, TipoDocumento } from "@/modules/documentos/schema";
@@ -109,6 +123,62 @@ type AbaCliente =
   | "fotos"
   | "medicamentos"
   | "biometria";
+
+type TomPerfil = "brand" | "dourado" | "neutro" | "perigo" | "roxo" | "salvia";
+
+const estilosTomPerfil: Record<
+  TomPerfil,
+  {
+    cabecalho: string;
+    card: string;
+    faixa: string;
+    icone: string;
+    painel: string;
+  }
+> = {
+  brand: {
+    cabecalho: "border-brand/10 bg-surface/85",
+    card: "border-brand/15 bg-surface",
+    faixa: "bg-brand",
+    icone: "bg-brand/10 text-brand",
+    painel: "border-brand/10 bg-brand/5",
+  },
+  dourado: {
+    cabecalho: "border-dourado/15 bg-surface/85",
+    card: "border-dourado/20 bg-surface",
+    faixa: "bg-dourado",
+    icone: "bg-dourado/15 text-dourado",
+    painel: "border-dourado/15 bg-dourado/10",
+  },
+  neutro: {
+    cabecalho: "border-border bg-surface/85",
+    card: "border-border bg-surface",
+    faixa: "bg-muted",
+    icone: "bg-creme text-muted",
+    painel: "border-border bg-creme/70",
+  },
+  perigo: {
+    cabecalho: "border-perigo/10 bg-surface/85",
+    card: "border-perigo/15 bg-surface",
+    faixa: "bg-perigo",
+    icone: "bg-perigo/10 text-perigo",
+    painel: "border-perigo/10 bg-perigo/5",
+  },
+  roxo: {
+    cabecalho: "border-roxo/10 bg-surface/85",
+    card: "border-roxo/15 bg-surface",
+    faixa: "bg-roxo",
+    icone: "bg-lilas/25 text-roxo",
+    painel: "border-roxo/10 bg-lilas/20",
+  },
+  salvia: {
+    cabecalho: "border-salvia/15 bg-surface/85",
+    card: "border-salvia/20 bg-surface",
+    faixa: "bg-salvia",
+    icone: "bg-salvia/15 text-brand",
+    painel: "border-salvia/15 bg-salvia/10",
+  },
+};
 
 function normalizarAbaCliente(valor: string | undefined, permitidas: readonly AbaCliente[]) {
   return permitidas.includes(valor as AbaCliente) ? (valor as AbaCliente) : "resumo";
@@ -150,6 +220,24 @@ function formatarCm(valor: number) {
   return `${valor.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} cm`;
 }
 
+function formatarMedicamentoResumo(medicamento: MedicamentoLista) {
+  return [medicamento.nome, medicamento.dosagem, medicamento.frequencia]
+    .map((item) => item?.trim())
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function formatarMedicamentosEmUso(
+  medicamentos: MedicamentoLista[],
+  fallback: string | null | undefined,
+) {
+  const registros = medicamentos.map(formatarMedicamentoResumo).filter(Boolean);
+
+  if (registros.length > 0) return registros.join("\n");
+
+  return fallback?.trim() || null;
+}
+
 function BreadcrumbCliente({ nome }: { nome: string }) {
   return (
     <nav aria-label="Caminho da página" className="flex flex-wrap items-center gap-2 text-sm">
@@ -170,82 +258,80 @@ function BreadcrumbCliente({ nome }: { nome: string }) {
 
 function ContatoItem({
   icone,
+  tom = "roxo",
   texto,
 }: {
   icone: React.ReactNode;
+  tom?: TomPerfil;
   texto: string | null | undefined;
 }) {
+  const estilo = estilosTomPerfil[tom];
+
   return (
-    <span className="inline-flex min-w-0 items-center gap-2 text-sm text-muted">
-      <span className="shrink-0 text-roxo">{icone}</span>
+    <span
+      className={cn(
+        "inline-flex min-w-0 items-center gap-2 rounded-2xl border bg-surface/85 px-3 py-2 text-sm text-muted",
+        estilo.card,
+      )}
+    >
+      <span className={cn("shrink-0 rounded-lg p-1.5", estilo.icone)}>{icone}</span>
       <span className="truncate">{texto?.trim() || "Não informado"}</span>
     </span>
   );
 }
 
-function MetricaPerfil({ label, valor }: { label: string; valor: number | string }) {
+function MetricaPerfil({
+  icone,
+  label,
+  tom = "brand",
+  valor,
+}: {
+  icone: React.ReactNode;
+  label: string;
+  tom?: TomPerfil;
+  valor: number | string;
+}) {
+  const estilo = estilosTomPerfil[tom];
+
   return (
-    <div className="border-t border-border px-4 py-4 text-center md:border-t-0 md:border-l first:md:border-l-0">
-      <dd className="text-2xl font-semibold text-brand">{valor}</dd>
-      <dt className="mt-1 text-xs font-medium text-muted">{label}</dt>
+    <div className="border-t border-brand/10 p-4 md:border-t-0 md:border-l first:md:border-l-0">
+      <div className="mx-auto flex w-fit items-center justify-center gap-3">
+        <span className={cn("flex size-10 items-center justify-center rounded-2xl", estilo.icone)}>
+          {icone}
+        </span>
+        <div className="grid min-w-24 justify-items-center text-center">
+          <dd className="text-2xl leading-none font-semibold text-brand">{valor}</dd>
+          <dt className="mt-1 text-xs font-medium text-muted">{label}</dt>
+        </div>
+      </div>
     </div>
   );
 }
 
 function CardResumo({
   icone,
+  tom = "brand",
   titulo,
   valor,
 }: {
   icone: React.ReactNode;
+  tom?: TomPerfil;
   titulo: string;
   valor: ValorInfo;
 }) {
+  const estilo = estilosTomPerfil[tom];
+
   return (
-    <article className="rounded-2xl border border-border bg-surface p-5">
+    <article className={cn("relative overflow-hidden rounded-2xl border p-5", estilo.card)}>
+      <span className={cn("absolute inset-y-0 left-0 w-1", estilo.faixa)} aria-hidden="true" />
       <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-        <span className="text-brand">{icone}</span>
+        <span className={cn("rounded-xl p-2", estilo.icone)}>{icone}</span>
         {titulo}
       </div>
-      <p className="mt-3 text-sm leading-6 text-foreground">{formatarTexto(valor)}</p>
+      <p className="mt-3 text-sm leading-6 whitespace-pre-wrap text-foreground">
+        {formatarTexto(valor)}
+      </p>
     </article>
-  );
-}
-
-function AbaPerfil({
-  ativo,
-  href,
-  contador,
-  rotulo,
-}: {
-  ativo: boolean;
-  href: string;
-  contador?: number;
-  rotulo: string;
-}) {
-  return (
-    <Link
-      aria-current={ativo ? "page" : undefined}
-      className={
-        ativo
-          ? "inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-foreground shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
-          : "inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-muted transition hover:bg-creme hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
-      }
-      href={href}
-    >
-      {rotulo}
-      {contador !== undefined ? (
-        <span
-          className={
-            ativo
-              ? "rounded-full bg-surface/20 px-2 py-0.5 text-xs text-brand-foreground"
-              : "rounded-full bg-lilas/25 px-2 py-0.5 text-xs text-roxo"
-          }
-        >
-          {contador}
-        </span>
-      ) : null}
-    </Link>
   );
 }
 
@@ -253,23 +339,45 @@ function CabecalhoSecao({
   acao,
   descricao,
   icone,
+  tom = "brand",
   titulo,
 }: {
   acao?: React.ReactNode;
   descricao?: string;
   icone: React.ReactNode;
+  tom?: TomPerfil;
   titulo: string;
 }) {
+  const estilo = estilosTomPerfil[tom];
+
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div className="flex items-start gap-3">
-        <span className="bg-menta mt-0.5 rounded-xl p-2 text-brand">{icone}</span>
-        <span>
-          <h2 className="text-lg font-semibold text-foreground">{titulo}</h2>
-          {descricao ? <p className="mt-1 text-sm text-muted">{descricao}</p> : null}
-        </span>
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-3xl border bg-surface/95 p-4 shadow-sm sm:p-5",
+        estilo.cabecalho,
+      )}
+    >
+      <span
+        className={cn("absolute inset-y-5 left-0 w-1 rounded-r-full", estilo.faixa)}
+        aria-hidden="true"
+      />
+      <div className="flex flex-wrap items-center justify-between gap-4 pl-1">
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            className={cn(
+              "flex size-11 shrink-0 items-center justify-center rounded-2xl",
+              estilo.icone,
+            )}
+          >
+            {icone}
+          </span>
+          <span className="min-w-0">
+            <h2 className="text-lg font-semibold text-foreground">{titulo}</h2>
+            {descricao ? <p className="mt-1 text-sm text-muted">{descricao}</p> : null}
+          </span>
+        </div>
+        {acao}
       </div>
-      {acao}
     </div>
   );
 }
@@ -280,6 +388,7 @@ function SecaoPerfil({
   descricao,
   icone,
   id,
+  tom = "brand",
   titulo,
 }: {
   acao?: React.ReactNode;
@@ -287,11 +396,17 @@ function SecaoPerfil({
   descricao?: string;
   icone: React.ReactNode;
   id: string;
+  tom?: TomPerfil;
   titulo: string;
 }) {
+  const estilo = estilosTomPerfil[tom];
+
   return (
-    <section className="grid scroll-mt-24 gap-4" id={id}>
-      <CabecalhoSecao acao={acao} descricao={descricao} icone={icone} titulo={titulo} />
+    <section
+      className={cn("grid scroll-mt-24 gap-5 rounded-3xl border p-4 sm:p-6", estilo.painel)}
+      id={id}
+    >
+      <CabecalhoSecao acao={acao} descricao={descricao} icone={icone} titulo={titulo} tom={tom} />
       {children}
     </section>
   );
@@ -299,102 +414,9 @@ function SecaoPerfil({
 
 function PainelVazio({ icone, texto }: { icone: React.ReactNode; texto: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-3xl border border-border bg-surface p-6 text-sm text-muted">
+    <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface/90 p-6 text-sm text-muted">
       <span className="bg-menta rounded-2xl p-3 text-brand">{icone}</span>
       {texto}
-    </div>
-  );
-}
-
-const classeStatusAgendamento: Record<StatusAgendamento, string> = {
-  marcado: "bg-lilas/25 text-roxo",
-  realizado: "bg-brand/15 text-brand",
-  falta: "bg-dourado/20 text-dourado",
-  cancelado: "bg-perigo/10 text-perigo",
-};
-
-type AgendamentoPerfil = {
-  id: string;
-  clienteId: string;
-  servicoId: string;
-  profissionalId: string;
-  pacoteId: string | null;
-  inicio: Date;
-  duracaoMinutos: number;
-  status: StatusAgendamento;
-  checkinEm: Date | null;
-  modalidade: "presencial" | "domiciliar";
-  observacoes: string | null;
-  pacoteQuantidadeSessoes: number | null;
-  pacoteSituacaoPagamento: SituacaoPagamento | null;
-  pacoteValorCentavos: number | null;
-  servicoNome: string;
-  servicoValorCentavos: number | null;
-  profissionalNome: string | null;
-};
-
-function ListaAgendamentosPerfil({
-  agendamentos,
-  clienteId,
-  pacotes,
-  profissionais,
-  servicos,
-}: {
-  agendamentos: AgendamentoPerfil[];
-  clienteId: string;
-  pacotes: { id: string; nome: string }[];
-  profissionais: { id: string; nome: string }[];
-  servicos: { id: string; nome: string }[];
-}) {
-  if (agendamentos.length === 0) {
-    return (
-      <PainelVazio
-        icone={<CalendarClock className="size-4" />}
-        texto="Nenhum agendamento registrado."
-      />
-    );
-  }
-
-  return (
-    <div className="overflow-hidden rounded-3xl border border-border bg-surface">
-      <div className="border-b border-border px-6 py-5">
-        <h3 className="text-base font-semibold text-foreground">Agendamentos</h3>
-      </div>
-      <ul className="divide-y divide-border">
-        {agendamentos.map((item) => (
-          <li className="flex flex-wrap items-center justify-between gap-4 px-6 py-5" key={item.id}>
-            <span className="flex min-w-0 items-center gap-4">
-              <span className="bg-menta flex size-12 shrink-0 items-center justify-center rounded-2xl text-brand">
-                <CalendarClock className="size-5" aria-hidden="true" />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate font-semibold text-foreground">
-                  {item.servicoNome}
-                </span>
-                <span className="mt-1 block text-sm text-muted">
-                  {formatadorDataHora.format(item.inicio)} ·{" "}
-                  {item.profissionalNome ?? "Sem profissional"}
-                </span>
-              </span>
-            </span>
-            <span className="flex shrink-0 items-center gap-2">
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${classeStatusAgendamento[item.status]}`}
-              >
-                {rotulosStatusAgendamento[item.status]}
-              </span>
-              <MenuAcoesAgendamento
-                agendamento={item}
-                clienteFixoId={clienteId}
-                clientes={[]}
-                pacotes={pacotes}
-                profissionais={profissionais}
-                servicos={servicos}
-              />
-            </span>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
@@ -819,9 +841,9 @@ export default async function ClienteDetalhePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ aba?: string }>;
+  searchParams: Promise<{ aba?: string; novoAtendimento?: string }>;
 }) {
-  const [{ id }, { aba }] = await Promise.all([params, searchParams]);
+  const [{ id }, { aba, novoAtendimento }] = await Promise.all([params, searchParams]);
   const usuario = await exigirUsuarioAtual(["profissional", "recepcao"]);
   const profissional = usuario.role === "profissional";
   const [cliente, fotoPerfil, fichas, biometrias, pacotes] = await Promise.all([
@@ -841,7 +863,6 @@ export default async function ClienteDetalhePage({
         listarSessoesDoCliente(id),
         listarServicos(),
         listarAgendamentosDoCliente(id),
-        listarPacotesParaSelecao(),
         listarProfissionaisAtivos(),
       ])
     : null;
@@ -858,6 +879,8 @@ export default async function ClienteDetalhePage({
 
   const medicamentos = profissional ? await listarMedicamentosDoCliente(id) : null;
 
+  const modelosFicha = profissional ? await listarModelosFicha() : [];
+
   const observacoesInternas =
     typeof cliente.observacoesInternas === "string" ? cliente.observacoesInternas : null;
 
@@ -871,18 +894,42 @@ export default async function ClienteDetalhePage({
   const servicosParaSessoes = dadosSessoes
     ? dadosSessoes[1].map((s) => ({ id: s.id, nome: s.nome }))
     : [];
-  const agendamentosParaSessoes = dadosSessoes
+  const pacotesDoClienteParaSelecao = pacotes.map((p) => ({
+    ativo: p.ativo,
+    id: p.id,
+    nome: `${p.servicoNome} · ${p.quantidadeSessoes} sessões · ${formatadorDataCurta.format(p.dataContratacao)}${p.ativo ? "" : " · inativo"}`,
+  }));
+  const nomePacotePorId = new Map(pacotesDoClienteParaSelecao.map((p) => [p.id, p.nome]));
+  const agendamentosParaSessoes: AgendamentoSessaoFormulario[] = dadosSessoes
     ? dadosSessoes[2].map((a) => ({
+        duracaoMinutos: a.duracaoMinutos,
         id: a.id,
+        inicio: a.inicio,
         nome: `${formatadorDataHora.format(a.inicio)} · ${a.servicoNome}`,
+        pacoteId: a.pacoteId,
+        pacoteNome: a.pacoteId ? (nomePacotePorId.get(a.pacoteId) ?? "Pacote vinculado") : null,
+        servicoId: a.servicoId,
+        servicoNome: a.servicoNome,
+        status: a.status,
       }))
     : [];
-  const pacotesParaSessoes = dadosSessoes
-    ? dadosSessoes[3].map((p) => ({ id: p.id, nome: p.servicoNome }))
-    : [];
+  const pacotesParaSessoes = pacotesDoClienteParaSelecao.map((p) => ({ id: p.id, nome: p.nome }));
+  const pacotesAtivosDoClienteParaSelecao = pacotesDoClienteParaSelecao
+    .filter((p) => p.ativo)
+    .map((p) => ({ id: p.id, nome: p.nome }));
+  const todosPacotesDoClienteParaSelecao = pacotesDoClienteParaSelecao.map((p) => ({
+    id: p.id,
+    nome: p.nome,
+  }));
   const sessoesParaLista: SessaoLista[] = dadosSessoes ? dadosSessoes[0] : [];
+  const agendamentosPendentesSessao = filtrarAgendamentosRealizadosSemSessao(
+    agendamentosParaSessoes,
+    sessoesParaLista,
+  );
+  const agendamentosParaPerfil: AgendamentoClienteLista[] = dadosSessoes ? dadosSessoes[2] : [];
   const medidasParaLista: MedidaLista[] = medidasBrutas ?? [];
   const medicamentosParaLista: MedicamentoLista[] = medicamentos ?? [];
+  const medicamentosEmUso = formatarMedicamentosEmUso(medicamentosParaLista, cliente.medicamentos);
   const servicosParaFichas = servicosParaSessoes;
 
   const fichasParaLista: FichaLista[] = fichas.map((item) => ({
@@ -892,23 +939,37 @@ export default async function ClienteDetalhePage({
     autorizacaoImagemEm: item.autorizacaoImagemEm,
     clienteId: item.clienteId,
     criadoEm: item.criadoEm,
+    modeloFichaId: item.modeloFichaId,
     respostas: profissional ? item.respostas : null,
     servicoId: item.servicoId,
     status: item.status,
     tipo: item.tipo,
     versao: item.versao,
-    versaoAnteriorId: item.versaoAnteriorId,
   }));
 
-  const pacotePrincipal = pacotes.find((pacote) => pacote.ativo) ?? pacotes[0] ?? null;
+  const modelosResumo: ModeloResumo[] = modelosFicha.map((modelo) => ({
+    id: modelo.id,
+    nome: modelo.nome,
+    campos: modelo.campos,
+  }));
+  const modelosParaSeletor = modelosFicha
+    .filter((modelo) => modelo.ativo)
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
+    .map((modelo) => ({
+      id: modelo.id,
+      nome: modelo.nome,
+      descricao: modelo.descricao,
+      campos: modelo.campos,
+    }));
+
   const pacotesAtivos = pacotes.filter((pacote) => pacote.ativo).length;
   const podeExcluirCliente = podeExcluirClientes(usuario);
-  const statusCliente = pacotePrincipal?.ativo ? "Ativa" : "Cadastro";
-  const proximaSessao = dadosSessoes?.[2]
-    .filter(
-      (agendamento) => agendamento.status === "marcado" && agendamento.inicio >= agoraBrasilia(),
-    )
-    .sort((a, b) => a.inicio.getTime() - b.inicio.getTime())[0];
+  const statusCliente = pacotesAtivos > 0 ? "Ativa" : "Cadastro";
+  const pacotesEmDestaque = montarPacotesEmDestaque(
+    pacotes,
+    dadosSessoes?.[2] ?? [],
+    agoraBrasilia(),
+  );
   const reducaoAcumulada =
     evolucaoMedidas?.reduce(
       (total, item) => total + (item.reducao ? Math.abs(item.diferencaCm) : 0),
@@ -948,26 +1009,27 @@ export default async function ClienteDetalhePage({
   );
   const hrefAba = (abaDestino: AbaCliente) =>
     abaDestino === "resumo" ? `/painel/clientes/${id}` : `/painel/clientes/${id}?aba=${abaDestino}`;
+  const abasPerfil = abasDisponiveis.map((item) => ({ ...item, href: hrefAba(item.id) }));
 
   return (
     <div className="grid min-w-0 gap-6 sm:gap-7">
       <BreadcrumbCliente nome={cliente.nome} />
 
-      <section className="overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
-        <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-center">
-          <div className="flex min-w-0 flex-col gap-5 md:flex-row md:items-center">
-            <div className="relative size-20 shrink-0">
+      <section className="overflow-hidden rounded-3xl border border-roxo/10 bg-lilas/10 shadow-sm">
+        <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-stretch">
+          <div className="flex min-w-0 flex-col gap-5 rounded-3xl border border-roxo/10 bg-surface/90 p-4 shadow-sm sm:p-5 md:flex-row md:items-center">
+            <div className="relative size-24 shrink-0">
               {fotoPerfil ? (
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element -- imagem privada servida via rota autenticada, sem otimização estática do Next */}
                   <img
                     alt={`Foto de ${cliente.nome}`}
-                    className="size-20 rounded-3xl object-cover"
+                    className="size-24 rounded-full border-4 border-surface object-cover shadow-sm"
                     src={`/api/clientes/${id}/foto-perfil`}
                   />
                 </>
               ) : (
-                <span className="flex size-20 items-center justify-center rounded-3xl bg-brand text-2xl font-semibold text-brand-foreground">
+                <span className="flex size-24 items-center justify-center rounded-full border-4 border-surface bg-brand text-2xl font-semibold text-brand-foreground shadow-sm">
                   {getIniciais(cliente.nome)}
                 </span>
               )}
@@ -977,393 +1039,394 @@ export default async function ClienteDetalhePage({
                 temFoto={Boolean(fotoPerfil)}
               />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <span className="flex min-w-0 flex-wrap items-center gap-3">
                   <h1 className="min-w-0 text-3xl font-semibold text-foreground">{cliente.nome}</h1>
-                  <span className="bg-menta rounded-full px-3 py-1 text-xs font-semibold text-brand">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1 text-xs font-semibold text-brand">
+                    <span className="size-1.5 rounded-full bg-brand" aria-hidden="true" />
                     {statusCliente}
                   </span>
                 </span>
-                <MenuAcoesCliente cliente={cliente} podeExcluir={podeExcluirCliente} />
+                <MenuAcoesCliente
+                  cliente={cliente}
+                  medicamentosEmUso={medicamentosEmUso}
+                  podeExcluir={podeExcluirCliente}
+                />
               </div>
-              <p className="mt-2 text-sm text-muted">
+              <p className="mt-2 inline-flex rounded-full bg-lilas/15 px-3 py-1 text-sm font-medium text-roxo">
                 {[cliente.profissao, formatarIdade(cliente.dataNascimento)]
                   .filter(Boolean)
                   .join(" · ")}
               </p>
 
               <div className="mt-5 grid gap-3 md:grid-cols-3">
-                <ContatoItem icone={<Phone className="size-4" />} texto={cliente.telefone} />
-                <ContatoItem icone={<Mail className="size-4" />} texto={cliente.email} />
-                <ContatoItem icone={<MapPin className="size-4" />} texto={cliente.endereco} />
+                <ContatoItem
+                  icone={<Phone className="size-4" />}
+                  texto={cliente.telefone}
+                  tom="brand"
+                />
+                <ContatoItem icone={<Mail className="size-4" />} texto={cliente.email} tom="roxo" />
+                <ContatoItem
+                  icone={<MapPin className="size-4" />}
+                  texto={cliente.endereco}
+                  tom="dourado"
+                />
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl bg-creme p-4">
-            {pacotePrincipal ? (
-              <div className="grid gap-3">
-                <div className="flex items-start justify-between gap-3">
-                  <span>
-                    <span className="block text-sm font-semibold text-foreground">
-                      {pacotePrincipal.servicoNome}
-                    </span>
-                    <span className="text-xs text-muted">Pacote em acompanhamento</span>
-                  </span>
-                  <span className="text-sm font-semibold text-brand">
-                    {pacotePrincipal.progresso.sessoesRealizadas}/
-                    {pacotePrincipal.progresso.quantidadeSessoes}
-                  </span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-surface">
-                  <div
-                    className="h-full rounded-full bg-brand"
-                    style={{ width: `${pacotePrincipal.progresso.percentualConcluido}%` }}
-                  />
-                </div>
-                <p className="text-sm text-foreground">
-                  Próxima sessão:{" "}
-                  <strong>
-                    {proximaSessao
-                      ? formatadorDataHora.format(proximaSessao.inicio)
-                      : "não agendada"}
-                  </strong>
-                </p>
-              </div>
-            ) : (
-              <div className="flex items-start gap-3 text-sm text-muted">
-                <PackageCheck className="mt-0.5 size-4 text-brand" aria-hidden="true" />
-                Nenhum pacote ativo registrado para este cliente.
-              </div>
-            )}
-          </div>
+          <DestaquePacoteCliente pacotes={pacotesEmDestaque} />
         </div>
 
-        <dl className="grid border-t border-border md:grid-cols-4">
-          <MetricaPerfil label="Sessões realizadas" valor={dadosSessoes?.[0].length ?? "—"} />
-          <MetricaPerfil label="Pacotes ativos" valor={pacotesAtivos} />
-          <MetricaPerfil label="Fichas" valor={fichas.length} />
-          <MetricaPerfil label="Medicamentos" valor={medicamentos?.length ?? "—"} />
+        <dl className="grid border-t border-roxo/10 bg-surface/80 md:grid-cols-4">
+          <MetricaPerfil
+            icone={<NotebookPen className="size-4" aria-hidden="true" />}
+            label="Sessões realizadas"
+            valor={dadosSessoes?.[0].length ?? "—"}
+          />
+          <MetricaPerfil
+            icone={<PackageCheck className="size-4" aria-hidden="true" />}
+            label="Pacotes ativos"
+            tom="dourado"
+            valor={pacotesAtivos}
+          />
+          <MetricaPerfil
+            icone={<FileText className="size-4" aria-hidden="true" />}
+            label="Fichas"
+            tom="roxo"
+            valor={fichas.length}
+          />
+          <MetricaPerfil
+            icone={<Pill className="size-4" aria-hidden="true" />}
+            label="Medicamentos"
+            tom="salvia"
+            valor={medicamentos?.length ?? "—"}
+          />
         </dl>
       </section>
 
-      <nav className="flex flex-wrap justify-center gap-1 rounded-2xl border border-border bg-surface p-1 shadow-sm">
-        {abasDisponiveis.map((item) => (
-          <AbaPerfil
-            ativo={item.id === abaAtual}
-            contador={item.contador}
-            href={hrefAba(item.id)}
-            key={item.id}
-            rotulo={item.rotulo}
-          />
-        ))}
-      </nav>
+      {profissional && abaAtual !== "sessoes" ? (
+        <AvisoPendenciasRegistroSessaoCliente
+          href={hrefAba("sessoes")}
+          quantidade={agendamentosPendentesSessao.length}
+        />
+      ) : null}
 
-      {abaAtual === "resumo" ? (
-        <section className="grid gap-4">
-          <CabecalhoSecao
+      <AbasPerfilCliente abaAtual={abaAtual} abas={abasPerfil}>
+        {abaAtual === "resumo" ? (
+          <SecaoPerfil
             descricao="Dados principais para entender o tratamento antes de abrir os registros."
             icone={<HeartPulse className="size-4" aria-hidden="true" />}
+            id="resumo"
             titulo="Resumo do cliente"
-          />
-          <div className="grid gap-4 lg:grid-cols-2">
-            <CardResumo
-              icone={<HeartPulse className="size-4" aria-hidden="true" />}
-              titulo="Objetivo do tratamento"
-              valor={cliente.objetivoTratamento}
-            />
-            <CardResumo
-              icone={<ShieldCheck className="size-4" aria-hidden="true" />}
-              titulo="Alergias"
-              valor={cliente.alergias || "Sem alergias conhecidas"}
-            />
-            <CardResumo
-              icone={<Pill className="size-4" aria-hidden="true" />}
-              titulo="Medicamentos em uso"
-              valor={cliente.medicamentos}
-            />
-            <CardResumo
-              icone={<ClipboardList className="size-4" aria-hidden="true" />}
-              titulo="Histórico cirúrgico"
-              valor={cliente.cirurgias || "Nenhuma cirurgia informada"}
-            />
-            <CardResumo
-              icone={<Activity className="size-4" aria-hidden="true" />}
-              titulo="Condições de saúde"
-              valor={cliente.condicoesSaude}
-            />
-            <CardResumo
-              icone={<ShieldCheck className="size-4" aria-hidden="true" />}
-              titulo="Contraindicações"
-              valor={cliente.contraindicacoes}
-            />
-            {observacoesInternas ? (
+            tom="brand"
+          >
+            <div className="grid gap-4 lg:grid-cols-2">
               <CardResumo
-                icone={<NotebookPen className="size-4" aria-hidden="true" />}
-                titulo="Observações internas"
-                valor={observacoesInternas}
+                icone={<HeartPulse className="size-4" aria-hidden="true" />}
+                tom="brand"
+                titulo="Objetivo do tratamento"
+                valor={cliente.objetivoTratamento}
               />
-            ) : null}
-            <article className="bg-menta rounded-2xl border border-border p-5">
-              <div className="flex items-center gap-2 text-sm font-semibold text-brand">
-                <TrendingUp className="size-4" aria-hidden="true" />
-                Resultados acumulados
-              </div>
-              <p className="mt-3 text-sm leading-6 text-foreground">
-                {reducaoAcumulada > 0
-                  ? `Redução total de ${formatarCm(reducaoAcumulada)} nas medidas acompanhadas.`
-                  : "Ainda não há evolução de medidas suficiente para calcular um resultado acumulado."}
-              </p>
-            </article>
-          </div>
-        </section>
-      ) : null}
+              <CardResumo
+                icone={<ShieldCheck className="size-4" aria-hidden="true" />}
+                tom="roxo"
+                titulo="Alergias"
+                valor={cliente.alergias || "Sem alergias conhecidas"}
+              />
+              <CardResumo
+                icone={<Pill className="size-4" aria-hidden="true" />}
+                tom="salvia"
+                titulo="Medicamentos em uso"
+                valor={medicamentosEmUso}
+              />
+              <CardResumo
+                icone={<ClipboardList className="size-4" aria-hidden="true" />}
+                tom="dourado"
+                titulo="Histórico cirúrgico"
+                valor={cliente.cirurgias || "Nenhuma cirurgia informada"}
+              />
+              <CardResumo
+                icone={<Activity className="size-4" aria-hidden="true" />}
+                tom="brand"
+                titulo="Condições de saúde"
+                valor={cliente.condicoesSaude}
+              />
+              <CardResumo
+                icone={<ShieldCheck className="size-4" aria-hidden="true" />}
+                tom="perigo"
+                titulo="Contraindicações"
+                valor={cliente.contraindicacoes}
+              />
+              {observacoesInternas ? (
+                <CardResumo
+                  icone={<NotebookPen className="size-4" aria-hidden="true" />}
+                  tom="roxo"
+                  titulo="Observações internas"
+                  valor={observacoesInternas}
+                />
+              ) : null}
+              <CardResumo
+                icone={<TrendingUp className="size-4" aria-hidden="true" />}
+                tom="salvia"
+                titulo="Resultados acumulados"
+                valor={
+                  reducaoAcumulada > 0
+                    ? `Redução total de ${formatarCm(reducaoAcumulada)} nas medidas acompanhadas.`
+                    : "Ainda não há evolução de medidas suficiente para calcular um resultado acumulado."
+                }
+              />
+            </div>
+          </SecaoPerfil>
+        ) : null}
 
-      {abaAtual === "fichas" ? (
-        <SecaoPerfil
-          acao={
-            profissional ? (
-              <div className="flex flex-wrap gap-3">
-                <ModalFormulario
-                  icone={<FilePlus2 className="size-4" aria-hidden />}
-                  rotuloBotao="Nova ficha — estética corporal"
-                  titulo="Anamnese — estética corporal"
-                >
-                  <FormularioFichaEsteticaCorporal
+        {abaAtual === "fichas" ? (
+          <SecaoPerfil
+            acao={
+              profissional ? (
+                <div className="flex flex-wrap gap-3">
+                  <SeletorModeloFicha
                     clienteId={id}
-                    clienteNome={cliente.nome}
+                    modelos={modelosParaSeletor}
                     servicos={servicosParaFichas}
                   />
-                </ModalFormulario>
-                <ModalFormulario
-                  icone={<FilePlus2 className="size-4" aria-hidden />}
-                  rotuloBotao="Nova ficha — extensão de cílios"
-                  titulo="Anamnese — extensão de cílios"
-                >
-                  <FormularioFichaExtensaoCilios
-                    clienteId={id}
-                    clienteNome={cliente.nome}
-                    servicos={servicosParaFichas}
-                  />
-                </ModalFormulario>
-              </div>
-            ) : null
-          }
-          descricao="Anamneses e avaliações vinculadas ao prontuário."
-          icone={<FileText className="size-4" aria-hidden="true" />}
-          id="fichas"
-          titulo="Fichas de avaliação"
-        >
-          <ListaFichas
-            clienteNome={cliente.nome}
-            fichas={fichasParaLista}
-            podeGerenciar={profissional}
-            servicos={servicosParaFichas}
-          />
-        </SecaoPerfil>
-      ) : null}
+                  <Link
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-roxo/25 bg-surface px-4 text-sm font-semibold text-roxo shadow-sm transition hover:bg-lilas/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo sm:w-auto"
+                    href="/painel/fichas/modelos"
+                  >
+                    <LayoutTemplate className="size-4" aria-hidden />
+                    Criar modelo
+                  </Link>
+                </div>
+              ) : null
+            }
+            descricao="Anamneses e avaliações vinculadas ao prontuário."
+            icone={<FileText className="size-4" aria-hidden="true" />}
+            id="fichas"
+            titulo="Fichas de avaliação"
+            tom="roxo"
+          >
+            <ListaFichas
+              clienteNome={cliente.nome}
+              fichas={fichasParaLista}
+              modelos={modelosResumo}
+              podeGerenciar={profissional}
+              servicos={servicosParaFichas}
+            />
+          </SecaoPerfil>
+        ) : null}
 
-      {abaAtual === "agendamentos" && dadosSessoes ? (
-        <SecaoPerfil
-          acao={
-            <ModalFormulario
-              icone={<CalendarClock className="size-4" aria-hidden />}
-              rotuloBotao="Novo agendamento"
-              titulo="Novo agendamento"
-            >
-              <FormularioAgendamento
-                clienteFixoId={id}
-                clientes={[]}
-                pacotes={dadosSessoes[3].map((p) => ({
-                  id: p.id,
-                  nome: `${p.clienteNome} · ${p.servicoNome}`,
-                }))}
-                profissionais={dadosSessoes[4].map((p) => ({
-                  id: p.id,
-                  nome: p.name ?? p.email ?? "",
-                }))}
-                servicos={dadosSessoes[1].map((s) => ({ id: s.id, nome: s.nome }))}
+        {abaAtual === "agendamentos" && dadosSessoes ? (
+          <SecaoPerfil
+            acao={
+              <ModalFormulario
+                icone={<CalendarClock className="size-4" aria-hidden />}
+                rotuloBotao="Novo agendamento"
+                titulo="Novo agendamento"
+              >
+                <FormularioAgendamento
+                  clienteFixoId={id}
+                  clientes={[]}
+                  pacotes={pacotesAtivosDoClienteParaSelecao}
+                  profissionais={dadosSessoes[3].map((p) => ({
+                    id: p.id,
+                    nome: p.name ?? p.email ?? "",
+                  }))}
+                  servicos={dadosSessoes[1].map((s) => ({ id: s.id, nome: s.nome }))}
+                />
+              </ModalFormulario>
+            }
+            descricao="Atendimentos marcados, com status e histórico completo."
+            icone={<CalendarClock className="size-4" aria-hidden="true" />}
+            id="agendamentos"
+            titulo="Agendamentos"
+            tom="dourado"
+          >
+            <ListaAgendamentosCliente
+              agendamentos={agendamentosParaPerfil}
+              clienteId={id}
+              clienteNome={cliente.nome}
+              pacotes={todosPacotesDoClienteParaSelecao}
+              profissionais={dadosSessoes[3].map((p) => ({
+                id: p.id,
+                nome: p.name ?? p.email ?? "",
+              }))}
+              servicos={dadosSessoes[1].map((s) => ({ id: s.id, nome: s.nome }))}
+            />
+          </SecaoPerfil>
+        ) : null}
+
+        {abaAtual === "sessoes" && dadosSessoes ? (
+          <SecaoPerfil
+            acao={
+              <ModalFormulario
+                icone={<NotebookPen className="size-4" aria-hidden />}
+                rotuloBotao="Nova sessão"
+                titulo="Nova sessão"
+              >
+                <FormularioSessao
+                  agendamentos={agendamentosParaSessoes}
+                  clienteId={id}
+                  pacotes={pacotesParaSessoes}
+                  servicos={servicosParaSessoes}
+                />
+              </ModalFormulario>
+            }
+            descricao="Registro clínico dos atendimentos realizados."
+            icone={<NotebookPen className="size-4" aria-hidden="true" />}
+            id="sessoes"
+            titulo="Sessões realizadas"
+            tom="brand"
+          >
+            <ListaSessoesGerenciavel
+              agendamentoAbrirModalId={novoAtendimento}
+              agendamentos={agendamentosParaSessoes}
+              agendamentosPendentes={agendamentosPendentesSessao}
+              clienteId={id}
+              pacotes={pacotesParaSessoes}
+              servicos={servicosParaSessoes}
+              sessoes={sessoesParaLista}
+            />
+          </SecaoPerfil>
+        ) : null}
+
+        {abaAtual === "medidas" && dadosSessoes && evolucaoMedidas ? (
+          <SecaoPerfil
+            acao={
+              <ModalFormulario
+                icone={<Ruler className="size-4" aria-hidden />}
+                rotuloBotao="Nova medida"
+                titulo="Nova medida"
+              >
+                <FormularioMedida clienteId={id} sessoes={sessoesParaSelecao} />
+              </ModalFormulario>
+            }
+            descricao="Comparativo de medidas por região acompanhada."
+            icone={<Ruler className="size-4" aria-hidden="true" />}
+            id="medidas"
+            titulo="Evolução de medidas"
+            tom="salvia"
+          >
+            <div className="grid gap-6">
+              <CardsEvolucao evolucao={evolucaoMedidas} />
+              <GraficoMedidas medidas={medidasBrutas ?? []} />
+              <HistoricoMedidasGerenciavel
+                medidas={medidasParaLista}
+                sessoes={sessoesParaSelecao}
               />
-            </ModalFormulario>
-          }
-          descricao="Atendimentos marcados, com status e histórico completo."
-          icone={<CalendarClock className="size-4" aria-hidden="true" />}
-          id="agendamentos"
-          titulo="Agendamentos"
-        >
-          <ListaAgendamentosPerfil
-            agendamentos={dadosSessoes[2]}
-            clienteId={id}
-            pacotes={dadosSessoes[3].map((p) => ({
-              id: p.id,
-              nome: `${p.clienteNome} · ${p.servicoNome}`,
-            }))}
-            profissionais={dadosSessoes[4].map((p) => ({
-              id: p.id,
-              nome: p.name ?? p.email ?? "",
-            }))}
-            servicos={dadosSessoes[1].map((s) => ({ id: s.id, nome: s.nome }))}
-          />
-        </SecaoPerfil>
-      ) : null}
+            </div>
+          </SecaoPerfil>
+        ) : null}
 
-      {abaAtual === "sessoes" && dadosSessoes ? (
-        <SecaoPerfil
-          acao={
-            <ModalFormulario
-              icone={<NotebookPen className="size-4" aria-hidden />}
-              rotuloBotao="Nova sessão"
-              titulo="Nova sessão"
-            >
-              <FormularioSessao
-                agendamentos={agendamentosParaSessoes}
-                clienteId={id}
-                pacotes={pacotesParaSessoes}
-                servicos={servicosParaSessoes}
-              />
-            </ModalFormulario>
-          }
-          descricao="Registro clínico dos atendimentos realizados."
-          icone={<NotebookPen className="size-4" aria-hidden="true" />}
-          id="sessoes"
-          titulo="Sessões realizadas"
-        >
-          <ListaSessoesGerenciavel
-            agendamentos={agendamentosParaSessoes}
-            pacotes={pacotesParaSessoes}
-            servicos={servicosParaSessoes}
-            sessoes={sessoesParaLista}
-          />
-        </SecaoPerfil>
-      ) : null}
+        {abaAtual === "pacotes" ? (
+          <SecaoPerfil
+            descricao="Pacotes contratados, progresso e situação de pagamento."
+            icone={<PackageCheck className="size-4" aria-hidden="true" />}
+            id="pacotes"
+            titulo="Pacotes"
+            tom="dourado"
+          >
+            <ListaPacotesPerfil pacotes={pacotes} />
+          </SecaoPerfil>
+        ) : null}
 
-      {abaAtual === "medidas" && dadosSessoes && evolucaoMedidas ? (
-        <SecaoPerfil
-          acao={
-            <ModalFormulario
-              icone={<Ruler className="size-4" aria-hidden />}
-              rotuloBotao="Nova medida"
-              titulo="Nova medida"
-            >
-              <FormularioMedida clienteId={id} sessoes={sessoesParaSelecao} />
-            </ModalFormulario>
-          }
-          descricao="Comparativo de medidas por região acompanhada."
-          icone={<Ruler className="size-4" aria-hidden="true" />}
-          id="medidas"
-          titulo="Evolução de medidas"
-        >
-          <div className="grid gap-6">
-            <CardsEvolucao evolucao={evolucaoMedidas} />
-            <GraficoMedidas medidas={medidasBrutas ?? []} />
-            <HistoricoMedidasGerenciavel medidas={medidasParaLista} sessoes={sessoesParaSelecao} />
-          </div>
-        </SecaoPerfil>
-      ) : null}
+        {abaAtual === "biometria" ? (
+          <SecaoPerfil
+            descricao="Consentimento e digitais cadastradas para check-in biométrico."
+            icone={<Fingerprint className="size-4" aria-hidden="true" />}
+            id="biometria"
+            titulo="Biometria"
+            tom="salvia"
+          >
+            <div className="grid gap-4">
+              {!cliente.consentimentoBiometria ? (
+                <form action={registrarConsentimentoBiometria} className="flex flex-wrap gap-3">
+                  <input name="clienteId" type="hidden" value={id} />
+                  <input name="consentimento" type="hidden" value="true" />
+                  <button
+                    className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-roxo transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+                    type="submit"
+                  >
+                    <Fingerprint className="size-4" aria-hidden="true" />
+                    Registrar consentimento de biometria
+                  </button>
+                </form>
+              ) : (
+                <p className="rounded-2xl border border-border bg-surface p-4 text-sm text-muted">
+                  Cliente liberado para cadastro de digital — busque o nome dele na aba
+                  &quot;Cadastrar&quot; da ponte de biometria.
+                </p>
+              )}
 
-      {abaAtual === "pacotes" ? (
-        <SecaoPerfil
-          descricao="Pacotes contratados, progresso e situação de pagamento."
-          icone={<PackageCheck className="size-4" aria-hidden="true" />}
-          id="pacotes"
-          titulo="Pacotes"
-        >
-          <ListaPacotesPerfil pacotes={pacotes} />
-        </SecaoPerfil>
-      ) : null}
+              <ListaBiometriasPerfil biometrias={biometrias} clienteId={id} />
+            </div>
+          </SecaoPerfil>
+        ) : null}
 
-      {abaAtual === "biometria" ? (
-        <SecaoPerfil
-          descricao="Consentimento e digitais cadastradas para check-in biométrico."
-          icone={<Fingerprint className="size-4" aria-hidden="true" />}
-          id="biometria"
-          titulo="Biometria"
-        >
-          <div className="grid gap-4">
-            {!cliente.consentimentoBiometria ? (
-              <form action={registrarConsentimentoBiometria} className="flex flex-wrap gap-3">
-                <input name="clienteId" type="hidden" value={id} />
-                <input name="consentimento" type="hidden" value="true" />
-                <button
-                  className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-roxo transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
-                  type="submit"
-                >
-                  <Fingerprint className="size-4" aria-hidden="true" />
-                  Registrar consentimento de biometria
-                </button>
-              </form>
-            ) : (
-              <p className="rounded-2xl border border-border bg-surface p-4 text-sm text-muted">
-                Cliente liberado para cadastro de digital — busque o nome dele na aba
-                &quot;Cadastrar&quot; da ponte de biometria.
-              </p>
-            )}
+        {abaAtual === "fotos" && dadosSessoes && fotos ? (
+          <SecaoPerfil
+            acao={
+              <ModalFormulario
+                icone={<ImagePlus className="size-4" aria-hidden />}
+                rotuloBotao="Nova foto"
+                titulo="Nova foto"
+              >
+                <FormularioFoto clienteId={id} sessoes={sessoesParaSelecao} />
+              </ModalFormulario>
+            }
+            descricao="Registro visual de antes, depois e acompanhamento."
+            icone={<ImagePlus className="size-4" aria-hidden="true" />}
+            id="fotos"
+            titulo="Fotos"
+            tom="roxo"
+          >
+            <GaleriaFotos fotos={fotos} podeExcluir />
+          </SecaoPerfil>
+        ) : null}
 
-            <ListaBiometriasPerfil biometrias={biometrias} clienteId={id} />
-          </div>
-        </SecaoPerfil>
-      ) : null}
+        {abaAtual === "documentos" && documentos ? (
+          <SecaoPerfil
+            acao={
+              <ModalFormulario
+                icone={<FileText className="size-4" aria-hidden />}
+                rotuloBotao="Novo documento"
+                titulo="Emitir documento"
+              >
+                <FormularioDocumento clienteId={id} />
+              </ModalFormulario>
+            }
+            descricao="Contratos, termos e orientações emitidas."
+            icone={<FileText className="size-4" aria-hidden="true" />}
+            id="documentos"
+            titulo="Documentos e termos"
+            tom="neutro"
+          >
+            <ListaDocumentosPerfil clienteId={id} documentos={documentos} />
+          </SecaoPerfil>
+        ) : null}
 
-      {abaAtual === "fotos" && dadosSessoes && fotos ? (
-        <SecaoPerfil
-          acao={
-            <ModalFormulario
-              icone={<ImagePlus className="size-4" aria-hidden />}
-              rotuloBotao="Nova foto"
-              titulo="Nova foto"
-            >
-              <FormularioFoto clienteId={id} sessoes={sessoesParaSelecao} />
-            </ModalFormulario>
-          }
-          descricao="Registro visual de antes, depois e acompanhamento."
-          icone={<ImagePlus className="size-4" aria-hidden="true" />}
-          id="fotos"
-          titulo="Fotos"
-        >
-          <GaleriaFotos fotos={fotos} podeExcluir />
-        </SecaoPerfil>
-      ) : null}
-
-      {abaAtual === "documentos" && documentos ? (
-        <SecaoPerfil
-          acao={
-            <ModalFormulario
-              icone={<FileText className="size-4" aria-hidden />}
-              rotuloBotao="Novo documento"
-              titulo="Emitir documento"
-            >
-              <FormularioDocumento clienteId={id} />
-            </ModalFormulario>
-          }
-          descricao="Contratos, termos e orientações emitidas."
-          icone={<FileText className="size-4" aria-hidden="true" />}
-          id="documentos"
-          titulo="Documentos e termos"
-        >
-          <ListaDocumentosPerfil clienteId={id} documentos={documentos} />
-        </SecaoPerfil>
-      ) : null}
-
-      {abaAtual === "medicamentos" && medicamentos ? (
-        <SecaoPerfil
-          acao={
-            <ModalFormulario
-              icone={<Pill className="size-4" aria-hidden />}
-              rotuloBotao="Novo medicamento"
-              titulo="Registrar medicamento"
-            >
-              <FormularioMedicamento clienteId={id} />
-            </ModalFormulario>
-          }
-          descricao="Medicamentos informados e alertas de segurança."
-          icone={<Pill className="size-4" aria-hidden="true" />}
-          id="medicamentos"
-          titulo="Medicamentos"
-        >
-          <ListaMedicamentosGerenciavel clienteId={id} medicamentos={medicamentosParaLista} />
-        </SecaoPerfil>
-      ) : null}
+        {abaAtual === "medicamentos" && medicamentos ? (
+          <SecaoPerfil
+            acao={
+              <ModalFormulario
+                icone={<Pill className="size-4" aria-hidden />}
+                rotuloBotao="Novo medicamento"
+                titulo="Registrar medicamento"
+              >
+                <FormularioMedicamento clienteId={id} />
+              </ModalFormulario>
+            }
+            descricao="Medicamentos informados e alertas de segurança."
+            icone={<Pill className="size-4" aria-hidden="true" />}
+            id="medicamentos"
+            titulo="Medicamentos"
+            tom="salvia"
+          >
+            <ListaMedicamentosGerenciavel clienteId={id} medicamentos={medicamentosParaLista} />
+          </SecaoPerfil>
+        ) : null}
+      </AbasPerfilCliente>
     </div>
   );
 }

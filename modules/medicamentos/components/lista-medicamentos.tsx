@@ -187,17 +187,17 @@ function ItemMedicamento({
 
   return (
     <li className="px-3 py-3 sm:px-5">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+      <div className="group grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 rounded-2xl border border-transparent bg-surface p-2 transition duration-200 focus-within:border-roxo/20 focus-within:bg-lilas/10 hover:border-roxo/10 hover:bg-lilas/15 hover:shadow-sm">
         <button
-          className="flex min-w-0 items-start gap-4 rounded-2xl px-3 py-2 text-left transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+          className="flex min-w-0 items-start gap-4 rounded-xl px-3 py-2 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
           onClick={modalVisualizacao.open}
           type="button"
         >
-          <span className="bg-menta mt-1 flex size-12 shrink-0 items-center justify-center rounded-2xl text-brand">
+          <span className="bg-menta mt-1 flex size-12 shrink-0 items-center justify-center rounded-2xl text-brand transition duration-200 group-hover:scale-105 group-hover:bg-surface group-hover:text-roxo">
             <Pill className="size-5" aria-hidden="true" />
           </span>
           <span className="min-w-0">
-            <span className="block text-base font-semibold text-foreground">
+            <span className="block text-base font-semibold text-foreground transition group-hover:text-brand">
               {medicamento.nome}
             </span>
             <span className="mt-1 line-clamp-2 block text-sm text-muted">
@@ -220,14 +220,14 @@ function ItemMedicamento({
           </span>
         </button>
 
-        <span className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <span className="flex shrink-0 flex-wrap items-center justify-end gap-2 pt-2 pr-1">
           <StatusVerificacao clienteId={clienteId} medicamento={medicamento} />
 
           <div className="relative inline-flex" onBlur={fecharMenuAoPerderFoco} ref={gatilhoRef}>
             <button
               aria-expanded={menuAberto}
               aria-haspopup="menu"
-              className="inline-flex size-9 items-center justify-center rounded-full text-muted transition hover:bg-creme hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+              className="inline-flex size-9 items-center justify-center rounded-full text-muted transition hover:bg-surface hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
               onClick={() => setMenuAberto((aberto) => !aberto)}
               title={`Ações do medicamento ${medicamento.nome}`}
               type="button"

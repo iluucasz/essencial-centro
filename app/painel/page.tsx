@@ -37,6 +37,8 @@ import { contarMedicamentosPendentesVerificacao } from "@/modules/medicamentos/q
 import { deveAvisarPacoteAcabando } from "@/modules/pacotes/progresso";
 import { listarPacotes } from "@/modules/pacotes/queries";
 import { contarClientesNovos } from "@/modules/relatorios/resumo";
+import { AvisoPendenciasRegistroSessaoPainel } from "@/modules/sessoes/components/aviso-pendencias-registro-sessao";
+import { listarPendenciasRegistroSessao } from "@/modules/sessoes/queries";
 
 const formatadorMoeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const formatadorHorario = new Intl.DateTimeFormat("pt-BR", {
@@ -159,12 +161,14 @@ export default async function PainelPage() {
   const usuario = await exigirUsuarioAtual(["profissional", "recepcao"]);
   const hoje = agoraBrasilia();
 
-  const [agendamentosHoje, clientes, pacotes, agendamentosPeriodo] = await Promise.all([
-    listarAgendamentosDoDia(hoje),
-    listarClientes(),
-    listarPacotes(),
-    listarAgendamentosUltimosDias(30),
-  ]);
+  const [agendamentosHoje, clientes, pacotes, agendamentosPeriodo, pendenciasRegistroSessao] =
+    await Promise.all([
+      listarAgendamentosDoDia(hoje),
+      listarClientes(),
+      listarPacotes(),
+      listarAgendamentosUltimosDias(30),
+      usuario.role === "profissional" ? listarPendenciasRegistroSessao(4) : Promise.resolve(null),
+    ]);
 
   const tendenciaFaturamento =
     usuario.role === "profissional" ? await obterTendenciaFaturamento(hoje) : null;
@@ -312,6 +316,13 @@ export default async function PainelPage() {
             })}
           </div>
         </section>
+      ) : null}
+
+      {pendenciasRegistroSessao ? (
+        <AvisoPendenciasRegistroSessaoPainel
+          pendencias={pendenciasRegistroSessao.itens}
+          total={pendenciasRegistroSessao.total}
+        />
       ) : null}
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">

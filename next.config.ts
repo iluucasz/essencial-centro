@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["pdf-parse"],
   experimental: {
     serverActions: {
       // Next.js limita o body de Server Action a 1MB por padrão — abaixo do teto de 4MB que

@@ -76,10 +76,13 @@ documento, em `/portal/documentos/[id]`) quanto pra profissional (`/painel/clien
   pergunta feita — nunca um dump em lote de uma tabela inteira, e nunca dado de um cliente que não
   o perguntado. Fotografias e o conteúdo do Vercel Blob nunca são enviados (só metadados: contagem
   e data da última foto) — nem a assinatura eletrônica, IP ou user-agent de `modules/documentos`
-  (`reshapeDocumento` os descarta antes de montar a resposta da ferramenta). **O sistema nunca
-  sugere/calcula medicamento, dosagem ou interação** — só relata o que a profissional já registrou
-  manualmente (mesma regra de `modules/medicamentos`, `04-roadmap.md`); o prompt do assistente
-  reforça essa recusa explicitamente. Sem consentimento específico adicional coletado nesta fase
+  (`reshapeDocumento` os descarta antes de montar a resposta da ferramenta). **O módulo
+  `modules/medicamentos` nunca calcula interação — `alertaInteracao` é sempre preenchido
+  manualmente** (`04-roadmap.md`). O assistente pode dar recomendações de conduta/medicação **como
+  apoio à decisão** (nunca prescrição ou decisão clínica automática): sempre com o aviso de que a
+  decisão final é da profissional, explicando o porquê, e checando alergias e medicamentos já
+  registrados antes de citar qualquer remédio (política no prompt do sistema,
+  `modules/assistente/prompt.ts`). Sem consentimento específico adicional coletado nesta fase
   (dado já é visível à própria profissional dentro do painel) — considerar no aviso de privacidade
   quando ele for escrito, junto dos demais processadores terceirizados.
 
@@ -96,6 +99,14 @@ Repositório está público — **não** commitar dados reais de pacientes nem d
   entre medicamentos. Alerta sempre exige validação de profissional habilitado — `criarMedicamentoInformado`
   (registro) e `confirmarVerificacaoMedicamento` (conferência) são duas ações deliberadamente
   separadas, nunca uma confirmação automática no ato de informar. Restrito a `profissional`.
+- **Formulário público de ficha** (`app/ficha/[token]`, `modules/fichas`): única rota **sem login**
+  do produto — o cliente preenche a anamnese por link de WhatsApp. Autorização é só o **token**
+  (`crypto.randomBytes`, base64url, uso único, expira em 14 dias); `obterFichaPorToken` filtra pela
+  posse do token e nunca expõe dado de outro cliente. O formulário só mostra campos
+  `quemPreenche:"cliente"` (`camposVisiveisParaCliente`) — avaliação/observações internas nunca vão
+  ao cliente. `enviarFichaPublica` revalida as respostas no servidor; o envio é único pelo status
+  (`aguardando_cliente` → `preenchida`) e o link preenchido vira só a tela "Ficha já preenchida",
+  sem expor nenhuma resposta.
 - **Biometria**: check-in por impressão digital (Fase 3, `modules/biometria`) — alternativa ao QR
   Code, nunca substitui: o cliente pode ser confirmado por QR Code a qualquer momento, mesmo com
   biometria cadastrada. Só o **template extraído** (binário proprietário do SDK do leitor) é

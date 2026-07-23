@@ -6,35 +6,35 @@ import { Modal, useOverlayState } from "@heroui/react";
 import { ClipboardList, Ellipsis, Eye, FileText, LoaderCircle, Pencil, Trash2 } from "lucide-react";
 
 import { usePosicaoMenuAcoes } from "@/components/ui/menu-acoes";
-import { ConteudoModal, FecharModalProvider } from "@/components/ui/modal-formulario";
-import { excluirFicha, type EstadoExclusaoFicha } from "@/modules/fichas/actions";
+import { ConteudoModal } from "@/components/ui/modal-formulario";
 import {
-  isTipoFichaImplementado,
+  editarFichaDinamica,
+  excluirFicha,
+  type EstadoExclusaoFicha,
+} from "@/modules/fichas/actions";
+import type { CampoModelo } from "@/modules/fichas/campos";
+import {
   rotulosStatusFicha,
   rotulosTipoFicha,
   type StatusFicha,
   type TipoFicha,
 } from "@/modules/fichas/schema";
 
-import {
-  FormularioFichaEsteticaCorporal,
-  type FichaEsteticaCorporalEdicao,
-} from "./formulario-ficha-estetica-corporal";
-import {
-  FormularioFichaExtensaoCilios,
-  type FichaExtensaoCiliosEdicao,
-} from "./formulario-ficha-extensao-cilios";
+import { DetalhesFichaDinamica } from "./detalhes-ficha-dinamica";
+import { FormularioDinamico } from "./formulario-dinamico";
 
 type ServicoOpcao = { id: string; nome: string };
+
+export type ModeloResumo = { id: string; nome: string; campos: CampoModelo[] };
 
 export type FichaLista = {
   id: string;
   clienteId: string;
   servicoId: string | null;
-  tipo: TipoFicha;
+  modeloFichaId: string | null;
+  tipo: TipoFicha | null;
   status: StatusFicha;
   versao: number;
-  versaoAnteriorId: string | null;
   respostas: unknown | null;
   aceiteTermosEm: Date | null;
   autorizacaoImagemEm: Date | null;
@@ -46,6 +46,7 @@ const estadoInicialExclusao: EstadoExclusaoFicha = { status: "inicial" };
 
 const classePorStatus: Record<StatusFicha, string> = {
   rascunho: "bg-creme text-muted",
+  aguardando_cliente: "bg-dourado/15 text-dourado",
   preenchida: "bg-lilas/25 text-roxo",
   revisada: "bg-dourado/20 text-dourado",
   assinada: "bg-brand/15 text-brand",
@@ -56,269 +57,61 @@ const formatadorDataCurta = new Intl.DateTimeFormat("pt-BR", {
   timeZone: "UTC",
 });
 
-const formatadorDataHora = new Intl.DateTimeFormat("pt-BR", {
-  dateStyle: "short",
-  timeStyle: "short",
-  timeZone: "UTC",
-});
-
-const rotulosCampos: Record<string, string> = {
-  abdomenAbaixo: "5cm abaixo do umbigo",
-  abdomenAcima: "5cm acima do umbigo",
-  aceiteInformacoesVerdadeiras: "Confirma informações verdadeiras",
-  alergiaDetalhe: "Detalhe da alergia",
-  avaliacaoProfissional: "Avaliação da profissional",
-  bracoDireito: "Braço direito",
-  bracoEsquerdo: "Braço esquerdo",
-  cirurgiaDetalhe: "Detalhe da cirurgia",
-  cirurgiaOcularDetalhe: "Detalhe da cirurgia ocular",
-  compartilhado: "Área compartilhada",
-  contraindicacaoDetalhe: "Detalhe da contraindicação",
-  contraindicacaoImportante: "Contraindicação importante",
-  curvaturaEspessuraFios: "Curvatura e espessura dos fios",
-  coxaDireita: "Coxa direita",
-  coxaEsquerda: "Coxa esquerda",
-  diagnosticoEstetico: "Diagnóstico estético",
-  gestante: "Gestante",
-  gestanteOuLactante: "Gestante ou lactante",
-  gluteo: "Glúteo",
-  habitos: "Hábitos",
-  jaFezExtensaoCilios: "Já fez extensão de cílios",
-  linhaUmbigo: "Linha do umbigo",
-  medicamentoDetalhe: "Detalhe do medicamento",
-  medidas: "Medidas",
-  objetivoProcedimento: "Objetivo do procedimento",
-  objetivoTratamento: "Objetivo do tratamento",
-  observacoesInternas: "Observações internas",
-  orientacoes: "Orientações",
-  problemaOcularDetalhe: "Detalhe da condição ocular",
-  procedimentosIndicados: "Procedimentos indicados",
-  quadril: "Quadril",
-  queixaPrincipal: "Queixa principal",
-  reacaoAdesivoDetalhe: "Detalhe da reação ao adesivo",
-  realizouCirurgia: "Realizou cirurgia",
-  realizouCirurgiaOcularRecente: "Realizou cirurgia ocular recente",
-  relato: "Relato do cliente",
-  resumoProcedimento: "Resumo do procedimento",
-  resumoTratamento: "Resumo do tratamento",
-  semanasGestacao: "Semanas de gestação",
-  tecnicaAplicada: "Técnica aplicada",
-  temAlergia: "Tem alergia",
-  temProblemaOcular: "Tem condição ocular",
-  teveReacaoAdesivo: "Teve reação ao adesivo",
-  usaLentesContato: "Usa lentes de contato",
-  usaMedicamento: "Usa medicamento",
-};
-
-function formatarDataOpcional(data: Date | null) {
-  return data ? formatadorDataHora.format(data) : "Não registrado";
-}
-
-function humanizarCampo(campo: string) {
-  return (
-    rotulosCampos[campo] ??
-    campo.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (letra) => letra.toUpperCase())
-  );
-}
-
-function valorVazio(valor: unknown): boolean {
-  if (valor === null || valor === undefined || valor === "") return true;
-  if (Array.isArray(valor)) return valor.length === 0;
-  if (typeof valor === "object") {
-    return Object.values(valor as Record<string, unknown>).every(valorVazio);
-  }
-
-  return false;
-}
-
-function formatarValor(valor: unknown) {
-  if (typeof valor === "boolean") return valor ? "Sim" : "Não";
-  if (typeof valor === "number") return valor.toLocaleString("pt-BR");
-  if (typeof valor === "string") return valor;
-
-  return "Não informado";
-}
-
-function ValorResposta({ nome, valor }: { nome: string; valor: unknown }) {
-  if (valorVazio(valor)) return null;
-
-  if (Array.isArray(valor)) {
-    return (
-      <div className="grid gap-1">
-        <dt className="text-xs font-semibold text-muted">{humanizarCampo(nome)}</dt>
-        <dd className="text-sm leading-6 text-foreground">{valor.map(formatarValor).join(", ")}</dd>
-      </div>
-    );
-  }
-
-  if (typeof valor === "object" && valor !== null) {
-    const entradas = Object.entries(valor as Record<string, unknown>).filter(
-      ([, item]) => !valorVazio(item),
-    );
-
-    if (entradas.length === 0) return null;
-
-    return (
-      <div className="grid gap-3 rounded-2xl bg-creme p-4">
-        <dt className="text-sm font-semibold text-roxo">{humanizarCampo(nome)}</dt>
-        <dd>
-          <dl className="grid gap-3">
-            {entradas.map(([chave, item]) => (
-              <ValorResposta key={chave} nome={chave} valor={item} />
-            ))}
-          </dl>
-        </dd>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid gap-1">
-      <dt className="text-xs font-semibold text-muted">{humanizarCampo(nome)}</dt>
-      <dd className="text-sm leading-6 text-foreground">{formatarValor(valor)}</dd>
-    </div>
-  );
-}
-
-function SecaoResposta({
-  respostas,
-  titulo,
-}: {
-  respostas: Record<string, unknown>;
-  titulo: string;
-}) {
-  const entradas = Object.entries(respostas).filter(([, valor]) => !valorVazio(valor));
-
-  return (
-    <section className="grid gap-3 rounded-2xl border border-border bg-surface p-4">
-      <h3 className="font-semibold text-roxo">{titulo}</h3>
-      {entradas.length > 0 ? (
-        <dl className="grid gap-3">
-          {entradas.map(([chave, valor]) => (
-            <ValorResposta key={chave} nome={chave} valor={valor} />
-          ))}
-        </dl>
-      ) : (
-        <p className="text-sm text-muted">Não informado.</p>
-      )}
-    </section>
-  );
-}
-
 function respostasComoObjeto(ficha: FichaLista) {
   return ficha.respostas && typeof ficha.respostas === "object"
     ? (ficha.respostas as Record<string, unknown>)
     : null;
 }
 
-function FormularioEdicaoFicha({
-  clienteNome,
-  ficha,
-  servicos,
-}: {
-  clienteNome: string;
-  ficha: FichaLista;
-  servicos: ServicoOpcao[];
-}) {
-  if (!ficha.respostas || !isTipoFichaImplementado(ficha.tipo)) {
-    return (
-      <p className="rounded-2xl border border-border bg-creme p-4 text-sm text-muted">
-        Este tipo de ficha ainda não tem formulário de edição implementado.
-      </p>
-    );
-  }
+function tituloFicha(ficha: FichaLista, modelo: ModeloResumo | undefined) {
+  if (modelo) return modelo.nome;
+  if (ficha.tipo) return rotulosTipoFicha[ficha.tipo];
 
-  if (ficha.tipo === "estetica_corporal") {
-    return (
-      <FormularioFichaEsteticaCorporal
-        clienteId={ficha.clienteId}
-        clienteNome={clienteNome}
-        ficha={{
-          id: ficha.id,
-          autorizacaoImagemEm: ficha.autorizacaoImagemEm,
-          respostas: ficha.respostas as FichaEsteticaCorporalEdicao["respostas"],
-          servicoId: ficha.servicoId,
-        }}
-        servicos={servicos}
-      />
-    );
-  }
-
-  return (
-    <FormularioFichaExtensaoCilios
-      clienteId={ficha.clienteId}
-      clienteNome={clienteNome}
-      ficha={{
-        id: ficha.id,
-        autorizacaoImagemEm: ficha.autorizacaoImagemEm,
-        respostas: ficha.respostas as FichaExtensaoCiliosEdicao["respostas"],
-        servicoId: ficha.servicoId,
-      }}
-      servicos={servicos}
-    />
-  );
+  return "Ficha";
 }
 
-function DetalhesFicha({ ficha }: { ficha: FichaLista }) {
-  const respostas = respostasComoObjeto(ficha);
-
-  if (!respostas) {
-    return (
-      <p className="rounded-2xl border border-border bg-creme p-4 text-sm text-muted">
-        O conteúdo desta ficha é restrito à profissional.
-      </p>
-    );
-  }
+/** Visualização de ficha legada (shape relato/avaliação/compartilhado) — fichas antigas. */
+function DetalhesFichaLegada({ respostas }: { respostas: Record<string, unknown> }) {
+  const secoes: Array<[string, string]> = [
+    ["relato", "Relato do cliente"],
+    ["avaliacaoProfissional", "Avaliação da profissional"],
+    ["compartilhado", "Área compartilhada"],
+  ];
 
   return (
-    <div className="grid gap-5">
-      <dl className="grid gap-3 rounded-2xl bg-creme p-4 sm:grid-cols-2">
-        <div>
-          <dt className="text-xs font-semibold text-muted">Status</dt>
-          <dd className="mt-1 text-sm font-semibold text-foreground">
-            {rotulosStatusFicha[ficha.status]}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs font-semibold text-muted">Versão</dt>
-          <dd className="mt-1 text-sm font-semibold text-foreground">v{ficha.versao}</dd>
-        </div>
-        <div>
-          <dt className="text-xs font-semibold text-muted">Criada em</dt>
-          <dd className="mt-1 text-sm text-foreground">{formatarDataOpcional(ficha.criadoEm)}</dd>
-        </div>
-        <div>
-          <dt className="text-xs font-semibold text-muted">Atualizada em</dt>
-          <dd className="mt-1 text-sm text-foreground">
-            {formatarDataOpcional(ficha.atualizadoEm)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs font-semibold text-muted">Aceite de termos</dt>
-          <dd className="mt-1 text-sm text-foreground">
-            {formatarDataOpcional(ficha.aceiteTermosEm)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs font-semibold text-muted">Autorização de imagem</dt>
-          <dd className="mt-1 text-sm text-foreground">
-            {formatarDataOpcional(ficha.autorizacaoImagemEm)}
-          </dd>
-        </div>
-      </dl>
+    <div className="grid gap-4">
+      {secoes.map(([chave, titulo]) => {
+        const bloco = respostas[chave];
+        const entradas =
+          bloco && typeof bloco === "object"
+            ? Object.entries(bloco as Record<string, unknown>).filter(
+                ([, valor]) => valor !== null && valor !== undefined && valor !== "",
+              )
+            : [];
 
-      <SecaoResposta
-        respostas={(respostas.relato as Record<string, unknown> | undefined) ?? {}}
-        titulo="Relato do cliente"
-      />
-      <SecaoResposta
-        respostas={(respostas.avaliacaoProfissional as Record<string, unknown> | undefined) ?? {}}
-        titulo="Avaliação da profissional"
-      />
-      <SecaoResposta
-        respostas={(respostas.compartilhado as Record<string, unknown> | undefined) ?? {}}
-        titulo="Área compartilhada"
-      />
+        return (
+          <section
+            className="grid gap-2 rounded-2xl border border-border bg-surface p-4"
+            key={chave}
+          >
+            <h3 className="font-semibold text-roxo">{titulo}</h3>
+            {entradas.length > 0 ? (
+              <dl className="grid gap-2">
+                {entradas.map(([campo, valor]) => (
+                  <div className="grid gap-0.5" key={campo}>
+                    <dt className="text-xs font-semibold text-muted">{campo}</dt>
+                    <dd className="text-sm text-foreground">
+                      {typeof valor === "boolean" ? (valor ? "Sim" : "Não") : String(valor)}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <p className="text-sm text-muted">Não informado.</p>
+            )}
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -326,11 +119,13 @@ function DetalhesFicha({ ficha }: { ficha: FichaLista }) {
 function ItemFicha({
   clienteNome,
   ficha,
+  modelo,
   podeGerenciar,
   servicos,
 }: {
   clienteNome: string;
   ficha: FichaLista;
+  modelo: ModeloResumo | undefined;
   podeGerenciar: boolean;
   servicos: ServicoOpcao[];
 }) {
@@ -342,8 +137,10 @@ function ItemFicha({
   const [confirmado, setConfirmado] = useState(false);
   const [state, formAction, pending] = useActionState(excluirFicha, estadoInicialExclusao);
   const { gatilhoRef, abrirParaCima } = usePosicaoMenuAcoes(menuAberto);
-  const podeVerDetalhes = podeGerenciar && Boolean(ficha.respostas);
-  const podeEditar = podeVerDetalhes && isTipoFichaImplementado(ficha.tipo);
+  const respostas = respostasComoObjeto(ficha);
+  const podeVerDetalhes = podeGerenciar && Boolean(respostas);
+  const podeEditar = podeVerDetalhes && Boolean(modelo);
+  const titulo = tituloFicha(ficha, modelo);
 
   useEffect(() => {
     if (state.status !== "sucesso") return;
@@ -362,13 +159,11 @@ function ItemFicha({
 
   const conteudoLinha = (
     <>
-      <span className="bg-menta flex size-12 shrink-0 items-center justify-center rounded-2xl text-brand">
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-lilas/20 text-roxo transition group-hover:bg-roxo group-hover:text-white">
         <ClipboardList className="size-5" aria-hidden="true" />
       </span>
       <span className="min-w-0">
-        <span className="block truncate font-semibold text-foreground">
-          {rotulosTipoFicha[ficha.tipo]}
-        </span>
+        <span className="block truncate font-semibold text-foreground">{titulo}</span>
         <span className="mt-1 block text-sm text-muted">
           Criada em {formatadorDataCurta.format(ficha.criadoEm)} · v{ficha.versao}
           {podeVerDetalhes ? "" : " · conteúdo restrito à profissional"}
@@ -378,18 +173,18 @@ function ItemFicha({
   );
 
   return (
-    <li className="px-3 py-3 sm:px-5">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+    <li className="px-3 py-2 sm:px-5">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-transparent px-3 py-2 transition hover:border-roxo/15 hover:bg-lilas/10">
         {podeVerDetalhes ? (
           <button
-            className="flex min-w-0 items-center gap-4 rounded-2xl px-3 py-2 text-left transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+            className="group flex min-w-0 items-center gap-4 rounded-xl text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
             onClick={modalVisualizacao.open}
             type="button"
           >
             {conteudoLinha}
           </button>
         ) : (
-          <span className="flex min-w-0 items-center gap-4 px-3 py-2">{conteudoLinha}</span>
+          <span className="group flex min-w-0 items-center gap-4">{conteudoLinha}</span>
         )}
 
         <span className="flex shrink-0 items-center gap-2">
@@ -406,11 +201,11 @@ function ItemFicha({
                 aria-haspopup="menu"
                 className="inline-flex size-9 items-center justify-center rounded-full text-muted transition hover:bg-creme hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
                 onClick={() => setMenuAberto((aberto) => !aberto)}
-                title={`Ações da ficha ${rotulosTipoFicha[ficha.tipo]}`}
+                title={`Ações da ficha ${titulo}`}
                 type="button"
               >
                 <Ellipsis className="size-5" aria-hidden="true" />
-                <span className="sr-only">Abrir ações da ficha {rotulosTipoFicha[ficha.tipo]}</span>
+                <span className="sr-only">Abrir ações da ficha {titulo}</span>
               </button>
 
               {menuAberto ? (
@@ -444,11 +239,7 @@ function ItemFicha({
                       <Pencil className="size-4 text-roxo" aria-hidden="true" />
                       Editar ficha
                     </button>
-                  ) : (
-                    <p className="px-3 py-2 text-xs text-muted" role="note">
-                      Edição ainda não disponível para este tipo.
-                    </p>
-                  )}
+                  ) : null}
                   <button
                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-perigo transition hover:bg-perigo/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-perigo"
                     onClick={() => {
@@ -472,28 +263,54 @@ function ItemFicha({
       <Modal state={modalVisualizacao}>
         <Modal.Backdrop variant="opaque">
           <Modal.Container className="w-[calc(100vw-2rem)] sm:w-full" size="lg">
-            <ConteudoModal titulo={`${rotulosTipoFicha[ficha.tipo]} · v${ficha.versao}`}>
-              <DetalhesFicha ficha={ficha} />
+            <ConteudoModal titulo={`${titulo} · v${ficha.versao}`}>
+              {respostas && modelo ? (
+                <DetalhesFichaDinamica campos={modelo.campos} respostas={respostas} />
+              ) : respostas ? (
+                <DetalhesFichaLegada respostas={respostas} />
+              ) : (
+                <p className="rounded-2xl border border-border bg-creme p-4 text-sm text-muted">
+                  O conteúdo desta ficha é restrito à profissional.
+                </p>
+              )}
             </ConteudoModal>
           </Modal.Container>
         </Modal.Backdrop>
       </Modal>
 
-      <Modal state={modalEdicao}>
-        <Modal.Backdrop variant="opaque">
-          <Modal.Container className="w-[calc(100vw-2rem)] sm:w-full" size="lg">
-            <ConteudoModal titulo={`Editar ${rotulosTipoFicha[ficha.tipo]}`}>
-              <FecharModalProvider value={modalEdicao.close}>
-                <FormularioEdicaoFicha
-                  clienteNome={clienteNome}
-                  ficha={ficha}
+      {modelo && respostas ? (
+        <Modal state={modalEdicao}>
+          <Modal.Backdrop variant="opaque">
+            <Modal.Container className="w-[calc(100vw-2rem)] sm:w-full" size="lg">
+              <ConteudoModal titulo={`Editar ${titulo}`}>
+                <FormularioDinamico
+                  aoEnviar={async ({ respostas: novasRespostas, servicoId }) => {
+                    const resultado = await editarFichaDinamica({
+                      id: ficha.id,
+                      clienteId: ficha.clienteId,
+                      modeloFichaId: modelo.id,
+                      servicoId,
+                      respostas: novasRespostas,
+                    });
+
+                    if (resultado.status === "sucesso") {
+                      modalEdicao.close();
+                      router.refresh();
+                    }
+
+                    return resultado;
+                  }}
+                  campos={modelo.campos}
+                  rotuloEnviar="Salvar alterações"
+                  servicoIdInicial={ficha.servicoId}
                   servicos={servicos}
+                  valoresRespostas={respostas}
                 />
-              </FecharModalProvider>
-            </ConteudoModal>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
+              </ConteudoModal>
+            </Modal.Container>
+          </Modal.Backdrop>
+        </Modal>
+      ) : null}
 
       <Modal state={modalExclusao}>
         <Modal.Backdrop variant="opaque">
@@ -503,8 +320,8 @@ function ItemFicha({
                 <input name="fichaId" type="hidden" value={ficha.id} />
                 <input name="clienteId" type="hidden" value={ficha.clienteId} />
                 <p className="text-sm text-foreground">
-                  Você está prestes a excluir a ficha {rotulosTipoFicha[ficha.tipo]} v{ficha.versao}{" "}
-                  de {clienteNome}. Esta ação remove o registro do prontuário.
+                  Você está prestes a excluir a ficha {titulo} v{ficha.versao} de {clienteNome}.
+                  Esta ação remove o registro do prontuário.
                 </p>
                 <label className="flex items-start gap-3 rounded-xl bg-creme p-3 text-sm text-foreground">
                   <input
@@ -560,14 +377,18 @@ function ItemFicha({
 export function ListaFichas({
   clienteNome,
   fichas,
+  modelos,
   podeGerenciar,
   servicos,
 }: {
   clienteNome: string;
   fichas: FichaLista[];
+  modelos: ModeloResumo[];
   podeGerenciar: boolean;
   servicos: ServicoOpcao[];
 }) {
+  const modelosPorId = new Map(modelos.map((modelo) => [modelo.id, modelo]));
+
   if (fichas.length === 0) {
     return (
       <div className="flex items-center gap-3 rounded-3xl border border-border bg-surface p-6 text-sm text-muted">
@@ -590,6 +411,7 @@ export function ListaFichas({
             clienteNome={clienteNome}
             ficha={ficha}
             key={ficha.id}
+            modelo={ficha.modeloFichaId ? modelosPorId.get(ficha.modeloFichaId) : undefined}
             podeGerenciar={podeGerenciar}
             servicos={servicos}
           />

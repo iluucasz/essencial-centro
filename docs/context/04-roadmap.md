@@ -102,7 +102,7 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
     `agendamento`/`sessao`/`lancamento_financeiro`, que apontam pra `pacoteId`): registro do cliente que
     agrupa as sessões — cliente, serviço, `planoPacoteId` (nulo = avulsa), profissional, pagamento
     (forma + situação), modalidade, observações. **Sem** validade (removida). Consumir 1 sessão = marcar
-    um agendamento `realizado` (derivado, igual antes).
+    um agendamento `realizado` (derivado) e registrar a `Sessao` clínica vinculada.
   - **Novo agendamento** (modal em `/painel/agenda`, `FormularioContrato` + action `agendarContrato` em
     `modules/pacotes/actions`): escolhe cliente → serviço → "avulsa" ou um pacote do serviço; monta uma
     **tabela de N datas editáveis** (N = sessões do pacote, 1 na avulsa), com **pré-preenchimento por
@@ -110,10 +110,13 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
     editável. Duração de cada sessão = a do serviço. Ao confirmar, cria **1 contrato + N agendamentos**
     num `db.batch` (neon-http **não** suporta `transaction()`; `contratoId` pré-gerado). **Conflito é
     bloqueante** (reusa `ocorrenciasEmConflito`/`encontrarConflito`). Notifica o cliente uma vez.
-  - **Concluir atendimento**: a ação só é liberada depois da presença confirmada (`checkinEm`). O botão
-    "Concluir atendimento" na agenda abre modal de confirmação. O modal mostra a situação de pagamento
+  - **Concluir sessão**: a ação só é liberada depois da presença confirmada (`checkinEm`). O botão
+    "Concluir sessão" na agenda abre modal de confirmação. O modal mostra a situação de pagamento
     do contrato e permite lançar a receita daquela sessão (`pago` ou `pendente`) com valor editável; se
-    o contrato já estava pago, a opção padrão é não lançar cobrança extra.
+    o contrato já estava pago, a opção padrão é não lançar cobrança extra. Depois de concluir, redireciona
+    para a aba **Sessões** do cliente e abre o modal de nova sessão já com serviço, contrato/pacote e
+    agendamento travados; atendimentos realizados sem sessão aparecem como pendência nessa aba e como
+    aviso no painel principal/perfil do cliente, sempre apontando para a aba **Sessões**.
   - `modules/recorrencia` não tem tabela própria: só o enum de frequência + `gerar.ts` (semanal por dia
     da semana; mensal por dia do mês, pulando meses sem o dia, ex. 31 em fevereiro).
 
@@ -177,9 +180,11 @@ Fase 2 concluída — próximo passo é a Fase 3.
   medicamentos, financeiro, estoque, agenda, pacotes, documentos, relatórios) via tool-calling
   (Groq + Vercel AI SDK, `openai/gpt-oss-120b`) sobre as próprias `queries.ts` já autorizadas —
   nunca acesso cru ao banco, então a mesma checagem de role/posse que protege o painel inteiro
-  protege o assistente de graça. **Nunca sugere/calcula medicamento, dosagem ou interação** — só
-  relata o que a profissional já registrou manualmente (mesma regra de `modules/medicamentos`),
-  reforçado tanto no prompt do sistema quanto na ferramenta em si. Histórico simples por
+  protege o assistente de graça. Pode dar **recomendações de conduta/medicação como apoio à
+  decisão** (nunca prescrição/decisão automática): com aviso de que a decisão final é da
+  profissional, explicando o porquê e checando alergias/medicamentos já registrados antes de citar
+  remédio (política no prompt). O módulo `modules/medicamentos` em si continua sem calcular
+  interação (`alertaInteracao` é manual). Histórico simples por
   profissional (`mensagem_assistente`, sem thread/conversa separada — escopo enxuto de propósito).
   **Limitações conhecidas**: sem rate-limit/teto de custo de chamada à Groq nesta fase; contexto
   enviado ao modelo é limitado às últimas 20 mensagens da conversa.

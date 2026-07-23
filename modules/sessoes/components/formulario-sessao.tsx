@@ -1,9 +1,15 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
-import { LoaderCircle, NotebookPen, Save } from "lucide-react";
+import {
+  CalendarClock,
+  LoaderCircle,
+  LockKeyhole,
+  NotebookPen,
+  PackageCheck,
+  Save,
+} from "lucide-react";
 
-import { CampoDataCalendario } from "@/components/ui/calendario-tailgrids";
 import { useFecharModal } from "@/components/ui/modal-formulario";
 import { cn } from "@/lib/utils";
 import {
@@ -19,6 +25,16 @@ const classeArea =
   "min-h-20 w-full min-w-0 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground transition outline-none placeholder:text-muted/70 focus:border-roxo focus:ring-2 focus:ring-roxo/20";
 
 type Opcao = { id: string; nome: string };
+
+export type AgendamentoSessaoFormulario = Opcao & {
+  duracaoMinutos: number;
+  inicio: Date;
+  pacoteId: string | null;
+  pacoteNome: string | null;
+  servicoId: string;
+  servicoNome: string;
+  status: string;
+};
 
 export type SessaoFormulario = {
   id: string;
@@ -43,9 +59,11 @@ export type SessaoFormulario = {
   presencaConfirmada: boolean;
 };
 
-function formatarDataInput(data: Date | null | undefined) {
-  return data ? data.toISOString().slice(0, 10) : undefined;
-}
+const formatadorDataHora = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "short",
+  timeStyle: "short",
+  timeZone: "UTC",
+});
 
 function MensagemFormulario({ state }: { state: EstadoFormularioSessao | undefined }) {
   if (!state?.mensagem) return null;
@@ -199,13 +217,72 @@ function CampoSelect({
   );
 }
 
+function LinhaResumoAgendamento({
+  icone,
+  label,
+  valor,
+}: {
+  icone: React.ReactNode;
+  label: string;
+  valor: string;
+}) {
+  return (
+    <span className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2">
+      <span className="shrink-0 rounded-lg bg-brand/10 p-1.5 text-brand">{icone}</span>
+      <span className="min-w-0">
+        <span className="block text-xs font-semibold text-muted">{label}</span>
+        <span className="block truncate text-sm font-medium text-foreground">{valor}</span>
+      </span>
+    </span>
+  );
+}
+
+function ResumoAgendamentoTravado({ agendamento }: { agendamento: AgendamentoSessaoFormulario }) {
+  return (
+    <div className="grid gap-3 rounded-2xl border border-brand/15 bg-brand/5 p-4 sm:col-span-2">
+      <div className="flex items-start gap-3">
+        <span className="rounded-xl bg-brand/10 p-2 text-brand">
+          <LockKeyhole className="size-4" aria-hidden="true" />
+        </span>
+        <span>
+          <span className="block text-sm font-semibold text-foreground">
+            Sessão vinculada ao atendimento realizado
+          </span>
+          <span className="mt-1 block text-sm text-muted">
+            Serviço, pacote e atendimento vêm da agenda concluída e não podem ser alterados aqui.
+          </span>
+        </span>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <LinhaResumoAgendamento
+          icone={<CalendarClock className="size-4" aria-hidden="true" />}
+          label="Atendimento"
+          valor={formatadorDataHora.format(agendamento.inicio)}
+        />
+        <LinhaResumoAgendamento
+          icone={<NotebookPen className="size-4" aria-hidden="true" />}
+          label="Serviço"
+          valor={agendamento.servicoNome}
+        />
+        <LinhaResumoAgendamento
+          icone={<PackageCheck className="size-4" aria-hidden="true" />}
+          label="Pacote"
+          valor={agendamento.pacoteNome ?? "Sessão avulsa"}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function FormularioSessao({
+  agendamentoTravado,
   clienteId,
   sessao,
   servicos,
   agendamentos,
   pacotes,
 }: {
+  agendamentoTravado?: AgendamentoSessaoFormulario;
   clienteId: string;
   sessao?: SessaoFormulario;
   servicos: Opcao[];
@@ -222,39 +299,56 @@ export function FormularioSessao({
     if (state.status === "sucesso") fecharModal();
   }, [state, fecharModal]);
 
+  const duracaoInicial = sessao?.duracaoMinutos ?? agendamentoTravado?.duracaoMinutos ?? undefined;
+
   return (
     <form action={formAction} className="grid min-w-0 gap-6">
       <input name="clienteId" type="hidden" value={clienteId} />
       {sessao ? <input name="id" type="hidden" value={sessao.id} /> : null}
+      {agendamentoTravado ? (
+        <>
+          <input name="servicoId" type="hidden" value={agendamentoTravado.servicoId} />
+          <input name="agendamentoId" type="hidden" value={agendamentoTravado.id} />
+          {agendamentoTravado.pacoteId ? (
+            <input name="pacoteId" type="hidden" value={agendamentoTravado.pacoteId} />
+          ) : null}
+        </>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <CampoSelect
-          defaultValue={sessao?.servicoId}
-          error={state?.campos?.servicoId}
-          label="Serviço"
-          name="servicoId"
-          opcaoVazia="Selecione"
-          opcoes={servicos}
-          required
-        />
-        <CampoSelect
-          defaultValue={sessao?.agendamentoId}
-          error={state?.campos?.agendamentoId}
-          label="Atendimento vinculado (opcional)"
-          name="agendamentoId"
-          opcaoVazia="Sem vínculo"
-          opcoes={agendamentos}
-        />
-        <CampoSelect
-          defaultValue={sessao?.pacoteId}
-          error={state?.campos?.pacoteId}
-          label="Pacote (opcional)"
-          name="pacoteId"
-          opcaoVazia="Sessão avulsa"
-          opcoes={pacotes}
-        />
+        {agendamentoTravado ? (
+          <ResumoAgendamentoTravado agendamento={agendamentoTravado} />
+        ) : (
+          <>
+            <CampoSelect
+              defaultValue={sessao?.servicoId}
+              error={state?.campos?.servicoId}
+              label="Serviço"
+              name="servicoId"
+              opcaoVazia="Selecione"
+              opcoes={servicos}
+              required
+            />
+            <CampoSelect
+              defaultValue={sessao?.agendamentoId}
+              error={state?.campos?.agendamentoId}
+              label="Atendimento vinculado (opcional)"
+              name="agendamentoId"
+              opcaoVazia="Sem vínculo"
+              opcoes={agendamentos}
+            />
+            <CampoSelect
+              defaultValue={sessao?.pacoteId}
+              error={state?.campos?.pacoteId}
+              label="Pacote (opcional)"
+              name="pacoteId"
+              opcaoVazia="Sessão avulsa"
+              opcoes={pacotes}
+            />
+          </>
+        )}
         <CampoTexto
-          defaultValue={sessao?.duracaoMinutos ?? undefined}
+          defaultValue={duracaoInicial}
           error={state?.campos?.duracaoMinutos}
           inputMode="numeric"
           label="Duração (minutos)"
@@ -286,12 +380,6 @@ export function FormularioSessao({
           name="escalaDorDepois"
           placeholder="Ex.: 1"
           type="number"
-        />
-        <CampoDataCalendario
-          defaultValue={formatarDataInput(sessao?.proximaSessaoRecomendada)}
-          error={state?.campos?.proximaSessaoRecomendada}
-          label="Próxima sessão recomendada"
-          name="proximaSessaoRecomendada"
         />
       </div>
 
@@ -369,16 +457,6 @@ export function FormularioSessao({
           placeholder="Ex.: hidratar-se bem e evitar exposição solar por 24h"
         />
       </section>
-
-      <label className="flex items-center gap-2 text-sm text-foreground">
-        <input
-          className="size-4 rounded border-border text-brand focus:ring-roxo"
-          defaultChecked={sessao?.presencaConfirmada ?? true}
-          name="presencaConfirmada"
-          type="checkbox"
-        />
-        Presença confirmada
-      </label>
 
       <MensagemFormulario state={state} />
 

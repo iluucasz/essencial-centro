@@ -68,7 +68,7 @@ export default async function MinhasFichasPage() {
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="font-medium text-foreground">
-                      {rotulosTipoFicha[ficha.tipo]}
+                      {ficha.tipo ? rotulosTipoFicha[ficha.tipo] : "Ficha"}
                     </span>
                     <span className="text-xs text-muted">
                       {formatarData(ficha.criadoEm)} · {rotulosStatusFicha[ficha.status]}

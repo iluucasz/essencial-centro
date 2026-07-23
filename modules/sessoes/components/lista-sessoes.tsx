@@ -1,24 +1,39 @@
 "use client";
 
-import { useActionState, useEffect, useState, type FocusEvent } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, type FocusEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Modal, useOverlayState } from "@heroui/react";
 import {
+  AlertCircle,
+  CalendarClock,
   CheckCircle2,
   Ellipsis,
   Eye,
   LoaderCircle,
   NotebookPen,
   Pencil,
+  Search,
   Trash2,
   XCircle,
 } from "lucide-react";
 
 import { usePosicaoMenuAcoes } from "@/components/ui/menu-acoes";
 import { ConteudoModal, FecharModalProvider } from "@/components/ui/modal-formulario";
+import { cn } from "@/lib/utils";
 import { excluirSessao, type EstadoExclusaoSessao } from "@/modules/sessoes/actions";
+import {
+  filtrarSessoes,
+  numerarSessoesPorData,
+  ordenarSessoesPorDataDecrescente,
+  type FiltroPacoteSessao,
+  type FiltroVinculoAgendamentoSessao,
+} from "@/modules/sessoes/filtro";
 
-import { FormularioSessao, type SessaoFormulario } from "./formulario-sessao";
+import {
+  FormularioSessao,
+  type AgendamentoSessaoFormulario,
+  type SessaoFormulario,
+} from "./formulario-sessao";
 
 type Opcao = { id: string; nome: string };
 
@@ -30,10 +45,9 @@ export type SessaoLista = SessaoFormulario & {
 
 const estadoInicialExclusao: EstadoExclusaoSessao = { status: "inicial" };
 
-const formatadorDataCurta = new Intl.DateTimeFormat("pt-BR", {
-  dateStyle: "short",
-  timeZone: "UTC",
-});
+const classeFiltro =
+  "h-10 min-w-0 rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition outline-none placeholder:text-muted/70 focus:border-roxo focus:ring-2 focus:ring-roxo/20";
+
 const formatadorDataHora = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
   timeStyle: "short",
@@ -55,6 +69,10 @@ function nomeOpcao(opcoes: Opcao[], id: string | null, vazio = "Não vinculado")
   if (!id) return vazio;
 
   return opcoes.find((opcao) => opcao.id === id)?.nome ?? "Registro não encontrado";
+}
+
+function filtrarOpcoesPorIds(opcoes: Opcao[], ids: Set<string>) {
+  return opcoes.filter((opcao) => ids.has(opcao.id));
 }
 
 function CampoDetalhe({
@@ -87,7 +105,7 @@ function DetalhesSessao({
   servicos,
   sessao,
 }: {
-  agendamentos: Opcao[];
+  agendamentos: AgendamentoSessaoFormulario[];
   pacotes: Opcao[];
   servicos: Opcao[];
   sessao: SessaoLista;
@@ -101,7 +119,6 @@ function DetalhesSessao({
           label="Duração"
           valor={sessao.duracaoMinutos ? `${sessao.duracaoMinutos} min` : null}
         />
-        <CampoDetalhe label="Presença confirmada" valor={sessao.presencaConfirmada} />
         <CampoDetalhe
           label="Atendimento vinculado"
           valor={nomeOpcao(agendamentos, sessao.agendamentoId)}
@@ -113,14 +130,6 @@ function DetalhesSessao({
 
       <dl className="grid gap-3 rounded-2xl border border-border bg-surface p-4 sm:grid-cols-2">
         <CampoDetalhe label="Região tratada" valor={sessao.regiaoTratada} />
-        <CampoDetalhe
-          label="Próxima sessão recomendada"
-          valor={
-            sessao.proximaSessaoRecomendada
-              ? formatadorDataCurta.format(sessao.proximaSessaoRecomendada)
-              : null
-          }
-        />
         <CampoDetalhe
           label="Dor antes"
           valor={sessao.escalaDorAntes !== null ? `${sessao.escalaDorAntes}/10` : null}
@@ -146,18 +155,16 @@ function DetalhesSessao({
 
 function ItemSessao({
   agendamentos,
-  indice,
+  numeroSessao,
   pacotes,
   servicos,
   sessao,
-  total,
 }: {
-  agendamentos: Opcao[];
-  indice: number;
+  agendamentos: AgendamentoSessaoFormulario[];
+  numeroSessao: number;
   pacotes: Opcao[];
   servicos: Opcao[];
   sessao: SessaoLista;
-  total: number;
 }) {
   const router = useRouter();
   const modalVisualizacao = useOverlayState();
@@ -167,8 +174,10 @@ function ItemSessao({
   const [confirmado, setConfirmado] = useState(false);
   const [state, formAction, pending] = useActionState(excluirSessao, estadoInicialExclusao);
   const { gatilhoRef, abrirParaCima } = usePosicaoMenuAcoes(menuAberto);
-  const numeroSessao = total - indice;
   const servicoNome = nomeOpcao(servicos, sessao.servicoId, "Sessão");
+  const agendamentoVinculado = sessao.agendamentoId
+    ? agendamentos.find((item) => item.id === sessao.agendamentoId)
+    : undefined;
   const descricao =
     sessao.relatoCliente ??
     sessao.orientacoesPosAtendimento ??
@@ -191,17 +200,17 @@ function ItemSessao({
 
   return (
     <li className="px-3 py-3 sm:px-5">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+      <div className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-transparent bg-surface p-2 transition duration-200 focus-within:border-roxo/20 focus-within:bg-lilas/10 hover:border-roxo/10 hover:bg-lilas/15 hover:shadow-sm">
         <button
-          className="flex min-w-0 gap-4 rounded-2xl px-3 py-2 text-left transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+          className="flex min-w-0 gap-4 rounded-xl px-3 py-2 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
           onClick={modalVisualizacao.open}
           type="button"
         >
-          <span className="bg-menta flex size-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-brand">
+          <span className="bg-menta flex size-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-brand transition duration-200 group-hover:scale-105 group-hover:bg-surface group-hover:text-roxo">
             S{numeroSessao}
           </span>
           <span className="min-w-0">
-            <span className="block text-base font-semibold text-foreground">
+            <span className="block text-base font-semibold text-foreground transition group-hover:text-brand">
               Sessão {numeroSessao}
             </span>
             <span className="mt-1 block text-sm text-foreground">
@@ -231,7 +240,7 @@ function ItemSessao({
           </span>
         </button>
 
-        <span className="flex shrink-0 items-center gap-2">
+        <span className="flex shrink-0 items-center gap-2 pr-1">
           <time className="hidden text-right text-sm font-medium text-muted sm:inline">
             {formatadorDataHora.format(sessao.dataHora)}
           </time>
@@ -240,7 +249,7 @@ function ItemSessao({
             <button
               aria-expanded={menuAberto}
               aria-haspopup="menu"
-              className="inline-flex size-9 items-center justify-center rounded-full text-muted transition hover:bg-creme hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+              className="inline-flex size-9 items-center justify-center rounded-full text-muted transition hover:bg-surface hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
               onClick={() => setMenuAberto((aberto) => !aberto)}
               title={`Ações da sessão ${numeroSessao}`}
               type="button"
@@ -318,6 +327,7 @@ function ItemSessao({
             <ConteudoModal titulo={`Editar sessão ${numeroSessao}`}>
               <FecharModalProvider value={modalEdicao.close}>
                 <FormularioSessao
+                  agendamentoTravado={agendamentoVinculado}
                   agendamentos={agendamentos}
                   clienteId={sessao.clienteId}
                   pacotes={pacotes}
@@ -393,50 +403,352 @@ function ItemSessao({
   );
 }
 
-export function ListaSessoes({
+function caminhoAbaSessoes(clienteId: string) {
+  return `/painel/clientes/${clienteId}?aba=sessoes`;
+}
+
+function ModalRegistrarSessaoAgendamento({
+  abrirInicialmente = false,
+  agendamento,
+  clienteId,
+  pacotes,
+  servicos,
+}: {
+  abrirInicialmente?: boolean;
+  agendamento: AgendamentoSessaoFormulario;
+  clienteId: string;
+  pacotes: Opcao[];
+  servicos: Opcao[];
+}) {
+  const router = useRouter();
+  const modal = useOverlayState();
+  const abriuPorUrl = useRef(false);
+  const caminhoLimpo = caminhoAbaSessoes(clienteId);
+
+  useEffect(() => {
+    if (!abrirInicialmente || abriuPorUrl.current) return;
+
+    abriuPorUrl.current = true;
+    modal.open();
+  }, [abrirInicialmente, modal]);
+
+  useEffect(() => {
+    if (!abrirInicialmente || !abriuPorUrl.current || modal.isOpen) return;
+
+    router.replace(caminhoLimpo, { scroll: false });
+  }, [abrirInicialmente, caminhoLimpo, modal.isOpen, router]);
+
+  function fecharModal() {
+    modal.close();
+    router.replace(caminhoLimpo, { scroll: false });
+    router.refresh();
+  }
+
+  return (
+    <Modal state={modal}>
+      <Modal.Trigger className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-brand px-3 text-xs font-semibold text-brand-foreground transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo">
+        <NotebookPen className="size-3.5" aria-hidden="true" />
+        Preencher sessão
+      </Modal.Trigger>
+      <Modal.Backdrop variant="opaque">
+        <Modal.Container className="w-[calc(100vw-1rem)] sm:w-full" size="lg">
+          <ConteudoModal titulo="Registrar sessão do atendimento">
+            <FecharModalProvider value={fecharModal}>
+              <FormularioSessao
+                agendamentoTravado={agendamento}
+                agendamentos={[agendamento]}
+                clienteId={clienteId}
+                pacotes={pacotes}
+                servicos={servicos}
+              />
+            </FecharModalProvider>
+          </ConteudoModal>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
+  );
+}
+
+function AvisoSessoesPendentes({
+  agendamentoAbrirModalId,
   agendamentos,
+  clienteId,
+  pacotes,
+  servicos,
+}: {
+  agendamentoAbrirModalId?: string | null;
+  agendamentos: AgendamentoSessaoFormulario[];
+  clienteId: string;
+  pacotes: Opcao[];
+  servicos: Opcao[];
+}) {
+  if (agendamentos.length === 0) return null;
+
+  return (
+    <section className="grid gap-3 rounded-3xl border border-dourado/25 bg-dourado/10 p-4 sm:p-5">
+      <div className="flex items-start gap-3">
+        <span className="rounded-2xl bg-dourado/15 p-2.5 text-dourado">
+          <AlertCircle className="size-5" aria-hidden="true" />
+        </span>
+        <span>
+          <h3 className="text-base font-semibold text-foreground">
+            Atendimentos realizados sem sessão
+          </h3>
+          <p className="mt-1 text-sm text-muted">
+            Estes atendimentos já foram concluídos na agenda, mas ainda precisam do registro clínico
+            da sessão.
+          </p>
+        </span>
+      </div>
+
+      <ul className="grid gap-2">
+        {agendamentos.map((agendamento) => (
+          <li
+            className="grid gap-3 rounded-2xl border border-dourado/20 bg-surface/90 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+            key={agendamento.id}
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <span className="rounded-xl bg-dourado/15 p-2 text-dourado">
+                <CalendarClock className="size-4" aria-hidden="true" />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold text-foreground">
+                  {agendamento.servicoNome}
+                </span>
+                <span className="mt-0.5 block text-xs text-muted">
+                  {formatadorDataHora.format(agendamento.inicio)}
+                  {agendamento.pacoteNome ? ` · ${agendamento.pacoteNome}` : " · Sessão avulsa"}
+                </span>
+              </span>
+            </span>
+
+            <ModalRegistrarSessaoAgendamento
+              abrirInicialmente={agendamentoAbrirModalId === agendamento.id}
+              agendamento={agendamento}
+              clienteId={clienteId}
+              pacotes={pacotes}
+              servicos={servicos}
+            />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+export function ListaSessoes({
+  agendamentoAbrirModalId,
+  agendamentos,
+  agendamentosPendentes = [],
+  clienteId,
   pacotes,
   servicos,
   sessoes,
 }: {
-  agendamentos: Opcao[];
+  agendamentoAbrirModalId?: string | null;
+  agendamentos: AgendamentoSessaoFormulario[];
+  agendamentosPendentes?: AgendamentoSessaoFormulario[];
+  clienteId: string;
   pacotes: Opcao[];
   servicos: Opcao[];
   sessoes: SessaoLista[];
 }) {
-  if (sessoes.length === 0) {
-    return (
-      <div className="flex items-center gap-3 rounded-3xl border border-border bg-surface p-6 text-sm text-muted">
-        <span className="bg-menta rounded-2xl p-3 text-brand">
-          <NotebookPen className="size-4" aria-hidden="true" />
-        </span>
-        Nenhuma sessão registrada.
-      </div>
+  const [busca, setBusca] = useState("");
+  const [mesAno, setMesAno] = useState("");
+  const [pacoteSelecionado, setPacoteSelecionado] = useState<FiltroPacoteSessao>("todos");
+  const [servicoSelecionado, setServicoSelecionado] = useState<"todos" | string>("todos");
+  const [vinculoAgendamento, setVinculoAgendamento] =
+    useState<FiltroVinculoAgendamentoSessao>("todos");
+
+  const servicoNomePorId = useMemo(
+    () => new Map(servicos.map((servico) => [servico.id, servico.nome])),
+    [servicos],
+  );
+  const pacoteNomePorId = useMemo(
+    () => new Map(pacotes.map((pacote) => [pacote.id, pacote.nome])),
+    [pacotes],
+  );
+  const agendamentoNomePorId = useMemo(
+    () => new Map(agendamentos.map((agendamento) => [agendamento.id, agendamento.nome])),
+    [agendamentos],
+  );
+  const sessoesOrdenadas = useMemo(() => ordenarSessoesPorDataDecrescente(sessoes), [sessoes]);
+  const numeroSessaoPorId = useMemo(() => numerarSessoesPorData(sessoes), [sessoes]);
+  const servicosFiltro = useMemo(() => {
+    const ids = new Set(sessoes.map((sessao) => sessao.servicoId));
+
+    return filtrarOpcoesPorIds(servicos, ids);
+  }, [servicos, sessoes]);
+  const pacotesFiltro = useMemo(() => {
+    const ids = new Set(
+      sessoes.map((sessao) => sessao.pacoteId).filter((id): id is string => Boolean(id)),
     );
-  }
+
+    return filtrarOpcoesPorIds(pacotes, ids);
+  }, [pacotes, sessoes]);
+  const temSessaoAvulsa = useMemo(
+    () => sessoes.some((sessao) => sessao.pacoteId === null),
+    [sessoes],
+  );
+  const sessoesFiltradas = useMemo(
+    () =>
+      filtrarSessoes(
+        sessoesOrdenadas,
+        {
+          busca,
+          mesAno,
+          pacoteId: pacoteSelecionado,
+          servicoId: servicoSelecionado,
+          vinculoAgendamento,
+        },
+        { agendamentoNomePorId, pacoteNomePorId, servicoNomePorId },
+      ),
+    [
+      agendamentoNomePorId,
+      busca,
+      mesAno,
+      pacoteNomePorId,
+      pacoteSelecionado,
+      servicoNomePorId,
+      servicoSelecionado,
+      sessoesOrdenadas,
+      vinculoAgendamento,
+    ],
+  );
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-border bg-surface">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-5">
-        <h3 className="text-base font-semibold text-foreground">Sessões realizadas</h3>
-        <span className="inline-flex items-center gap-1 rounded-full bg-brand/15 px-3 py-1 text-xs font-semibold text-brand">
-          <CheckCircle2 className="size-3.5" aria-hidden="true" />
-          {sessoes.length} registro{sessoes.length === 1 ? "" : "s"}
-        </span>
-      </div>
-      <ul className="divide-y divide-border">
-        {sessoes.map((sessao, indice) => (
-          <ItemSessao
-            agendamentos={agendamentos}
-            indice={indice}
-            key={sessao.id}
-            pacotes={pacotes}
-            servicos={servicos}
-            sessao={sessao}
-            total={sessoes.length}
-          />
-        ))}
-      </ul>
+    <div className="grid gap-4">
+      <AvisoSessoesPendentes
+        agendamentoAbrirModalId={agendamentoAbrirModalId}
+        agendamentos={agendamentosPendentes}
+        clienteId={clienteId}
+        pacotes={pacotes}
+        servicos={servicos}
+      />
+
+      {sessoes.length === 0 ? (
+        <div className="flex items-center gap-3 rounded-3xl border border-border bg-surface p-6 text-sm text-muted">
+          <span className="bg-menta rounded-2xl p-3 text-brand">
+            <NotebookPen className="size-4" aria-hidden="true" />
+          </span>
+          Nenhuma sessão registrada.
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-3xl border border-border bg-surface">
+          <div className="grid gap-4 border-b border-border px-4 py-4 sm:px-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-base font-semibold text-foreground">Sessões realizadas</h3>
+              <span className="inline-flex items-center gap-1 rounded-full bg-brand/15 px-3 py-1 text-xs font-semibold text-brand">
+                <CheckCircle2 className="size-3.5" aria-hidden="true" />
+                {sessoesFiltradas.length} de {sessoes.length}
+              </span>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-background/60 p-3">
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-12">
+                <label className="grid min-w-0 gap-1.5 lg:col-span-3">
+                  <span className="text-xs font-semibold text-muted">Busca</span>
+                  <span className="relative min-w-0">
+                    <Search
+                      className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted"
+                      aria-hidden="true"
+                    />
+                    <input
+                      className={cn(classeFiltro, "w-full pl-9")}
+                      onChange={(event) => setBusca(event.target.value)}
+                      placeholder="Serviço, região ou relato"
+                      type="search"
+                      value={busca}
+                    />
+                  </span>
+                </label>
+
+                <label className="grid min-w-0 gap-1.5 lg:col-span-2">
+                  <span className="text-xs font-semibold text-muted">Mês/ano</span>
+                  <input
+                    className={cn(classeFiltro, "w-full")}
+                    onChange={(event) => setMesAno(event.target.value)}
+                    type="month"
+                    value={mesAno}
+                  />
+                </label>
+
+                <label className="grid min-w-0 gap-1.5 lg:col-span-2">
+                  <span className="text-xs font-semibold text-muted">Serviço</span>
+                  <select
+                    className={classeFiltro}
+                    onChange={(event) => setServicoSelecionado(event.target.value)}
+                    value={servicoSelecionado}
+                  >
+                    <option value="todos">Todos os serviços do cliente</option>
+                    {servicosFiltro.map((servico) => (
+                      <option key={servico.id} value={servico.id}>
+                        {servico.nome}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="grid min-w-0 gap-1.5 lg:col-span-3">
+                  <span className="text-xs font-semibold text-muted">Pacote</span>
+                  <select
+                    className={classeFiltro}
+                    onChange={(event) => setPacoteSelecionado(event.target.value)}
+                    value={pacoteSelecionado}
+                  >
+                    <option value="todos">Todos os pacotes do cliente</option>
+                    {temSessaoAvulsa ? <option value="sem-pacote">Sessões avulsas</option> : null}
+                    {pacotesFiltro.map((pacote) => (
+                      <option key={pacote.id} value={pacote.id}>
+                        {pacote.nome}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="grid min-w-0 gap-1.5 lg:col-span-2">
+                  <span className="text-xs font-semibold text-muted">Atendimento</span>
+                  <select
+                    className={classeFiltro}
+                    onChange={(event) =>
+                      setVinculoAgendamento(event.target.value as FiltroVinculoAgendamentoSessao)
+                    }
+                    value={vinculoAgendamento}
+                  >
+                    <option value="todos">Todos</option>
+                    <option value="com-agendamento">Vinculado</option>
+                    <option value="sem-agendamento">Sem vínculo</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {sessoesFiltradas.length === 0 ? (
+            <div className="p-4 sm:p-5">
+              <div className="flex items-center gap-3 rounded-2xl border border-border bg-background/60 p-5 text-sm text-muted">
+                <span className="bg-menta rounded-2xl p-3 text-brand">
+                  <NotebookPen className="size-4" aria-hidden="true" />
+                </span>
+                Nenhuma sessão encontrada com estes filtros.
+              </div>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {sessoesFiltradas.map((sessao) => (
+                <ItemSessao
+                  agendamentos={agendamentos}
+                  key={sessao.id}
+                  numeroSessao={numeroSessaoPorId.get(sessao.id) ?? 1}
+                  pacotes={pacotes}
+                  servicos={servicos}
+                  sessao={sessao}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }

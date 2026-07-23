@@ -1,3 +1,4 @@
+import { groq } from "@ai-sdk/groq";
 import { tool, type Tool } from "ai";
 import { z } from "zod";
 
@@ -95,8 +96,9 @@ const medicamentosDoClienteTool = tool({
   description:
     "Retorna os medicamentos já registrados manualmente pela profissional para este cliente " +
     "(nome, dosagem, frequência, prescritor, alergia, alerta de interação já preenchido " +
-    "manualmente, status de verificação). NUNCA use para sugerir, calcular ou avaliar interações " +
-    "— apenas relate o que já está registrado. Lista vazia significa que nada foi registrado ainda.",
+    "manualmente, status de verificação). Use para relatar o que está registrado e para checar " +
+    "alergias e possíveis conflitos antes de qualquer recomendação de apoio (seguindo a política " +
+    "de recomendações do sistema). Lista vazia significa que nada foi registrado ainda.",
   inputSchema: z.object({ clienteId: z.string().uuid() }),
   execute: async ({ clienteId }) => {
     try {
@@ -232,8 +234,9 @@ const sessoesDoClienteTool = tool({
     "Retorna as sessões clínicas mais recentes de um cliente (relato do cliente, avaliação da " +
     "profissional, orientações, escala de dor). É o dado mais sensível do sistema — use só " +
     "quando a pergunta exigir o conteúdo detalhado de sessões específicas; para progresso geral " +
-    "prefira resumo_evolucao_cliente. NUNCA use este conteúdo para sugerir tratamento, medicação " +
-    "ou qualquer decisão clínica — apenas relate o que já foi registrado.",
+    "prefira resumo_evolucao_cliente. Use este conteúdo com cuidado; qualquer recomendação de " +
+    "apoio a partir dele deve seguir a política de recomendações do sistema (explicar o porquê, " +
+    "checar alergias, deixar claro que a decisão final é da profissional).",
   inputSchema: z.object({
     clienteId: z.string().uuid(),
     limite: z
@@ -279,7 +282,7 @@ function comDatasSerializadas<T extends Record<string, Tool>>(ferramentas: T): T
   return Object.fromEntries(entradas) as T;
 }
 
-export const ferramentasAssistente = comDatasSerializadas({
+const ferramentasBaseAssistente = comDatasSerializadas({
   buscar_clientes: buscarClientesTool,
   resumo_evolucao_cliente: resumoEvolucaoClienteTool,
   medicamentos_do_cliente: medicamentosDoClienteTool,
@@ -291,3 +294,18 @@ export const ferramentasAssistente = comDatasSerializadas({
   relatorio_periodo: relatorioPeriodoTool,
   sessoes_do_cliente: sessoesDoClienteTool,
 });
+
+export const ferramentasAssistente = ferramentasBaseAssistente;
+
+export function ferramentasAssistenteParaContexto({
+  permitirBuscaWeb = false,
+}: {
+  permitirBuscaWeb?: boolean;
+} = {}) {
+  if (!permitirBuscaWeb) return ferramentasBaseAssistente;
+
+  return {
+    ...ferramentasBaseAssistente,
+    browser_search: groq.tools.browserSearch({}),
+  };
+}

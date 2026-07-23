@@ -45,7 +45,7 @@ const opcoesPagamento: {
   {
     valor: "nao_lancar",
     rotulo: "Já estava pago",
-    descricao: "Conclui o atendimento sem criar cobrança extra.",
+    descricao: "Conclui a sessão sem criar cobrança extra.",
   },
   {
     valor: "pago",
@@ -146,8 +146,8 @@ function FormularioRealizacao({
         </div>
 
         <p className="text-sm text-muted">
-          Confirme a conclusão do atendimento e como o pagamento desta sessão deve entrar no
-          financeiro.
+          Confirme a conclusão da sessão e como o pagamento deve entrar no financeiro. Em seguida,
+          registre como foi o atendimento na sessão clínica.
         </p>
       </div>
 
@@ -246,7 +246,7 @@ function FormularioRealizacao({
           ) : (
             <CheckCircle2 className="size-4" aria-hidden="true" />
           )}
-          Concluir atendimento
+          Concluir sessão
         </button>
       </div>
     </form>
@@ -267,8 +267,8 @@ export function BotaoRealizarAgendamento({
   const modal = useOverlayState();
   const podeConcluir = podeConcluirAtendimento(agendamento.status, agendamento.checkinEm);
   const dicaBotao = podeConcluir
-    ? "Concluir atendimento"
-    : "Confirme a presença antes de concluir o atendimento.";
+    ? "Concluir sessão"
+    : "Confirme a presença antes de concluir a sessão.";
 
   function abrirModal() {
     if (!podeConcluir) return;
@@ -315,13 +315,13 @@ export function BotaoRealizarAgendamento({
             aria-hidden="true"
           />
         )}
-        Concluir atendimento
+        Concluir sessão
       </button>
 
       <Modal state={modal}>
         <Modal.Backdrop variant="opaque">
           <Modal.Container size="lg">
-            <ConteudoModal titulo="Concluir atendimento">
+            <ConteudoModal titulo="Concluir sessão">
               {modal.isOpen ? (
                 <FormularioRealizacao agendamento={agendamento} onSuccess={fecharModal} />
               ) : null}

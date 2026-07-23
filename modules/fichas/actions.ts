@@ -1,29 +1,288 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { autorizarPapel } from "@/modules/auth/rbac";
+import { cliente } from "@/modules/clientes/schema";
+import { enviarWhatsAppTexto } from "@/modules/notificacoes/whatsapp";
 
-import {
-  criarFichaEsteticaCorporalSchema,
-  criarFichaExtensaoCiliosSchema,
-  editarFichaEsteticaCorporalSchema,
-  editarFichaExtensaoCiliosSchema,
-  ficha,
-  type Ficha,
-  type TipoFichaImplementado,
-} from "./schema";
+import { camposVisiveisParaCliente, validarRespostasModelo } from "./campos";
+import { ficha, modeloFicha } from "./schema";
+import { expiracaoTokenFicha, gerarTokenFicha, tokenFichaExpirado } from "./token";
+import { urlFichaPublica } from "./url-publica";
 
-export type ResultadoCriarFicha =
+export type ResultadoFicha =
   | { status: "sucesso"; id: string }
   | { status: "erro"; mensagem: string; campos?: Record<string, string[] | undefined> };
 
 export type EstadoExclusaoFicha =
   { status: "inicial" } | { status: "sucesso" } | { status: "erro"; mensagem: string };
+
+const servicoIdOpcional = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.string().uuid("Selecione um serviço.").optional(),
+);
+
+const criarFichaDeModeloSchema = z.object({
+  clienteId: z.string().uuid("Selecione um cliente."),
+  modeloFichaId: z.string().uuid("Selecione um modelo."),
+  servicoId: servicoIdOpcional,
+  respostas: z.record(z.string(), z.unknown()).default({}),
+});
+
+const editarFichaDinamicaSchema = criarFichaDeModeloSchema.extend({
+  id: z.string().uuid("Ficha inválida."),
+});
+
+async function carregarModelo(modeloFichaId: string) {
+  const [modelo] = await db
+    .select()
+    .from(modeloFicha)
+    .where(eq(modeloFicha.id, modeloFichaId))
+    .limit(1);
+
+  return modelo ?? null;
+}
+
+/**
+ * Cria uma ficha a partir de um modelo dinâmico, preenchida pela profissional. Revalida as respostas
+ * contra a definição do modelo (`validarRespostasModelo`) — nunca confia no cliente.
+ */
+export async function criarFichaDeModelo(input: unknown): Promise<ResultadoFicha> {
+  const usuario = autorizarPapel(await auth(), ["profissional"]);
+  const parsed = criarFichaDeModeloSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return {
+      status: "erro",
+      mensagem: "Revise os dados da ficha.",
+      campos: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const { clienteId, modeloFichaId, servicoId, respostas } = parsed.data;
+  const modelo = await carregarModelo(modeloFichaId);
+
+  if (!modelo) return { status: "erro", mensagem: "Modelo não encontrado." };
+
+  const validacao = validarRespostasModelo(modelo.campos, respostas);
+
+  if (!validacao.ok) {
+    return { status: "erro", mensagem: "Revise as respostas da ficha.", campos: validacao.erros };
+  }
+
+  const [registro] = await db
+    .insert(ficha)
+    .values({
+      clienteId,
+      servicoId: servicoId ?? null,
+      modeloFichaId,
+      tipo: null,
+      preenchidaPor: "profissional",
+      status: "preenchida",
+      respostas: validacao.dados,
+      criadoPorId: usuario.id,
+      atualizadoPorId: usuario.id,
+    })
+    .returning({ id: ficha.id });
+
+  revalidatePath(`/painel/clientes/${clienteId}`);
+
+  return { status: "sucesso", id: registro.id };
+}
+
+export async function editarFichaDinamica(input: unknown): Promise<ResultadoFicha> {
+  const usuario = autorizarPapel(await auth(), ["profissional"]);
+  const parsed = editarFichaDinamicaSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return {
+      status: "erro",
+      mensagem: "Revise os dados da ficha.",
+      campos: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const { id, clienteId, modeloFichaId, servicoId, respostas } = parsed.data;
+  const [registro] = await db.select().from(ficha).where(eq(ficha.id, id)).limit(1);
+
+  if (!registro || registro.clienteId !== clienteId) {
+    return { status: "erro", mensagem: "Ficha não encontrada." };
+  }
+
+  const modelo = await carregarModelo(modeloFichaId);
+
+  if (!modelo) return { status: "erro", mensagem: "Modelo não encontrado." };
+
+  const validacao = validarRespostasModelo(modelo.campos, respostas);
+
+  if (!validacao.ok) {
+    return { status: "erro", mensagem: "Revise as respostas da ficha.", campos: validacao.erros };
+  }
+
+  await db
+    .update(ficha)
+    .set({
+      servicoId: servicoId ?? null,
+      modeloFichaId,
+      respostas: validacao.dados,
+      atualizadoPorId: usuario.id,
+      atualizadoEm: new Date(),
+    })
+    .where(eq(ficha.id, id));
+
+  revalidatePath(`/painel/clientes/${clienteId}`);
+
+  return { status: "sucesso", id };
+}
+
+const enviarFichaWhatsAppSchema = z.object({
+  clienteId: z.string().uuid("Selecione um cliente."),
+  modeloFichaId: z.string().uuid("Selecione um modelo."),
+  servicoId: servicoIdOpcional,
+});
+
+export type ResultadoEnvioWhatsApp =
+  | { status: "sucesso"; url: string; enviado: boolean; aviso?: string }
+  | { status: "erro"; mensagem: string };
+
+function mensagemFichaWhatsApp(nomeCliente: string, modeloNome: string, url: string) {
+  const primeiroNome = nomeCliente.split(" ")[0] || nomeCliente;
+
+  return (
+    `Olá, ${primeiroNome}! 💜\n\n` +
+    `Para agilizar seu atendimento na Essencial Centro, preencha sua ficha de *${modeloNome}* ` +
+    `neste link seguro:\n${url}\n\n` +
+    `É rápido e leva poucos minutos. Qualquer dúvida, é só chamar por aqui!`
+  );
+}
+
+/**
+ * Cria uma ficha "aguardando_cliente" com token público e envia o link por WhatsApp para o cliente
+ * preencher. Usa `enviarWhatsAppTexto` com o telefone do cadastro DIRETO (não `notificarCliente`,
+ * que exige conta no portal — nem todo cliente tem). Sempre retorna a URL para envio manual como
+ * reforço se o WhatsApp falhar ou o cliente não tiver telefone.
+ */
+export async function enviarFichaPorWhatsApp(input: unknown): Promise<ResultadoEnvioWhatsApp> {
+  const usuario = autorizarPapel(await auth(), ["profissional"]);
+  const parsed = enviarFichaWhatsAppSchema.safeParse(input);
+
+  if (!parsed.success) return { status: "erro", mensagem: "Dados inválidos para o envio." };
+
+  const { clienteId, modeloFichaId, servicoId } = parsed.data;
+  const modelo = await carregarModelo(modeloFichaId);
+
+  if (!modelo) return { status: "erro", mensagem: "Modelo não encontrado." };
+
+  const [registroCliente] = await db
+    .select({ nome: cliente.nome, telefone: cliente.telefone })
+    .from(cliente)
+    .where(eq(cliente.id, clienteId))
+    .limit(1);
+
+  if (!registroCliente) return { status: "erro", mensagem: "Cliente não encontrado." };
+
+  const token = gerarTokenFicha();
+  const agora = new Date();
+
+  await db.insert(ficha).values({
+    clienteId,
+    servicoId: servicoId ?? null,
+    modeloFichaId,
+    tipo: null,
+    status: "aguardando_cliente",
+    respostas: {},
+    tokenPublico: token,
+    tokenExpiraEm: expiracaoTokenFicha(agora),
+    criadoPorId: usuario.id,
+    atualizadoPorId: usuario.id,
+  });
+
+  const url = await urlFichaPublica(token);
+  let enviado = false;
+  let aviso: string | undefined;
+
+  if (!registroCliente.telefone) {
+    aviso = "Cliente sem telefone cadastrado — copie o link e envie manualmente.";
+  } else {
+    const resultado = await enviarWhatsAppTexto({
+      telefone: registroCliente.telefone,
+      mensagem: mensagemFichaWhatsApp(registroCliente.nome, modelo.nome, url),
+    });
+
+    enviado = resultado.sent;
+    if (!resultado.sent) {
+      aviso = resultado.error ?? "Não foi possível enviar pelo WhatsApp — copie o link e envie.";
+    }
+  }
+
+  revalidatePath(`/painel/clientes/${clienteId}`);
+
+  return { status: "sucesso", url, enviado, aviso };
+}
+
+const enviarFichaPublicaSchema = z.object({
+  token: z.string().min(10, "Link inválido."),
+  respostas: z.record(z.string(), z.unknown()).default({}),
+});
+
+export type ResultadoFichaPublica =
+  | { status: "sucesso" }
+  | { status: "erro"; mensagem: string; campos?: Record<string, string[] | undefined> };
+
+/**
+ * Recebe o preenchimento do cliente pelo link público — SEM sessão. Autoriza só pelo token válido
+ * (existente, status "aguardando_cliente", não expirado). Valida as respostas contra os campos
+ * visíveis ao cliente e marca a ficha como preenchida. O envio é único pelo STATUS (o token
+ * permanece para a revisita do link mostrar "Ficha já preenchida" em vez de "link inválido").
+ * Atenção: NÃO chamar `revalidatePath` aqui — dentro de Server Action ele re-renderiza a PÁGINA
+ * ATUAL (a pública) na mesma resposta e substituiria a tela de sucesso; e ele só afetaria o cache
+ * do navegador do cliente, não o da profissional (o painel é dinâmico e busca dado fresco).
+ */
+export async function enviarFichaPublica(input: unknown): Promise<ResultadoFichaPublica> {
+  const parsed = enviarFichaPublicaSchema.safeParse(input);
+
+  if (!parsed.success) return { status: "erro", mensagem: "Não foi possível enviar a ficha." };
+
+  const { token, respostas } = parsed.data;
+  const [registro] = await db.select().from(ficha).where(eq(ficha.tokenPublico, token)).limit(1);
+
+  if (!registro || registro.status !== "aguardando_cliente" || !registro.modeloFichaId) {
+    return { status: "erro", mensagem: "Este link não está mais disponível." };
+  }
+
+  if (tokenFichaExpirado(registro.tokenExpiraEm)) {
+    return { status: "erro", mensagem: "Este link expirou. Peça um novo à profissional." };
+  }
+
+  const modelo = await carregarModelo(registro.modeloFichaId);
+
+  if (!modelo) return { status: "erro", mensagem: "Modelo não encontrado." };
+
+  const validacao = validarRespostasModelo(camposVisiveisParaCliente(modelo.campos), respostas);
+
+  if (!validacao.ok) {
+    return { status: "erro", mensagem: "Revise as respostas da ficha.", campos: validacao.erros };
+  }
+
+  // WHERE amarrado ao status: garante envio único mesmo em duplo clique (o 2º não acha o status).
+  await db
+    .update(ficha)
+    .set({
+      respostas: validacao.dados,
+      status: "preenchida",
+      preenchidaPor: "cliente",
+      aceiteTermosEm: new Date(),
+      atualizadoEm: new Date(),
+    })
+    .where(and(eq(ficha.id, registro.id), eq(ficha.status, "aguardando_cliente")));
+
+  return { status: "sucesso" };
+}
 
 const excluirFichaSchema = z.object({
   fichaId: z.string().uuid("Ficha inválida."),
@@ -32,231 +291,6 @@ const excluirFichaSchema = z.object({
     error: "Confirme que entende que a exclusão não pode ser desfeita.",
   }),
 });
-
-function errosDeCampos(error: z.ZodError) {
-  return error.flatten().fieldErrors as Record<string, string[] | undefined>;
-}
-
-async function obterFichaParaGerenciar({
-  clienteId,
-  fichaId,
-  tipo,
-}: {
-  clienteId: string;
-  fichaId: string;
-  tipo: TipoFichaImplementado;
-}): Promise<
-  { ok: true; registro: Ficha } | { ok: false; erro: { status: "erro"; mensagem: string } }
-> {
-  const [registro] = await db.select().from(ficha).where(eq(ficha.id, fichaId)).limit(1);
-
-  if (!registro || registro.clienteId !== clienteId) {
-    return { ok: false, erro: { status: "erro", mensagem: "Ficha não encontrada." } };
-  }
-
-  if (registro.tipo !== tipo) {
-    return {
-      ok: false,
-      erro: { status: "erro", mensagem: "Tipo de ficha incompatível com este formulário." },
-    };
-  }
-
-  return { ok: true, registro };
-}
-
-async function salvarEdicaoFichaAssinadaOuAberta({
-  autorizacaoImagem,
-  clienteId,
-  fichaId,
-  respostas,
-  servicoId,
-  tipo,
-  usuarioId,
-}: {
-  autorizacaoImagem: boolean;
-  clienteId: string;
-  fichaId: string;
-  respostas: unknown;
-  servicoId?: string;
-  tipo: TipoFichaImplementado;
-  usuarioId: string;
-}) {
-  const existente = await obterFichaParaGerenciar({ clienteId, fichaId, tipo });
-
-  if (!existente.ok) return existente.erro;
-
-  const agora = new Date();
-
-  if (existente.registro.status === "assinada") {
-    const [novaVersao] = await db
-      .insert(ficha)
-      .values({
-        clienteId,
-        servicoId: servicoId ?? null,
-        tipo,
-        status: "assinada",
-        versao: existente.registro.versao + 1,
-        versaoAnteriorId: existente.registro.id,
-        respostas,
-        aceiteTermosEm: agora,
-        autorizacaoImagemEm: autorizacaoImagem ? agora : null,
-        criadoPorId: usuarioId,
-        atualizadoPorId: usuarioId,
-      })
-      .returning({ id: ficha.id });
-
-    revalidatePath(`/painel/clientes/${clienteId}`);
-
-    return { status: "sucesso", id: novaVersao.id } as const;
-  }
-
-  const [registroAtualizado] = await db
-    .update(ficha)
-    .set({
-      servicoId: servicoId ?? null,
-      status: "assinada",
-      respostas,
-      aceiteTermosEm: agora,
-      autorizacaoImagemEm: autorizacaoImagem ? agora : null,
-      atualizadoPorId: usuarioId,
-      atualizadoEm: agora,
-    })
-    .where(eq(ficha.id, fichaId))
-    .returning({ id: ficha.id });
-
-  revalidatePath(`/painel/clientes/${clienteId}`);
-
-  return { status: "sucesso", id: registroAtualizado.id } as const;
-}
-
-/**
- * Dados aninhados (relato/avaliação/medidas) — recebe o objeto validado pelo RHF diretamente,
- * em vez de FormData. Padrão para formulários complexos; formulários simples continuam com
- * FormData + useActionState (ver docs/context/03-convencoes.md).
- */
-export async function criarFichaEsteticaCorporal(input: unknown): Promise<ResultadoCriarFicha> {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
-
-  const parsed = criarFichaEsteticaCorporalSchema.safeParse(input);
-
-  if (!parsed.success) {
-    return {
-      status: "erro",
-      mensagem: "Revise os dados da ficha.",
-      campos: errosDeCampos(parsed.error),
-    };
-  }
-
-  const { clienteId, servicoId, autorizacaoImagem, respostas } = parsed.data;
-  const agora = new Date();
-
-  const [registro] = await db
-    .insert(ficha)
-    .values({
-      clienteId,
-      servicoId,
-      tipo: "estetica_corporal",
-      status: "assinada",
-      respostas,
-      aceiteTermosEm: agora,
-      autorizacaoImagemEm: autorizacaoImagem ? agora : null,
-      criadoPorId: usuarioAtual.id,
-      atualizadoPorId: usuarioAtual.id,
-    })
-    .returning({ id: ficha.id });
-
-  revalidatePath(`/painel/clientes/${clienteId}`);
-
-  return { status: "sucesso", id: registro.id };
-}
-
-export async function criarFichaExtensaoCilios(input: unknown): Promise<ResultadoCriarFicha> {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
-
-  const parsed = criarFichaExtensaoCiliosSchema.safeParse(input);
-
-  if (!parsed.success) {
-    return {
-      status: "erro",
-      mensagem: "Revise os dados da ficha.",
-      campos: errosDeCampos(parsed.error),
-    };
-  }
-
-  const { clienteId, servicoId, autorizacaoImagem, respostas } = parsed.data;
-  const agora = new Date();
-
-  const [registro] = await db
-    .insert(ficha)
-    .values({
-      clienteId,
-      servicoId,
-      tipo: "extensao_cilios",
-      status: "assinada",
-      respostas,
-      aceiteTermosEm: agora,
-      autorizacaoImagemEm: autorizacaoImagem ? agora : null,
-      criadoPorId: usuarioAtual.id,
-      atualizadoPorId: usuarioAtual.id,
-    })
-    .returning({ id: ficha.id });
-
-  revalidatePath(`/painel/clientes/${clienteId}`);
-
-  return { status: "sucesso", id: registro.id };
-}
-
-export async function editarFichaEsteticaCorporal(input: unknown): Promise<ResultadoCriarFicha> {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
-
-  const parsed = editarFichaEsteticaCorporalSchema.safeParse(input);
-
-  if (!parsed.success) {
-    return {
-      status: "erro",
-      mensagem: "Revise os dados da ficha.",
-      campos: errosDeCampos(parsed.error),
-    };
-  }
-
-  const { autorizacaoImagem, clienteId, id, respostas, servicoId } = parsed.data;
-
-  return salvarEdicaoFichaAssinadaOuAberta({
-    autorizacaoImagem,
-    clienteId,
-    fichaId: id,
-    respostas,
-    servicoId,
-    tipo: "estetica_corporal",
-    usuarioId: usuarioAtual.id,
-  });
-}
-
-export async function editarFichaExtensaoCilios(input: unknown): Promise<ResultadoCriarFicha> {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
-
-  const parsed = editarFichaExtensaoCiliosSchema.safeParse(input);
-
-  if (!parsed.success) {
-    return {
-      status: "erro",
-      mensagem: "Revise os dados da ficha.",
-      campos: errosDeCampos(parsed.error),
-    };
-  }
-
-  const { autorizacaoImagem, clienteId, id, respostas, servicoId } = parsed.data;
-
-  return salvarEdicaoFichaAssinadaOuAberta({
-    autorizacaoImagem,
-    clienteId,
-    fichaId: id,
-    respostas,
-    servicoId,
-    tipo: "extensao_cilios",
-    usuarioId: usuarioAtual.id,
-  });
-}
 
 export async function excluirFicha(
   _estado: EstadoExclusaoFicha,

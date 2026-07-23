@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { autorizarPapel } from "@/modules/auth/rbac";
 
-import { mensagemAssistente, type PapelMensagemAssistente } from "./schema";
+import { anexoAssistente, mensagemAssistente, type PapelMensagemAssistente } from "./schema";
 
 /** Helper interno (não ligado a formulário) — a rota de chat chama a cada turno. */
 export async function salvarMensagemAssistente(papel: PapelMensagemAssistente, conteudo: string) {
@@ -19,5 +19,8 @@ export async function salvarMensagemAssistente(papel: PapelMensagemAssistente, c
 export async function limparHistoricoAssistente() {
   const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
 
-  await db.delete(mensagemAssistente).where(eq(mensagemAssistente.profissionalId, usuarioAtual.id));
+  await Promise.all([
+    db.delete(mensagemAssistente).where(eq(mensagemAssistente.profissionalId, usuarioAtual.id)),
+    db.delete(anexoAssistente).where(eq(anexoAssistente.profissionalId, usuarioAtual.id)),
+  ]);
 }

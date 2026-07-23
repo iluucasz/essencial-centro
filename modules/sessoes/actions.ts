@@ -36,10 +36,6 @@ function getValor(formData: FormData, nome: string) {
   return formData.get(nome);
 }
 
-function checkboxAtivo(value: FormDataEntryValue | null) {
-  return value === "on" || value === "true";
-}
-
 function lerDadosSessao(formData: FormData) {
   return {
     id: getValor(formData, "id"),
@@ -61,40 +57,79 @@ function lerDadosSessao(formData: FormData) {
     observacoesInternas: getValor(formData, "observacoesInternas"),
     orientacoesPosAtendimento: getValor(formData, "orientacoesPosAtendimento"),
     proximaSessaoRecomendada: getValor(formData, "proximaSessaoRecomendada"),
-    presencaConfirmada: checkboxAtivo(getValor(formData, "presencaConfirmada")),
+    presencaConfirmada: true,
   };
 }
 
-async function validarVinculosSessao({
-  agendamentoId,
-  clienteId,
-  pacoteId,
-}: {
+type DadosSessaoValidados = {
   agendamentoId?: string;
   clienteId: string;
+  servicoId: string;
   pacoteId?: string;
-}) {
-  if (agendamentoId) {
+  duracaoMinutos?: number;
+};
+
+async function prepararVinculosSessao<TDados extends DadosSessaoValidados>(
+  dados: TDados,
+  sessaoIdAtual?: string,
+) {
+  if (dados.agendamentoId) {
     const [registro] = await db
-      .select({ id: agendamento.id })
+      .select({
+        id: agendamento.id,
+        clienteId: agendamento.clienteId,
+        servicoId: agendamento.servicoId,
+        pacoteId: agendamento.pacoteId,
+        inicio: agendamento.inicio,
+        duracaoMinutos: agendamento.duracaoMinutos,
+        status: agendamento.status,
+      })
       .from(agendamento)
-      .where(and(eq(agendamento.id, agendamentoId), eq(agendamento.clienteId, clienteId)))
+      .where(
+        and(eq(agendamento.id, dados.agendamentoId), eq(agendamento.clienteId, dados.clienteId)),
+      )
       .limit(1);
 
-    if (!registro) return "Atendimento vinculado não pertence a este cliente.";
+    if (!registro) {
+      return { erro: "Atendimento vinculado não pertence a este cliente." };
+    }
+
+    if (registro.status !== "realizado") {
+      return { erro: "Registre a sessão apenas depois de concluir o atendimento." };
+    }
+
+    const [sessaoExistente] = await db
+      .select({ id: sessao.id })
+      .from(sessao)
+      .where(eq(sessao.agendamentoId, dados.agendamentoId))
+      .limit(1);
+
+    if (sessaoExistente && sessaoExistente.id !== sessaoIdAtual) {
+      return { erro: "Este atendimento já possui uma sessão registrada." };
+    }
+
+    return {
+      dados: {
+        ...dados,
+        servicoId: registro.servicoId,
+        pacoteId: registro.pacoteId ?? undefined,
+        duracaoMinutos: dados.duracaoMinutos ?? registro.duracaoMinutos,
+      },
+      dataHora: registro.inicio,
+    };
   }
 
-  if (pacoteId) {
+  if (dados.pacoteId) {
     const [registro] = await db
       .select({ id: pacote.id })
       .from(pacote)
-      .where(and(eq(pacote.id, pacoteId), eq(pacote.clienteId, clienteId)))
+      .where(and(eq(pacote.id, dados.pacoteId), eq(pacote.clienteId, dados.clienteId)))
       .limit(1);
 
-    if (!registro) return "Pacote vinculado não pertence a este cliente.";
+    if (!registro) return { erro: "Pacote vinculado não pertence a este cliente." };
   }
 
-  return null;
+  return { dados };
 }
 
 export async function criarSessao(_: EstadoFormularioSessao = estadoInicial, formData: FormData) {
@@ -110,17 +145,18 @@ export async function criarSessao(_: EstadoFormularioSessao = estadoInicial, for
     } satisfies EstadoFormularioSessao;
   }
 
-  const erroVinculo = await validarVinculosSessao(parsed.data);
+  const vinculos = await prepararVinculosSessao(parsed.data);
 
-  if (erroVinculo) {
+  if ("erro" in vinculos) {
     return {
       status: "erro",
-      mensagem: erroVinculo,
+      mensagem: vinculos.erro,
     } satisfies EstadoFormularioSessao;
   }
 
   await db.insert(sessao).values({
-    ...parsed.data,
+    ...vinculos.dados,
+    dataHora: "dataHora" in vinculos ? vinculos.dataHora : undefined,
     profissionalId: usuarioAtual.id,
     criadoPorId: usuarioAtual.id,
     atualizadoPorId: usuarioAtual.id,
@@ -128,7 +164,7 @@ export async function criarSessao(_: EstadoFormularioSessao = estadoInicial, for
 
   if (parsed.data.orientacoesPosAtendimento) {
     await notificarCliente({
-      clienteId: parsed.data.clienteId,
+      clienteId: vinculos.dados.clienteId,
       tipo: "sessao_concluida",
       titulo: "Novas orientações do seu atendimento",
       mensagem: parsed.data.orientacoesPosAtendimento,
@@ -136,7 +172,7 @@ export async function criarSessao(_: EstadoFormularioSessao = estadoInicial, for
     });
   }
 
-  revalidatePath(`/painel/clientes/${parsed.data.clienteId}`);
+  revalidatePath(`/painel/clientes/${vinculos.dados.clienteId}`);
 
   return {
     status: "sucesso",
@@ -167,23 +203,24 @@ export async function atualizarSessao(
     return { status: "erro", mensagem: "Sessão não encontrada." } satisfies EstadoFormularioSessao;
   }
 
-  const erroVinculo = await validarVinculosSessao(dados);
+  const vinculos = await prepararVinculosSessao(dados, id);
 
-  if (erroVinculo) {
+  if ("erro" in vinculos) {
     return {
       status: "erro",
-      mensagem: erroVinculo,
+      mensagem: vinculos.erro,
     } satisfies EstadoFormularioSessao;
   }
 
   await db
     .update(sessao)
     .set({
-      clienteId: dados.clienteId,
-      servicoId: dados.servicoId,
-      agendamentoId: dados.agendamentoId ?? null,
-      pacoteId: dados.pacoteId ?? null,
-      duracaoMinutos: dados.duracaoMinutos ?? null,
+      clienteId: vinculos.dados.clienteId,
+      servicoId: vinculos.dados.servicoId,
+      agendamentoId: vinculos.dados.agendamentoId ?? null,
+      pacoteId: vinculos.dados.pacoteId ?? null,
+      dataHora: "dataHora" in vinculos ? vinculos.dataHora : registro.dataHora,
+      duracaoMinutos: vinculos.dados.duracaoMinutos ?? null,
       regiaoTratada: dados.regiaoTratada ?? null,
       condicaoAntes: dados.condicaoAntes ?? null,
       relatoCliente: dados.relatoCliente ?? null,

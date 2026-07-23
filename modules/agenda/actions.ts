@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import QRCode from "qrcode";
 
@@ -536,12 +537,7 @@ export async function concluirAgendamento(
   revalidatePath("/painel/pacotes");
   revalidatePath(`/painel/clientes/${registro.clienteId}`);
 
-  return {
-    status: "sucesso",
-    mensagem: deveLancarPagamento
-      ? "Atendimento concluído e pagamento registrado."
-      : "Atendimento concluído.",
-  };
+  redirect(`/painel/clientes/${registro.clienteId}?aba=sessoes&novoAtendimento=${registro.id}`);
 }
 
 /** Confirma presença (chegada na clínica) — destino do QR Code mostrado ao cliente no portal. */

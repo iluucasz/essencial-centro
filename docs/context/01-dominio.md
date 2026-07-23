@@ -33,15 +33,20 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
   em `/painel/checkin/[id]`) — independente do status
   "realizado", que só a profissional marca ao concluir o atendimento. `lembreteDiaAnteriorEm`/
   `lembreteHorasAntesEm` (Fase 2) marcam quando cada lembrete baseado em tempo foi disparado pelo
-  scheduler — ver `04-roadmap.md`. **Concluir atendimento** só fica disponível depois da presença
+  scheduler — ver `04-roadmap.md`. **Concluir sessão** só fica disponível depois da presença
   confirmada (`checkinEm` preenchido); ao concluir, a agenda abre confirmação em modal: se o contrato
   estiver pendente/parcial (ou a sessão for avulsa), pode lançar a receita daquela sessão no
-  financeiro como `pago` ou `pendente`, com valor editável.
+  financeiro como `pago` ou `pendente`, com valor editável. Após concluir, a profissional é enviada
+  para a aba **Sessões** do cliente com o modal de nova sessão aberto e vinculado ao agendamento
+  realizado; enquanto esse registro clínico não existir, a aba sinaliza a pendência, e o painel
+  principal/perfil do cliente também apontam para essa aba.
 - **Ficha / Anamnese** — formulário estruturado por serviço, vinculado ao prontuário do cliente.
   Dinâmica (campos inteligentes). Tem versionamento e status. Detalhe em `07-fichas.md`.
-- **Sessao** — registro de um atendimento realizado: serviço, região, equipamentos, parâmetros,
-  produtos, duração, relato do cliente, avaliação profissional, escala de dor antes/depois,
-  reações, orientações, fotos, medidas, próxima sessão, presença.
+- **Sessao** — registro clínico de um atendimento realizado: serviço, região, equipamentos,
+  parâmetros, produtos, duração, relato do cliente, avaliação profissional, escala de dor antes/depois,
+  reações, orientações, fotos e medidas. Todo `Agendamento` com status `realizado` deve gerar uma
+  `Sessao` vinculada (`agendamentoId`); nesse fluxo, serviço, contrato/pacote e agendamento vêm
+  travados do atendimento concluído.
 - **Medida** — registro corporal por sessão: data, região, lado (D/E), valor inicial, atual,
   diferença, sessão, profissional. Base dos gráficos/tabelas de evolução.
 - **Foto** — imagem clínica padronizada (mesma posição/enquadramento/iluminação/distância),

@@ -3,20 +3,38 @@
 Módulo central: transforma as fichas de papel em **formulários digitais estruturados**,
 vinculados ao prontuário do cliente. Não são cópias duras do papel — **reagem às respostas**.
 
-## Status de implementação
+## Status de implementação — modelos dinâmicos (construtor estilo Google Forms)
 
-Infraestrutura genérica pronta (`modules/fichas/`): tabela `ficha` (JSONB `respostas` + `tipo` +
-`status` + versionamento via `versaoAnteriorId`), separação relato/avaliação profissional/
-compartilhada, filtro de acesso do cliente (`acesso.ts`), consentimento de imagem separado do
-atendimento. **`estetica_corporal` e `extensao_cilios` têm schema de respostas + formulário
-implementados** — o segundo prova que o padrão de `estetica_corporal` (campos inteligentes via
-`.superRefine`) se repete sem atrito. Os outros 9 tipos do catálogo abaixo entram um de cada vez:
-novo `respostasSchema` + entrada em `respostasPorTipo` (`schema.ts`) + action própria em
-`actions.ts` + formulário próprio + botão em `app/painel/clientes/[id]/page.tsx` — sem migração de
-tabela. Ainda não existe vínculo `servico → tipoFicha`: a escolha do tipo é manual (um botão "Nova
-ficha" por tipo implementado), não automática ao abrir um atendimento — o fluxo abaixo descreve a
-intenção original, não o estado atual. Editar/gerar nova versão de uma ficha já assinada ainda não
-tem UI/action (coluna `versaoAnteriorId` existe, mas não é escrita ainda).
+As fichas deixaram de ser **tipadas em código** e passaram a ser **guiadas por modelo em dados**
+(Fase 1 concluída). A profissional cria modelos no construtor e cada modelo pode ser preenchido.
+
+- **`modelo_ficha`** (`modules/fichas/schema.ts`): `campos` em JSONB validado por `camposModeloSchema`
+  (`modules/fichas/campos.ts`) — novos modelos sem migração de tabela. CRUD em `modelos-actions.ts` /
+  `modelos-queries.ts`; administração em `app/painel/fichas/modelos/`. Não se exclui modelo em uso
+  (desativar); dados pessoais do cadastro não se repetem nos campos.
+- **Tipos de campo**: `secao`, `paragrafo`, `texto_curto`, `texto_longo`, `numero`, `data`,
+  `sim_nao` (com detalhe condicional), `selecao_unica`, `selecao_multipla`, `aceite`. Cada campo tem
+  `quemPreenche` (`cliente` | `profissional`) — audiência que filtra o formulário público e o portal.
+- **`ficha`** ganhou `modeloFichaId` + `preenchidaPor`; fichas dinâmicas guardam
+  `respostas = { [campoId]: valor }`. Fichas legadas (shape `relato/avaliacao/compartilhado`)
+  continuam sendo lidas pelo visualizador legado em `components/lista-fichas.tsx`.
+- **Renderização única**: `formulario-dinamico.tsx` desenha qualquer modelo (RHF + schema dinâmico);
+  `validarRespostasModelo` revalida no servidor (`actions.ts`). Seletor "Nova ficha" +
+  "Criar modelo" em `app/painel/clientes/[id]/page.tsx`.
+- **Semente**: `modelos-semente.ts` (11 modelos transcritos de `fichas/*.docx`) + `pnpm db:seed`
+  (idempotente por `slug`). Os 2 formulários fixos antigos (estética/cílios) viraram modelos.
+- **Fase 2 (concluída) — envio por WhatsApp + formulário público**: o seletor "Nova ficha" oferece
+  **Preencher** (profissional) ou **Enviar para WhatsApp**. O envio cria uma ficha
+  `aguardando_cliente` com `tokenPublico` (aleatório forte, uso único, expira em 14 dias — `token.ts`)
+  e manda o link por `enviarWhatsAppTexto` usando `cliente.telefone` direto (não `notificarCliente`,
+  que exige conta no portal). A rota **pública** `app/ficha/[token]/` (sem login, fora de painel/portal)
+  renderiza só os campos `quemPreenche:"cliente"` (`camposVisiveisParaCliente`); ao enviar
+  (`enviarFichaPublica`, autorizada só pelo token), a ficha vira `preenchida` (`preenchidaPor:"cliente"`).
+  O envio é único **pelo status** (revisitar o link mostra "Ficha já preenchida", sem expor respostas);
+  a action pública **não chama `revalidatePath`** — dentro de Server Action ele re-renderiza a página
+  atual e substituiria a tela de sucesso. Se o WhatsApp falhar, a action devolve a URL p/ envio manual.
+- **Follow-up**: versionamento de ficha assinada, vínculo automático `servico → modelo`, e exibir a
+  ficha dinâmica completa no portal do cliente (hoje o portal mostra só título/status das dinâmicas).
 
 ## Fluxo
 

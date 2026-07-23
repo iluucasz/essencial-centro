@@ -13,13 +13,17 @@ describe("montarPromptSistema", () => {
     expect(prompt).toContain("2026");
   });
 
-  it("contém a regra inegociável sobre medicamentos", () => {
+  it("permite recomendações de apoio com salvaguardas (disclaimer, porquê, alergias)", () => {
     const prompt = montarPromptSistema({
       dataAtual: new Date("2026-07-15T12:00:00.000Z"),
       nomeProfissional: "Ana Souza",
     });
 
-    expect(prompt).toContain("NUNCA sugere, recomenda, calcula ou avalia");
+    expect(prompt).toContain("apoio à decisão");
+    expect(prompt).toContain(
+      "a decisão final e a avaliação clínica são exclusivas da profissional",
+    );
+    expect(prompt.toLowerCase()).toContain("alergia");
     expect(prompt.toLowerCase()).toContain("medicament");
   });
 
@@ -73,5 +77,27 @@ describe("montarPromptSistema", () => {
 
     expect(prompt).toContain("Nunca termine a resposta com uma lista");
     expect(prompt).toContain("não termine com frases genéricas de disponibilidade");
+  });
+
+  it("ativa instruções especiais quando existe PDF anexado", () => {
+    const prompt = montarPromptSistema({
+      contextoAnexo: "Arquivo PDF ativo: exame.pdf",
+      dataAtual: new Date("2026-07-15T12:00:00.000Z"),
+      nomeProfissional: "Ana Souza",
+    });
+
+    expect(prompt).toContain("Modo de análise de PDF ativo");
+    expect(prompt).toContain("browser_search");
+    expect(prompt).toContain("Arquivo PDF ativo: exame.pdf");
+    // O sujeito do PDF não é cliente cadastrado por padrão — não vira link de perfil.
+    expect(prompt).toContain("sujeito do documento");
+    expect(prompt).toContain("NUNCA como link de perfil");
+    expect(prompt).toContain("nunca exponha seu raciocínio interno");
+    expect(prompt).toContain("relatório completo e bem organizado");
+    expect(prompt).toContain("# Resumo do relatório anexado");
+    expect(prompt).toContain("## Achados por área ou sistema");
+    expect(prompt).toContain("Sugestões de acompanhamento para a profissional");
+    expect(prompt).toContain("Não diga apenas que fez uma leitura inicial");
+    expect(prompt).toContain('Não termine respostas de PDF com "estou à disposição"');
   });
 });
