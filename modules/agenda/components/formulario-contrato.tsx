@@ -10,9 +10,10 @@ import { agendarContrato, type EstadoFormularioPacote } from "@/modules/pacotes/
 import { rotulosSituacaoPagamento, situacoesPagamento } from "@/modules/pacotes/schema";
 import { modalidadeAtendimento, rotulosModalidadeAtendimento } from "@/modules/agenda/schema";
 import {
-  frequenciaRecorrencia,
-  rotulosFrequenciaRecorrencia,
-  type FrequenciaRecorrencia,
+  diasDaSemana,
+  padraoRepeticao,
+  rotulosPadraoRepeticao,
+  type PadraoRepeticao,
 } from "@/modules/recorrencia/schema";
 import { gerarOcorrencias } from "@/modules/recorrencia/gerar";
 
@@ -82,10 +83,12 @@ function Rotulo({ children, htmlFor }: { children: React.ReactNode; htmlFor: str
 }
 
 export function FormularioContrato({
+  clienteFixoId,
   clientes,
   profissionais,
   servicos,
 }: {
+  clienteFixoId?: string;
   clientes: Opcao[];
   profissionais: Opcao[];
   servicos: ServicoComPlanos[];
@@ -100,7 +103,8 @@ export function FormularioContrato({
   const [planoPacoteId, setPlanoPacoteId] = useState("");
   const [valor, setValor] = useState("");
   const [datas, setDatas] = useState<string[]>([""]);
-  const [frequencia, setFrequencia] = useState<FrequenciaRecorrencia>("semanal");
+  const [frequencia, setFrequencia] = useState<PadraoRepeticao>("semanal");
+  const [diasSemanaEscolhidos, setDiasSemanaEscolhidos] = useState<number[]>([]);
   const [primeiraData, setPrimeiraData] = useState("");
 
   const servico = servicoId ? servicosPorId.get(servicoId) : undefined;
@@ -133,13 +137,25 @@ export function FormularioContrato({
     setValor(reais(plano ? plano.valorCentavos : (servico?.valorCentavos ?? null)));
   }
 
+  function alternarDiaSemana(dia: number) {
+    setDiasSemanaEscolhidos((atuais) =>
+      atuais.includes(dia)
+        ? atuais.filter((d) => d !== dia)
+        : [...atuais, dia].sort((a, b) => a - b),
+    );
+  }
+
   function preencherDatas() {
     const base = parseLocal(primeiraData);
     if (!base) return;
 
+    // Sem nenhum dia marcado, "dias da semana escolhidos" cai no dia da própria primeira sessão.
+    const diasSemana = diasSemanaEscolhidos.length > 0 ? diasSemanaEscolhidos : [base.getUTCDay()];
+
     const geradas = gerarOcorrencias({
       frequencia,
       diaSemana: frequencia === "semanal" ? base.getUTCDay() : null,
+      diasSemana,
       diaDoMes: frequencia === "mensal" ? base.getUTCDate() : null,
       hora: base.getUTCHours(),
       minuto: base.getUTCMinutes(),
@@ -156,34 +172,38 @@ export function FormularioContrato({
 
   return (
     <form action={formAction} className="grid min-w-0 gap-6">
-      <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-        <div className="grid min-w-0 gap-2">
-          <Rotulo htmlFor="clienteId">Cliente</Rotulo>
-          <select
-            aria-describedby={state?.campos?.clienteId ? "clienteId-erro" : undefined}
-            className={classeCampo}
-            defaultValue=""
-            id="clienteId"
-            name="clienteId"
-            required
-          >
-            <option disabled value="">
-              Selecione
-            </option>
-            {clientes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nome}
-              </option>
-            ))}
-          </select>
-          {state?.campos?.clienteId?.length ? (
-            <p className="text-sm text-perigo" id="clienteId-erro">
-              {state.campos.clienteId[0]}
-            </p>
-          ) : null}
-        </div>
+      {clienteFixoId ? <input name="clienteId" type="hidden" value={clienteFixoId} /> : null}
 
-        <div className="grid min-w-0 gap-2">
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+        {clienteFixoId ? null : (
+          <div className="grid min-w-0 gap-2">
+            <Rotulo htmlFor="clienteId">Cliente</Rotulo>
+            <select
+              aria-describedby={state?.campos?.clienteId ? "clienteId-erro" : undefined}
+              className={classeCampo}
+              defaultValue=""
+              id="clienteId"
+              name="clienteId"
+              required
+            >
+              <option disabled value="">
+                Selecione
+              </option>
+              {clientes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                </option>
+              ))}
+            </select>
+            {state?.campos?.clienteId?.length ? (
+              <p className="text-sm text-perigo" id="clienteId-erro">
+                {state.campos.clienteId[0]}
+              </p>
+            ) : null}
+          </div>
+        )}
+
+        <div className={cn("grid min-w-0 gap-2", clienteFixoId && "sm:col-span-2")}>
           <Rotulo htmlFor="servicoId">Serviço</Rotulo>
           <select
             className={classeCampo}
@@ -257,16 +277,51 @@ export function FormularioContrato({
             <select
               className={classeCampo}
               id="frequencia"
-              onChange={(e) => setFrequencia(e.target.value as FrequenciaRecorrencia)}
+              onChange={(e) => setFrequencia(e.target.value as PadraoRepeticao)}
               value={frequencia}
             >
-              {frequenciaRecorrencia.map((f) => (
+              {padraoRepeticao.map((f) => (
                 <option key={f} value={f}>
-                  {rotulosFrequenciaRecorrencia[f]}
+                  {rotulosPadraoRepeticao[f]}
                 </option>
               ))}
             </select>
           </div>
+
+          {frequencia === "dias_semana" ? (
+            <fieldset className="grid min-w-0 gap-2 sm:col-span-2">
+              <legend className="text-sm font-medium text-foreground">
+                Dias da semana do atendimento
+              </legend>
+              <div className="flex min-w-0 flex-wrap gap-2">
+                {diasDaSemana.map((dia) => {
+                  const marcado = diasSemanaEscolhidos.includes(dia.valor);
+
+                  return (
+                    <button
+                      aria-pressed={marcado}
+                      className={cn(
+                        "h-9 rounded-full border px-4 text-xs font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
+                        marcado
+                          ? "border-roxo bg-lilas/25 text-roxo"
+                          : "border-border bg-surface text-muted hover:bg-creme hover:text-roxo",
+                      )}
+                      key={dia.valor}
+                      onClick={() => alternarDiaSemana(dia.valor)}
+                      title={dia.rotulo}
+                      type="button"
+                    >
+                      {dia.abreviacao}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted">
+                Ex.: seg, qua e sex às 14h30 — as datas se repetem semana a semana até completar as
+                sessões. Sem nenhum dia marcado, usa o dia da primeira sessão.
+              </p>
+            </fieldset>
+          ) : null}
 
           <button
             className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:bg-creme hover:text-roxo focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2 sm:w-auto sm:justify-self-end"

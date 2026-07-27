@@ -25,7 +25,7 @@ import {
 
 import { ModalFormulario } from "@/components/ui/modal-formulario";
 import { agoraBrasilia, cn } from "@/lib/utils";
-import { FormularioAgendamento } from "@/modules/agenda/components/formulario-agendamento";
+import { FormularioContrato } from "@/modules/agenda/components/formulario-contrato";
 import { listarAgendamentosDoCliente } from "@/modules/agenda/queries";
 import { exigirUsuarioAtual, listarProfissionaisAtivos } from "@/modules/auth/queries";
 import { desativarBiometria } from "@/modules/biometria/actions";
@@ -81,6 +81,7 @@ import { DestaquePacoteCliente } from "@/modules/pacotes/components/destaque-pac
 import { montarPacotesEmDestaque } from "@/modules/pacotes/destaque";
 import { listarPacotesDoCliente } from "@/modules/pacotes/queries";
 import { rotulosSituacaoPagamento, type SituacaoPagamento } from "@/modules/pacotes/schema";
+import { listarServicosComPlanos } from "@/modules/planos/queries";
 import { listarServicos } from "@/modules/servicos/queries";
 import {
   FormularioSessao,
@@ -864,6 +865,7 @@ export default async function ClienteDetalhePage({
         listarServicos(),
         listarAgendamentosDoCliente(id),
         listarProfissionaisAtivos(),
+        listarServicosComPlanos(),
       ])
     : null;
 
@@ -914,9 +916,6 @@ export default async function ClienteDetalhePage({
       }))
     : [];
   const pacotesParaSessoes = pacotesDoClienteParaSelecao.map((p) => ({ id: p.id, nome: p.nome }));
-  const pacotesAtivosDoClienteParaSelecao = pacotesDoClienteParaSelecao
-    .filter((p) => p.ativo)
-    .map((p) => ({ id: p.id, nome: p.nome }));
   const todosPacotesDoClienteParaSelecao = pacotesDoClienteParaSelecao.map((p) => ({
     id: p.id,
     nome: p.nome,
@@ -1225,15 +1224,14 @@ export default async function ClienteDetalhePage({
                 rotuloBotao="Novo agendamento"
                 titulo="Novo agendamento"
               >
-                <FormularioAgendamento
+                <FormularioContrato
                   clienteFixoId={id}
                   clientes={[]}
-                  pacotes={pacotesAtivosDoClienteParaSelecao}
                   profissionais={dadosSessoes[3].map((p) => ({
                     id: p.id,
                     nome: p.name ?? p.email ?? "",
                   }))}
-                  servicos={dadosSessoes[1].map((s) => ({ id: s.id, nome: s.nome }))}
+                  servicos={dadosSessoes[4]}
                 />
               </ModalFormulario>
             }

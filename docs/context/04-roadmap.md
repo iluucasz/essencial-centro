@@ -103,11 +103,12 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
     agrupa as sessões — cliente, serviço, `planoPacoteId` (nulo = avulsa), profissional, pagamento
     (forma + situação), modalidade, observações. **Sem** validade (removida). Consumir 1 sessão = marcar
     um agendamento `realizado` (derivado) e registrar a `Sessao` clínica vinculada.
-  - **Novo agendamento** (modal em `/painel/agenda`, `FormularioContrato` + action `agendarContrato` em
-    `modules/pacotes/actions`): escolhe cliente → serviço → "avulsa" ou um pacote do serviço; monta uma
-    **tabela de N datas editáveis** (N = sessões do pacote, 1 na avulsa), com **pré-preenchimento por
-    frequência** (semanal/mensal) reusando a função pura `modules/recorrencia/gerar.ts` — cada data
-    editável. Duração de cada sessão = a do serviço. Ao confirmar, cria **1 contrato + N agendamentos**
+  - **Novo agendamento** (modal em `/painel/agenda` e na aba **Agendamentos** do perfil do cliente —
+    lá com `clienteFixoId`, que troca o select de cliente por um hidden; `FormularioContrato` + action
+    `agendarContrato` em `modules/pacotes/actions`): escolhe cliente → serviço → "avulsa" ou um pacote
+    do serviço; monta uma **tabela de N datas editáveis** (N = sessões do pacote, 1 na avulsa), com
+    **pré-preenchimento por padrão de repetição** (semanal / dias da semana escolhidos / dia sim, dia
+    não / mensal) reusando a função pura `modules/recorrencia/gerar.ts` — cada data editável. Duração de cada sessão = a do serviço. Ao confirmar, cria **1 contrato + N agendamentos**
     num `db.batch` (neon-http **não** suporta `transaction()`; `contratoId` pré-gerado). **Conflito é
     bloqueante** (reusa `ocorrenciasEmConflito`/`encontrarConflito`). Notifica o cliente uma vez.
   - **Concluir sessão**: a ação só é liberada depois da presença confirmada (`checkinEm`). O botão
@@ -117,8 +118,12 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
     para a aba **Sessões** do cliente e abre o modal de nova sessão já com serviço, contrato/pacote e
     agendamento travados; atendimentos realizados sem sessão aparecem como pendência nessa aba e como
     aviso no painel principal/perfil do cliente, sempre apontando para a aba **Sessões**.
-  - `modules/recorrencia` não tem tabela própria: só o enum de frequência + `gerar.ts` (semanal por dia
-    da semana; mensal por dia do mês, pulando meses sem o dia, ex. 31 em fevereiro).
+  - `modules/recorrencia` não tem tabela própria: só os enums + `gerar.ts`. Padrões: **semanal** (mesmo
+    dia da semana), **dias da semana escolhidos** (ex. seg/qua/sex às 14h30, várias sessões por semana),
+    **dia sim, dia não** (a cada 2 dias corridos, atravessa fim de semana e virada de mês) e **mensal**
+    (dia do mês, pulando meses sem o dia, ex. 31 em fevereiro). O enum **persistido**
+    (`frequenciaRecorrencia` → tipo `frequencia_recorrencia` no banco) continua só `semanal|mensal`; os
+    dois padrões novos vivem em `padraoRepeticao`, usado apenas na hora de gerar as datas.
 
 - ✅ Alertas de medicamentos — `modules/medicamentos` (`medicamentoInformado`, seção "Medicamentos
   informados e alertas de segurança" em `/painel/clientes/[id]`, restrito a `profissional`). Campos

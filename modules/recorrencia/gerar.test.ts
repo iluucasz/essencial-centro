@@ -42,6 +42,100 @@ describe("gerarOcorrencias — semanal", () => {
   });
 });
 
+describe("gerarOcorrencias — dias da semana escolhidos", () => {
+  it("gera segunda, quarta e sexta no mesmo horário, semana a semana", () => {
+    // 2026-01-05 é uma segunda-feira.
+    const datas = gerarOcorrencias({
+      frequencia: "dias_semana",
+      diaSemana: null,
+      diasSemana: [1, 3, 5],
+      diaDoMes: null,
+      hora: 14,
+      minuto: 30,
+      dataInicio: new Date(Date.UTC(2026, 0, 5)),
+      quantidade: 5,
+    });
+
+    expect(datas.map(iso)).toEqual([
+      "2026-01-05T14:30:00.000Z",
+      "2026-01-07T14:30:00.000Z",
+      "2026-01-09T14:30:00.000Z",
+      "2026-01-12T14:30:00.000Z",
+      "2026-01-14T14:30:00.000Z",
+    ]);
+  });
+
+  it("começa no primeiro dia marcado a partir da data de início", () => {
+    // 2026-01-06 é terça; próximos alvos são quarta (7) e sexta (9).
+    const datas = gerarOcorrencias({
+      frequencia: "dias_semana",
+      diaSemana: null,
+      diasSemana: [1, 3, 5],
+      diaDoMes: null,
+      hora: 9,
+      minuto: 0,
+      dataInicio: new Date(Date.UTC(2026, 0, 6)),
+      quantidade: 2,
+    });
+
+    expect(datas.map(iso)).toEqual(["2026-01-07T09:00:00.000Z", "2026-01-09T09:00:00.000Z"]);
+  });
+
+  it("retorna vazio quando nenhum dia da semana foi marcado", () => {
+    expect(
+      gerarOcorrencias({
+        frequencia: "dias_semana",
+        diaSemana: null,
+        diasSemana: [],
+        diaDoMes: null,
+        hora: 9,
+        minuto: 0,
+        dataInicio: new Date(Date.UTC(2026, 0, 5)),
+        quantidade: 3,
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("gerarOcorrencias — dia sim, dia não", () => {
+  it("gera a cada dois dias corridos, atravessando o fim de semana", () => {
+    const datas = gerarOcorrencias({
+      frequencia: "dias_alternados",
+      diaSemana: null,
+      diaDoMes: null,
+      hora: 14,
+      minuto: 30,
+      dataInicio: new Date(Date.UTC(2026, 0, 5)),
+      quantidade: 4,
+    });
+
+    expect(datas.map(iso)).toEqual([
+      "2026-01-05T14:30:00.000Z",
+      "2026-01-07T14:30:00.000Z",
+      "2026-01-09T14:30:00.000Z",
+      "2026-01-11T14:30:00.000Z",
+    ]);
+  });
+
+  it("atravessa a virada de mês mantendo o passo de dois dias", () => {
+    const datas = gerarOcorrencias({
+      frequencia: "dias_alternados",
+      diaSemana: null,
+      diaDoMes: null,
+      hora: 8,
+      minuto: 0,
+      dataInicio: new Date(Date.UTC(2026, 0, 30)),
+      quantidade: 3,
+    });
+
+    expect(datas.map(iso)).toEqual([
+      "2026-01-30T08:00:00.000Z",
+      "2026-02-01T08:00:00.000Z",
+      "2026-02-03T08:00:00.000Z",
+    ]);
+  });
+});
+
 describe("gerarOcorrencias — mensal", () => {
   it("gera o mesmo dia em meses consecutivos", () => {
     const datas = gerarOcorrencias({

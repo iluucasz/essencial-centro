@@ -24,8 +24,9 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
   `lancamento_financeiro` apontam pra `pacoteId`) — registro do cliente que agrupa as sessões: cliente,
   serviço, `planoPacoteId` (nulo = sessão avulsa), profissional, quantidade de sessões, valor pago,
   forma + situação de pagamento, modalidade, observações. **Sem validade**. Nasce no modal "Novo
-  agendamento" da agenda (`/painel/agenda`): escolhe serviço → pacote/avulsa → tabela de N datas editáveis
-  (pré-preenchida por frequência via `modules/recorrencia/gerar.ts`) → cria 1 contrato + N agendamentos.
+  agendamento" da agenda (`/painel/agenda`) ou da aba Agendamentos do cliente: escolhe serviço →
+  pacote/avulsa → tabela de N datas editáveis (pré-preenchida por padrão de repetição via
+  `modules/recorrencia/gerar.ts`) → cria 1 contrato + N agendamentos.
   Consumir 1 sessão = marcar um `Agendamento` como `realizado` (derivado). Ver `04-roadmap.md`.
 - **Agendamento** — atendimento marcado: cliente, serviço, profissional, data/hora, duração,
   vínculo com contrato (`pacoteId`), status (marcado, realizado, falta, cancelado), observações. `checkinEm`
