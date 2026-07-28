@@ -289,6 +289,9 @@ export const modelosSemente: ModeloSemente[] = [
         "Roll-on",
         "Laser",
         "Linha (egípcia)",
+        "Aparelho cortador",
+        "Gilete",
+        "Outro",
       ]),
       selecaoMultipla("alergias", "Antecedentes alérgicos", [
         "Creme",
@@ -323,7 +326,7 @@ export const modelosSemente: ModeloSemente[] = [
     campos: [
       secao("id_ctx", "Identificação e queixa"),
       textoLongo("queixa", "Queixa principal", { obrig: true }),
-      secao("afeccoes", "Afecções sistêmicas"),
+      secao("sec_afeccoes", "Afecções sistêmicas"),
       selecaoMultipla("afeccoes", "Afecções", [
         "Coração",
         "Epilepsia",
@@ -343,7 +346,7 @@ export const modelosSemente: ModeloSemente[] = [
       secao("alim", "Alimentação"),
       selecaoMultipla("alimentacao", "Consome", ["Frutas", "Verduras", "Carnes"]),
       numero("copos_agua", "Copos de água por dia"),
-      secao("habitos", "Hábitos cotidianos"),
+      secao("sec_habitos", "Hábitos cotidianos"),
       selecaoMultipla("habitos", "Hábitos", [
         "Usa boné",
         "Prende molhado",
