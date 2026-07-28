@@ -1,10 +1,10 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, notInArray } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { autorizarClienteDono, autorizarPapel, ErroAutorizacao } from "@/modules/auth/rbac";
 
-import { documento } from "./schema";
+import { documento, documentoVisivelAoCliente, tiposDocumentoSomenteProfissional } from "./schema";
 
 export async function listarDocumentosDoCliente(clienteId: string) {
   autorizarPapel(await auth(), ["profissional"]);
@@ -32,7 +32,13 @@ export async function listarMeusDocumentos() {
   return db
     .select()
     .from(documento)
-    .where(eq(documento.clienteId, usuario.clienteId))
+    .where(
+      and(
+        eq(documento.clienteId, usuario.clienteId),
+        // Material clínico de leitura interna não aparece no portal — ver tiposDocumentoSomenteProfissional.
+        notInArray(documento.tipo, [...tiposDocumentoSomenteProfissional]),
+      ),
+    )
     .orderBy(desc(documento.criadoEm));
 }
 
@@ -47,6 +53,9 @@ export async function obterDocumento(id: string) {
 
   if (usuario.role === "cliente") {
     autorizarClienteDono(sessao, registro.clienteId);
+
+    // Ser dono não basta: tipo clínico interno não é do cliente nem pelo link direto.
+    if (!documentoVisivelAoCliente(registro.tipo)) return null;
   }
 
   return registro;

@@ -193,6 +193,16 @@ Fase 2 concluída — próximo passo é a Fase 3.
   profissional (`mensagem_assistente`, sem thread/conversa separada — escopo enxuto de propósito).
   **Limitações conhecidas**: sem rate-limit/teto de custo de chamada à Groq nesta fase; contexto
   enviado ao modelo é limitado às últimas 20 mensagens da conversa.
+  - **Arquivar PDF no prontuário** (caso real: boletim de biorressonância, que já sai do aparelho com
+    a recomendação terapêutica). Ao anexar um PDF, a rota `app/api/assistente/anexos` além de extrair
+    o texto **guarda o binário** no Vercel Blob (antes era descartado) e tenta descobrir de quem é o
+    documento: `modules/assistente/identificacao-cliente.ts` cruza a lista de clientes cadastrados
+    contra o nome do arquivo e o cabeçalho do PDF — casa por palavra inteira, exige 2+ termos e
+    devolve `null` em empate, então nunca chuta. O widget mostra um card **Confirmar/Cancelar** com o
+    cliente encontrado; ao confirmar, `arquivarAnexoNoProntuario` grava **um** `documento` do tipo
+    `biorressonancia` com o resumo em `conteudo` e o PDF original em `arquivo*`. O `clienteId` vindo do
+    browser nunca é confiado: o anexo é lido com a posse no WHERE e o cliente revalidado no banco.
+    O tipo é **invisível ao cliente** — ver `06-lgpd-seguranca.md`.
 
 - ✅ Check-in por biometria (impressão digital) — `modules/biometria`, **lado Next.js/web** desta
   fase (schema, queries, actions, rotas de API pra ponte física em `app/api/biometria/*`, seção

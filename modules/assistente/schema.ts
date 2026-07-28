@@ -47,6 +47,13 @@ export const anexoAssistente = pgTable(
     nomeArquivo: text("nome_arquivo").notNull(),
     contentType: text("content_type").notNull(),
     tamanhoBytes: integer("tamanho_bytes").notNull(),
+    /**
+     * Chave do PDF original no Vercel Blob. Antes o binário era descartado depois de extrair o
+     * texto; guardar é o que permite arquivar o **anexo** junto do resumo no prontuário. Quando o
+     * documento é arquivado, a chave é copiada para `documento.arquivoPathname` — por isso limpar a
+     * conversa apaga a linha do anexo, mas nunca o blob de algo já arquivado.
+     */
+    pathname: text("pathname"),
     totalPaginas: integer("total_paginas"),
     totalCaracteres: integer("total_caracteres").notNull(),
     textoExtraido: text("texto_extraido").notNull(),

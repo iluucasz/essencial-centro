@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CheckCircle2, FileText } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText, Paperclip } from "lucide-react";
 
 import { obterDocumento } from "@/modules/documentos/queries";
 import { rotulosStatusDocumento, rotulosTipoDocumento } from "@/modules/documentos/schema";
@@ -49,6 +49,18 @@ export default async function DocumentoDetalhePage({
         <h1 className="text-xl font-semibold text-roxo">{documento.titulo}</h1>
         <p className="text-xs text-muted">Emitido em {formatarDataHora(documento.criadoEm)}</p>
         <p className="text-sm whitespace-pre-wrap text-foreground">{documento.conteudo}</p>
+
+        {documento.arquivoPathname ? (
+          <a
+            className="inline-flex h-11 w-fit items-center gap-2 rounded-lg border border-roxo/25 bg-surface px-4 text-sm font-semibold text-roxo transition hover:bg-lilas/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+            href={`/api/documentos/${documento.id}/arquivo`}
+            rel="noreferrer"
+            target="_blank"
+          >
+            <Paperclip className="size-4" aria-hidden="true" />
+            Abrir {documento.arquivoNome ?? "arquivo anexado"}
+          </a>
+        ) : null}
       </div>
 
       {documento.status === "assinado" ? (

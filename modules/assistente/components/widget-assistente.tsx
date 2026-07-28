@@ -7,8 +7,10 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import {
   ArrowRight,
   Bot,
+  Check,
   Download,
   FileText,
+  FolderPlus,
   LoaderCircle,
   Minimize2,
   Paperclip,
@@ -18,7 +20,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { limparHistoricoAssistente } from "@/modules/assistente/actions";
+import { arquivarAnexoNoProntuario, limparHistoricoAssistente } from "@/modules/assistente/actions";
 import {
   analisarMarkdownSimples,
   type PedacoMarkdown,
@@ -43,6 +45,16 @@ type AnexoAtivoAssistente = {
 };
 
 type DocumentoResumoAssistente = DocumentoResumoPdf;
+
+type ClienteSugerido = { id: string; nome: string };
+
+/** Card "é essa pessoa?" que aparece depois do upload — some ao confirmar, cancelar ou trocar de PDF. */
+type Arquivamento = {
+  anexoId: string;
+  cliente: ClienteSugerido;
+  estado: "pendente" | "salvando" | "salvo";
+  erro: string | null;
+};
 
 const LIMITE_BYTES_PDF_CLIENTE = 20 * 1024 * 1024;
 const formatadorNumero = new Intl.NumberFormat("pt-BR");
@@ -311,8 +323,12 @@ function BolhaMensagem({
           <TextoFormatado aoClicarLink={aoClicarLink} ehUsuario={ehUsuario} texto={texto} />
         ) : null}
         {!ehUsuario
-          ? documentosResumo.map((documento) => (
-              <DocumentoResumoCard documento={documento} key={documento.nomeDownload} />
+          ? documentosResumo.map((documento, indice) => (
+              // Dois anexos com o mesmo nome de arquivo geram o mesmo nomeDownload — inclui o índice.
+              <DocumentoResumoCard
+                documento={documento}
+                key={`${indice}-${documento.nomeDownload}`}
+              />
             ))
           : null}
         {!ehUsuario ? <LinksDeAcesso aoClicarLink={aoClicarLink} links={links} /> : null}
@@ -357,6 +373,7 @@ export function WidgetAssistente({
   const [anexoAtivo, setAnexoAtivo] = useState<AnexoAtivoAssistente | null>(null);
   const [enviandoAnexo, setEnviandoAnexo] = useState(false);
   const [erroAnexo, setErroAnexo] = useState<string | null>(null);
+  const [arquivamento, setArquivamento] = useState<Arquivamento | null>(null);
   const inputArquivoRef = useRef<HTMLInputElement>(null);
   const fimMensagensRef = useRef<HTMLDivElement>(null);
 
@@ -411,13 +428,27 @@ export function WidgetAssistente({
         throw new Error(await mensagemErroUpload(resposta));
       }
 
-      const json = (await resposta.json()) as { anexo?: AnexoAtivoAssistente };
+      const json = (await resposta.json()) as {
+        anexo?: AnexoAtivoAssistente;
+        clienteSugerido?: ClienteSugerido | null;
+        podeArquivar?: boolean;
+      };
 
       if (!json.anexo?.id) {
         throw new Error("Não foi possível anexar o PDF.");
       }
 
       setAnexoAtivo(json.anexo);
+      setArquivamento(
+        json.clienteSugerido && json.podeArquivar
+          ? {
+              anexoId: json.anexo.id,
+              cliente: json.clienteSugerido,
+              estado: "pendente",
+              erro: null,
+            }
+          : null,
+      );
       sendMessage(
         {
           text:
@@ -438,6 +469,32 @@ export function WidgetAssistente({
     setMessages([]);
     setAnexoAtivo(null);
     setErroAnexo(null);
+    setArquivamento(null);
+  }
+
+  async function confirmarArquivamento() {
+    if (!arquivamento || arquivamento.estado !== "pendente") return;
+
+    setArquivamento({ ...arquivamento, estado: "salvando", erro: null });
+
+    const resultado = await arquivarAnexoNoProntuario({
+      anexoId: arquivamento.anexoId,
+      clienteId: arquivamento.cliente.id,
+      resumo: resumoParaArquivar,
+    });
+
+    setArquivamento((atual) =>
+      atual && atual.anexoId === arquivamento.anexoId
+        ? {
+            ...atual,
+            estado: resultado.status === "sucesso" ? "salvo" : "pendente",
+            erro:
+              resultado.status === "sucesso"
+                ? null
+                : (resultado.mensagem ?? "Não foi possível salvar."),
+          }
+        : atual,
+    );
   }
 
   function fecharAoNavegar() {
@@ -451,6 +508,10 @@ export function WidgetAssistente({
 
   const primeiroNome = nomeProfissional.split(" ")[0];
   const ultimaMensagemAssistente = [...messages].reverse().find((m) => m.role === "assistant");
+  // O resumo arquivado é o último texto do assistente — o mesmo que a profissional está lendo.
+  const resumoParaArquivar = ultimaMensagemAssistente
+    ? textoDaMensagem(ultimaMensagemAssistente)
+    : "";
   const sugestoesDinamicas = ultimaMensagemAssistente
     ? sugestoesDaMensagem(ultimaMensagemAssistente)
     : [];
@@ -590,7 +651,7 @@ export function WidgetAssistente({
               type="file"
             />
 
-            {anexoAtivo || enviandoAnexo || erroAnexo ? (
+            {anexoAtivo || enviandoAnexo || erroAnexo || arquivamento ? (
               <div className="mb-2 grid gap-2">
                 {anexoAtivo ? (
                   <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 overflow-hidden rounded-2xl border border-roxo/20 bg-lilas/15 px-3 py-2">
@@ -613,12 +674,74 @@ export function WidgetAssistente({
                     <button
                       aria-label="Remover PDF da conversa"
                       className="rounded-full p-1.5 text-muted transition hover:bg-surface hover:text-foreground"
-                      onClick={() => setAnexoAtivo(null)}
+                      onClick={() => {
+                        setAnexoAtivo(null);
+                        setArquivamento(null);
+                      }}
                       title="Remover PDF da conversa"
                       type="button"
                     >
                       <X className="size-3.5" aria-hidden="true" />
                     </button>
+                  </div>
+                ) : null}
+
+                {arquivamento ? (
+                  <div className="grid gap-2 rounded-2xl border border-dourado/35 bg-dourado/10 px-3 py-2.5">
+                    {arquivamento.estado === "salvo" ? (
+                      <p className="flex items-center gap-2 text-xs font-semibold text-brand">
+                        <Check className="size-3.5 shrink-0" aria-hidden="true" />
+                        Arquivado em Documentos de {arquivamento.cliente.nome}.
+                      </p>
+                    ) : (
+                      <>
+                        <div className="flex min-w-0 items-start gap-2">
+                          <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-surface text-dourado">
+                            <FolderPlus className="size-3.5" aria-hidden="true" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-semibold text-dourado">
+                              Arquivar no prontuário
+                            </p>
+                            <p className="text-xs text-foreground">
+                              Este PDF é de{" "}
+                              <strong className="font-semibold">{arquivamento.cliente.nome}</strong>
+                              ? Salvo o arquivo e o resumo em Documentos — visível só para você.
+                            </p>
+                          </div>
+                        </div>
+
+                        {arquivamento.erro ? (
+                          <p className="text-[11px] font-medium text-perigo" role="alert">
+                            {arquivamento.erro}
+                          </p>
+                        ) : null}
+
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <button
+                            className="h-8 rounded-full border border-border bg-surface px-3 text-xs font-semibold text-muted transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                            disabled={arquivamento.estado === "salvando"}
+                            onClick={() => setArquivamento(null)}
+                            type="button"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-brand px-3 text-xs font-semibold text-brand-foreground transition hover:bg-brand/90 disabled:cursor-not-allowed disabled:opacity-60"
+                            disabled={arquivamento.estado === "salvando" || !resumoParaArquivar}
+                            onClick={confirmarArquivamento}
+                            type="button"
+                          >
+                            {arquivamento.estado === "salvando" ? (
+                              <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
+                            ) : (
+                              <Check className="size-3.5" aria-hidden="true" />
+                            )}
+                            Confirmar
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ) : null}
 

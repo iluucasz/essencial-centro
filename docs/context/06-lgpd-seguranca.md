@@ -55,6 +55,15 @@ SHA-256 do conteúdo assinado (prova de integridade). Visível tanto pro cliente
 documento, em `/portal/documentos/[id]`) quanto pra profissional (`/painel/clientes/[id]/documentos/[documentoId]`)
 — transparência, não coleta oculta.
 
+## Documento visível ao cliente vs. documento clínico interno
+
+A tabela `documento` nasceu para material que o **cliente** lê e assina no portal, então um tipo novo
+no enum entra visível por padrão. `tiposDocumentoSomenteProfissional` (em `modules/documentos/schema.ts`)
+é a exceção: material clínico de leitura interna, hoje só `biorressonancia`. A regra é aplicada em
+**dois** pontos, porque um só não basta — `listarMeusDocumentos` filtra no WHERE (lista do portal) e
+`obterDocumento` devolve `null` para role `cliente` (link direto por id, e é o que também fecha
+`app/api/documentos/[id]/arquivo`). Coberto por `modules/documentos/visibilidade.test.ts`.
+
 ## Terceiros que processam dado pessoal
 
 - **Brevo** (`modules/notificacoes/email.ts`, Fase 2) — recebe e-mail, nome e o conteúdo da

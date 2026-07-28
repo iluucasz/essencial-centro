@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileText } from "lucide-react";
+import { FileText, Paperclip } from "lucide-react";
 
 import {
   rotulosStatusDocumento,
@@ -14,6 +14,7 @@ type DocumentoResumo = {
   titulo: string;
   status: StatusDocumento;
   criadoEm: Date;
+  arquivoNome?: string | null;
 };
 
 const classePorStatus: Record<StatusDocumento, string> = {
@@ -54,6 +55,12 @@ export function ListaDocumentos({
               <span className="mt-0.5 block text-xs text-muted">
                 {rotulosTipoDocumento[d.tipo]}
               </span>
+              {d.arquivoNome ? (
+                <span className="mt-1 flex items-center gap-1 text-xs text-roxo">
+                  <Paperclip className="size-3" aria-hidden="true" />
+                  <span className="truncate">{d.arquivoNome}</span>
+                </span>
+              ) : null}
             </span>
             <span className="flex items-center gap-2">
               <span className="text-xs text-muted">{formatarData(d.criadoEm)}</span>

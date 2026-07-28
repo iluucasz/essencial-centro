@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { put } from "@vercel/blob";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -7,8 +8,10 @@ import {
   podeUsarAnexosAssistente,
   validarArquivoPdf,
 } from "@/modules/assistente/anexos";
+import { encontrarClienteDoDocumento } from "@/modules/assistente/identificacao-cliente";
 import { anexoAssistente } from "@/modules/assistente/schema";
 import { ErroAutorizacao, autorizarPapel } from "@/modules/auth/rbac";
+import { listarClientes } from "@/modules/clientes/queries";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -72,11 +75,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ erro: "Não encontrei texto legível nesse PDF." }, { status: 422 });
   }
 
+  // ⚠️ access:"public" porque o store do Vercel Blob configurado está em modo público — não é um
+  // blob verdadeiramente privado. Mesmo aviso de modules/fotos; ver docs/context/06-lgpd-seguranca.md.
+  let pathname: string | null = null;
+
+  try {
+    const blob = await put(`assistente/${usuarioAtual.id}/${validacao.nomeArquivo}`, arquivo, {
+      access: "public",
+      addRandomSuffix: true,
+      contentType: arquivo.type || "application/pdf",
+    });
+
+    pathname = blob.pathname;
+  } catch (error) {
+    // Guardar o binário é o que permite arquivar o anexo no prontuário depois; se falhar, o resumo
+    // ainda funciona, então seguimos sem o arquivo em vez de derrubar o upload inteiro.
+    console.error("Erro ao guardar o PDF do assistente no Blob:", error);
+  }
+
   const [anexo] = await db
     .insert(anexoAssistente)
     .values({
       contentType: arquivo.type || "application/pdf",
       nomeArquivo: validacao.nomeArquivo,
+      pathname,
       profissionalId: usuarioAtual.id,
       tamanhoBytes: arquivo.size,
       textoExtraido: extraido.texto,
@@ -94,5 +116,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ erro: "Não foi possível salvar o anexo." }, { status: 500 });
   }
 
-  return NextResponse.json({ anexo });
+  // Palpite de quem é o dono do documento — a profissional confirma antes de virar registro.
+  const clientes = await listarClientes();
+  const correspondencia = encontrarClienteDoDocumento({
+    clientes: clientes.map((c) => ({ id: c.id, nome: c.nome })),
+    nomeArquivo: anexo.nomeArquivo,
+    texto: extraido.texto,
+  });
+
+  return NextResponse.json({
+    anexo,
+    clienteSugerido: correspondencia?.ambigua ? null : (correspondencia?.cliente ?? null),
+    podeArquivar: pathname !== null,
+  });
 }

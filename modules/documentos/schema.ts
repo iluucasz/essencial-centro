@@ -1,5 +1,5 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
 import { usuario } from "@/modules/auth/schema";
@@ -10,6 +10,7 @@ export const tiposDocumento = [
   "termo_responsabilidade",
   "termo_autorizacao_imagem",
   "orientacao",
+  "biorressonancia",
   "outro",
 ] as const;
 
@@ -22,8 +23,23 @@ export const rotulosTipoDocumento: Record<TipoDocumento, string> = {
   termo_responsabilidade: "Termo de responsabilidade",
   termo_autorizacao_imagem: "Termo de autorização de imagem",
   orientacao: "Orientação",
+  biorressonancia: "Biorressonância",
   outro: "Outro",
 };
+
+/**
+ * Tipos que **só a profissional** enxerga: material clínico de leitura interna, que não vai para o
+ * portal do cliente. O resto da tabela `documento` é feito para ser lido/assinado pelo cliente, então
+ * a regra aqui é a exceção — e por isso mora no schema, perto do enum, e é aplicada no WHERE de
+ * `listarMeusDocumentos`. Ver docs/context/06-lgpd-seguranca.md.
+ */
+export const tiposDocumentoSomenteProfissional = [
+  "biorressonancia",
+] as const satisfies readonly TipoDocumento[];
+
+export function documentoVisivelAoCliente(tipo: TipoDocumento) {
+  return !(tiposDocumentoSomenteProfissional as readonly TipoDocumento[]).includes(tipo);
+}
 
 export const statusDocumento = ["emitido", "assinado"] as const;
 
@@ -53,6 +69,16 @@ export const documento = pgTable("documento", {
   assinaturaUserAgent: text("assinatura_user_agent"),
   /** SHA-256 do `conteudo` no momento da assinatura — evidência de integridade (o que foi assinado). */
   conteudoHash: text("conteudo_hash"),
+  /**
+   * Arquivo original opcional que acompanha o documento (ex.: o PDF do aparelho de biorressonância,
+   * arquivado junto do resumo). Mesma convenção de `modules/fotos`: só a chave do Vercel Blob fica
+   * aqui e a app nunca expõe a URL — o binário sai por app/api/documentos/[id]/arquivo, que
+   * reautoriza a cada acesso.
+   */
+  arquivoPathname: text("arquivo_pathname"),
+  arquivoNome: text("arquivo_nome"),
+  arquivoContentType: text("arquivo_content_type"),
+  arquivoTamanhoBytes: integer("arquivo_tamanho_bytes"),
   criadoPorId: uuid("criado_por_id")
     .notNull()
     .references(() => usuario.id, { onDelete: "restrict" }),
