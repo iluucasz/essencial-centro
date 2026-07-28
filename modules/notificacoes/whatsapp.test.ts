@@ -241,3 +241,48 @@ describe("consultarStatusConexaoWhatsApp", () => {
     expect(resultado.error).toBeTruthy();
   });
 });
+
+/**
+ * A Evolution responde 404 em barra dupla (`host//instance/...`) — igual ao 404 de instância
+ * inexistente, o que já mandou a gente investigar o nome da instância à toa.
+ */
+describe("EVOLUTION_API_URL com barra final", () => {
+  beforeEach(() => {
+    process.env = { ...ambienteOriginal };
+  });
+
+  afterEach(() => {
+    process.env = { ...ambienteOriginal };
+    vi.restoreAllMocks();
+  });
+
+  it("não gera barra dupla ao consultar o status", async () => {
+    configurarAmbiente();
+    process.env.EVOLUTION_API_URL = "https://evolution.example.com/";
+    const fetchMock = vi
+      .spyOn(global, "fetch")
+      .mockResolvedValue(
+        new Response(JSON.stringify({ instance: { state: "open" } }), { status: 200 }),
+      );
+
+    await consultarStatusConexaoWhatsApp();
+
+    expect(fetchMock.mock.calls[0]![0]).toBe(
+      "https://evolution.example.com/instance/connectionState/clinica",
+    );
+  });
+
+  it("não gera barra dupla ao enviar texto", async () => {
+    configurarAmbiente();
+    process.env.EVOLUTION_API_URL = "https://evolution.example.com///";
+    const fetchMock = vi
+      .spyOn(global, "fetch")
+      .mockResolvedValue(new Response("{}", { status: 200 }));
+
+    await enviarWhatsAppTexto({ telefone: "21999999999", mensagem: "oi" });
+
+    expect(fetchMock.mock.calls[0]![0]).toBe(
+      "https://evolution.example.com/message/sendText/clinica",
+    );
+  });
+});

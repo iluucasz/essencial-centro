@@ -8,6 +8,35 @@ export function configuracaoEmailValida() {
 }
 
 /**
+ * O corpo do e-mail é HTML montado à mão: a mensagem carrega dado vindo do cadastro (nome do
+ * cliente, título do serviço), então um `&` ou `<` quebraria a renderização.
+ */
+function escaparHtml(texto: string) {
+  return texto
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Base absoluta dos links do e-mail. `AUTH_URL` é opcional no Auth.js v5 (ele infere da requisição),
+ * então não pode ser a única fonte: sem os fallbacks da Vercel, um e-mail enviado em produção sairia
+ * com link `http://localhost:3000` para o cliente. Não usa `headers()` de propósito — o envio também
+ * acontece no cron de lembretes, fora de uma requisição de usuário.
+ */
+export function urlBaseNotificacoes() {
+  const explicita = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
+  if (explicita) return explicita.replace(/\/$/, "");
+
+  // Injetadas pela Vercel: a de produção é estável; VERCEL_URL aponta pro deploy atual (preview).
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+  if (vercel) return `https://${vercel}`;
+
+  return "http://localhost:3000";
+}
+
+/**
  * Envio de e-mail transacional via Brevo (brevo.com) — sem SDK, só um POST direto (evita
  * dependência nova pra uma chamada única). Nunca lança: se a Brevo não estiver configurada
  * (`BREVO_API_KEY`/`BREVO_SENDER_EMAIL` ausentes) ou a chamada falhar, retorna um resultado
@@ -27,8 +56,7 @@ export async function enviarEmailNotificacao(params: {
   if (!apiKey || !remetenteEmail) return canalDesativado;
 
   const remetenteNome = process.env.BREVO_SENDER_NOME ?? "Essencial Centro";
-  const urlBase = process.env.AUTH_URL ?? "http://localhost:3000";
-  const linkCompleto = params.link ? `${urlBase}${params.link}` : undefined;
+  const linkCompleto = params.link ? `${urlBaseNotificacoes()}${params.link}` : undefined;
 
   try {
     const resposta = await fetch(BREVO_API_URL, {
@@ -42,8 +70,8 @@ export async function enviarEmailNotificacao(params: {
         sender: { name: remetenteNome, email: remetenteEmail },
         to: [{ email: params.destinatarioEmail, name: params.destinatarioNome }],
         subject: params.titulo,
-        htmlContent: `<p>${params.mensagem}</p>${
-          linkCompleto ? `<p><a href="${linkCompleto}">Acessar no portal</a></p>` : ""
+        htmlContent: `<p>${escaparHtml(params.mensagem)}</p>${
+          linkCompleto ? `<p><a href="${escaparHtml(linkCompleto)}">Acessar no portal</a></p>` : ""
         }`,
       }),
     });

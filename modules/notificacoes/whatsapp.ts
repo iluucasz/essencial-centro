@@ -11,6 +11,15 @@ export function configuracaoWhatsAppValida() {
 }
 
 /**
+ * Base da Evolution API sem barra final. Sem isso, uma `EVOLUTION_API_URL` terminada em `/` (fácil
+ * de colar assim do painel) monta `https://host//instance/...` — a Evolution não roteia a barra
+ * dupla e responde **404**, indistinguível de "instância não existe". Já custou um diagnóstico.
+ */
+function baseEvolution() {
+  return process.env.EVOLUTION_API_URL!.replace(/\/+$/, "");
+}
+
+/**
  * Normaliza um telefone brasileiro pro formato esperado pela Evolution API (só dígitos, com código
  * do país 55, sem `@s.whatsapp.net`). Tolerante à bagunça de digitação: espaços, parênteses, hífen,
  * `+`, zero à esquerda (`021…`), com ou sem o código do país. Celular no formato antigo (8 dígitos
@@ -63,7 +72,7 @@ export async function enviarWhatsAppTexto(params: {
     return { attempted: false, sent: false, error: "Telefone inválido para envio por WhatsApp." };
   }
 
-  const apiUrl = process.env.EVOLUTION_API_URL!;
+  const apiUrl = baseEvolution();
   const apiKey = process.env.EVOLUTION_API_KEY!;
   const instancia = process.env.EVOLUTION_INSTANCE!;
 
@@ -118,7 +127,7 @@ export async function enviarWhatsAppImagem(params: {
     return { attempted: false, sent: false, error: "Telefone inválido para envio por WhatsApp." };
   }
 
-  const apiUrl = process.env.EVOLUTION_API_URL!;
+  const apiUrl = baseEvolution();
   const apiKey = process.env.EVOLUTION_API_KEY!;
   const instancia = process.env.EVOLUTION_INSTANCE!;
 
@@ -179,7 +188,7 @@ export async function consultarStatusConexaoWhatsApp(): Promise<StatusConexaoWha
     return { configured: false, connected: false, instance: null };
   }
 
-  const apiUrl = process.env.EVOLUTION_API_URL!;
+  const apiUrl = baseEvolution();
   const apiKey = process.env.EVOLUTION_API_KEY!;
   const instancia = process.env.EVOLUTION_INSTANCE!;
 

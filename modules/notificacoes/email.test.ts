@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { enviarEmailNotificacao } from "./email";
+import { enviarEmailNotificacao, urlBaseNotificacoes } from "./email";
 
 const ambienteOriginal = { ...process.env };
 
@@ -94,5 +94,57 @@ describe("enviarEmailNotificacao", () => {
       sent: false,
       error: "Erro ao chamar a API da Brevo.",
     });
+  });
+
+  it("escapa a mensagem no HTML — nome com & ou < não quebra o corpo", async () => {
+    process.env.BREVO_API_KEY = "chave-teste";
+    process.env.BREVO_SENDER_EMAIL = "contato@essencialcentro.com";
+    const fetchMock = vi
+      .spyOn(global, "fetch")
+      .mockResolvedValue(new Response("{}", { status: 201 }));
+
+    await enviarEmailNotificacao({
+      destinatarioEmail: "cliente@example.com",
+      destinatarioNome: "Cliente",
+      titulo: "Título",
+      mensagem: "Sessão de Ana & Bia <marcada>",
+    });
+
+    const corpo = JSON.parse(fetchMock.mock.calls[0]![1]?.body as string);
+    expect(corpo.htmlContent).toContain("Ana &amp; Bia &lt;marcada&gt;");
+  });
+});
+
+describe("urlBaseNotificacoes", () => {
+  beforeEach(() => {
+    process.env = { ...ambienteOriginal };
+    delete process.env.AUTH_URL;
+    delete process.env.NEXTAUTH_URL;
+    delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    delete process.env.VERCEL_URL;
+  });
+
+  afterEach(() => {
+    process.env = { ...ambienteOriginal };
+  });
+
+  it("usa AUTH_URL quando definida, sem barra final", () => {
+    process.env.AUTH_URL = "https://essencialcentro.com/";
+
+    expect(urlBaseNotificacoes()).toBe("https://essencialcentro.com");
+  });
+
+  it("cai no domínio de produção da Vercel quando AUTH_URL não existe", () => {
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = "essencial-centro.vercel.app";
+    process.env.VERCEL_URL = "deploy-abc123.vercel.app";
+
+    expect(urlBaseNotificacoes()).toBe("https://essencial-centro.vercel.app");
+  });
+
+  it("só usa localhost quando nada indica o host — nunca em produção na Vercel", () => {
+    expect(urlBaseNotificacoes()).toBe("http://localhost:3000");
+
+    process.env.VERCEL_URL = "deploy-abc123.vercel.app";
+    expect(urlBaseNotificacoes()).toBe("https://deploy-abc123.vercel.app");
   });
 });
