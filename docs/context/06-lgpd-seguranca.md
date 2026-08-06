@@ -55,6 +55,23 @@ SHA-256 do conteúdo assinado (prova de integridade). Visível tanto pro cliente
 documento, em `/portal/documentos/[id]`) quanto pra profissional (`/painel/clientes/[id]/documentos/[documentoId]`)
 — transparência, não coleta oculta.
 
+## Mapa de dor: o primeiro dado clínico que o CLIENTE escreve
+
+Até o mapa de dor (`modules/dor`), o cliente só lia no portal. Agora ele grava — e isso muda a
+postura de autorização em dois pontos:
+
+- **`clienteId` nunca vem do browser no portal.** `relatarMinhaDor` deriva o cliente de
+  `exigirClienteIdDaSessao()`; só a versão do painel (`registrarDorNoAtendimento`, restrita a
+  `profissional`) aceita `clienteId` no formulário, e mesmo essa revalida o id no banco antes de
+  gravar. `registrarDorSchema` **não tem** os campos `clienteId` nem `origem` de propósito: não há
+  como enviá-los.
+- **Procedência é dado, não detalhe de UI.** `origem` (`profissional` | `cliente`) é derivada do
+  papel na sessão, nunca enviada. Relato do cliente não é avaliação clínica, e a profissional precisa
+  ver a diferença na lista antes de decidir conduta.
+
+Exclusão é só da profissional, e o `DELETE` amarra `id` **e** `clienteId` no WHERE — id de outro
+cliente não encontra linha em vez de apagar às cegas.
+
 ## Documento visível ao cliente vs. documento clínico interno
 
 A tabela `documento` nasceu para material que o **cliente** lê e assina no portal, então um tipo novo

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  Activity,
   Bell,
   CalendarClock,
   ClipboardList,
@@ -101,6 +102,16 @@ export default async function PortalPage() {
             <Ruler className="size-5" aria-hidden="true" />
           </span>
           Minhas medidas
+        </Link>
+
+        <Link
+          className="inline-flex items-center gap-3 rounded-lg border border-border bg-surface p-4 text-sm font-medium text-foreground shadow-sm transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+          href="/portal/dor"
+        >
+          <span className="rounded-lg bg-lilas/35 p-2 text-roxo">
+            <Activity className="size-5" aria-hidden="true" />
+          </span>
+          Meu mapa de dor
         </Link>
 
         <Link

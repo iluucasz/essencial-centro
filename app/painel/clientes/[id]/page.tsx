@@ -77,6 +77,9 @@ import {
   type MedicamentoLista,
 } from "@/modules/medicamentos/components/lista-medicamentos";
 import { listarMedicamentosDoCliente } from "@/modules/medicamentos/queries";
+import { excluirPontoDeDor, registrarDorNoAtendimento } from "@/modules/dor/actions";
+import { MapaDeDor, type PontoDorNaTela } from "@/modules/dor/components/mapa-de-dor";
+import { listarDorDoCliente } from "@/modules/dor/queries";
 import { DestaquePacoteCliente } from "@/modules/pacotes/components/destaque-pacote-cliente";
 import { montarPacotesEmDestaque } from "@/modules/pacotes/destaque";
 import { listarPacotesDoCliente } from "@/modules/pacotes/queries";
@@ -123,6 +126,7 @@ type AbaCliente =
   | "documentos"
   | "fotos"
   | "medicamentos"
+  | "dor"
   | "biometria";
 
 type TomPerfil = "brand" | "dourado" | "neutro" | "perigo" | "roxo" | "salvia";
@@ -881,6 +885,8 @@ export default async function ClienteDetalhePage({
 
   const medicamentos = profissional ? await listarMedicamentosDoCliente(id) : null;
 
+  const pontosDeDor = profissional ? await listarDorDoCliente(id) : null;
+
   const modelosFicha = profissional ? await listarModelosFicha() : [];
 
   const observacoesInternas =
@@ -928,6 +934,18 @@ export default async function ClienteDetalhePage({
   const agendamentosParaPerfil: AgendamentoClienteLista[] = dadosSessoes ? dadosSessoes[2] : [];
   const medidasParaLista: MedidaLista[] = medidasBrutas ?? [];
   const medicamentosParaLista: MedicamentoLista[] = medicamentos ?? [];
+  // A data é formatada aqui (Server Component) pra não mandar Date pro client nem duplicar locale.
+  const pontosParaMapa: PontoDorNaTela[] = (pontosDeDor ?? []).map((ponto) => ({
+    id: ponto.id,
+    regiao: ponto.regiao,
+    lado: ponto.lado,
+    intensidade: ponto.intensidade,
+    anterior: ponto.anterior,
+    descricao: ponto.descricao,
+    origem: ponto.origem,
+    observacao: ponto.observacao,
+    registradoEm: formatadorDataHora.format(ponto.registradoEm),
+  }));
   const medicamentosEmUso = formatarMedicamentosEmUso(medicamentosParaLista, cliente.medicamentos);
   const servicosParaFichas = servicosParaSessoes;
 
@@ -998,6 +1016,7 @@ export default async function ClienteDetalhePage({
             rotulo: "Medicamentos",
             contador: medicamentos?.length ?? 0,
           },
+          { id: "dor" as const, rotulo: "Mapa de dor", contador: pontosDeDor?.length ?? 0 },
         ]
       : []),
     { id: "biometria", rotulo: "Biometria", contador: biometrias.length },
@@ -1422,6 +1441,23 @@ export default async function ClienteDetalhePage({
             tom="salvia"
           >
             <ListaMedicamentosGerenciavel clienteId={id} medicamentos={medicamentosParaLista} />
+          </SecaoPerfil>
+        ) : null}
+
+        {abaAtual === "dor" && pontosDeDor ? (
+          <SecaoPerfil
+            descricao="Toque no corpo para marcar onde dói e a intensidade de 0 a 10."
+            icone={<Activity className="size-4" aria-hidden="true" />}
+            id="dor"
+            titulo="Mapa de dor"
+            tom="roxo"
+          >
+            <MapaDeDor
+              clienteId={id}
+              excluir={excluirPontoDeDor}
+              pontos={pontosParaMapa}
+              registrar={registrarDorNoAtendimento}
+            />
           </SecaoPerfil>
         ) : null}
       </AbasPerfilCliente>

@@ -204,6 +204,23 @@ Fase 2 concluída — próximo passo é a Fase 3.
     browser nunca é confiado: o anexo é lido com a posse no WHERE e o cliente revalidado no banco.
     O tipo é **invisível ao cliente** — ver `06-lgpd-seguranca.md`.
 
+- ✅ **Mapa de dor em 3D** — `modules/dor`. A profissional (aba "Mapa de dor" no perfil do cliente) e
+  o próprio cliente (`/portal/dor`) tocam no modelo 3D do corpo e marcam a intensidade de 0 a 10.
+
+  O modelo vem de `modules/3D/SubTool-0-8302662.OBJ` (export cru do ZBrush, 18MB, 165k vértices). O
+  pipeline usado uma vez, fora do build: `obj2gltf` → `gltf-transform simplify --ratio 0.12` →
+  `quantize`, resultando em `public/modelos/corpo.glb` (398KB, 39k triângulos, só POSITION — o
+  three.js recalcula as normais no load). Os outros dois SubTools são o esqueleto sem crânio e uma
+  mão/pé avulsos; ficam disponíveis para uma futura camada óssea.
+
+  **A malha não tem rótulo anatômico nenhum** (um grupo `Group21968`, sem UV nem material), então
+  `modules/dor/regioes.ts` normaliza o corpo (altura 0 = pé, 1 = topo da cabeça) e define as regiões
+  como faixas nesse espaço — o clique sai como `{ regiao, lado }` nomeado, comparável entre sessões,
+  no mesmo padrão de `modules/medidas`. Duas sutilezas que os testes fixam: os braços caem ao lado do
+  tronco e ocupam as mesmas alturas (região por altura só não separa "lombar" de "braço" — daí
+  `meiaLarguraTronco`), e frente/costas vem da **normal do raycast**, não da posição, porque o centro
+  em Z do corpo muda a cada altura. `pnpm dor:regioes` gera as imagens de conferência visual.
+
 - ✅ Check-in por biometria (impressão digital) — `modules/biometria`, **lado Next.js/web** desta
   fase (schema, queries, actions, rotas de API pra ponte física em `app/api/biometria/*`, seção
   "Biometria" em `/painel/clientes/[id]`). Alternativa ao QR Code da Fase 2
