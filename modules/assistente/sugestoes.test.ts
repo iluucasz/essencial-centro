@@ -99,7 +99,7 @@ describe("gerarSugestoesAssistente", () => {
     ).resolves.toEqual([
       "Mostre as sessões recentes dessa cliente",
       "Quais pacotes ativos ela tem?",
-      "Quais medicamentos estão registrados?",
+      "Quais suplementos estão indicados?",
     ]);
   });
 });

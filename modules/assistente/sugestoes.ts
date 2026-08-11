@@ -100,12 +100,13 @@ function sugestoesDeterministicas(pergunta: string, resposta: string) {
     texto.includes("sessao") ||
     texto.includes("pacote") ||
     texto.includes("documento") ||
-    texto.includes("medicamento")
+    texto.includes("medicamento") ||
+    texto.includes("suplemento")
   ) {
     return [
       "Mostre as sessões recentes dessa cliente",
       "Quais pacotes ativos ela tem?",
-      "Quais medicamentos estão registrados?",
+      "Quais suplementos estão indicados?",
     ];
   }
 

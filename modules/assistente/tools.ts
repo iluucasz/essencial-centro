@@ -94,8 +94,8 @@ const resumoEvolucaoClienteTool = tool({
 
 const medicamentosDoClienteTool = tool({
   description:
-    "Retorna os medicamentos já registrados manualmente pela profissional para este cliente " +
-    "(nome, dosagem, frequência, prescritor, alergia, alerta de interação já preenchido " +
+    "Retorna os suplementos indicados já registrados manualmente pela profissional para este " +
+    "cliente (nome, dosagem, frequência, prescritor, alergia, alerta de interação já preenchido " +
     "manualmente, status de verificação). Use para relatar o que está registrado e para checar " +
     "alergias e possíveis conflitos antes de qualquer recomendação de apoio (seguindo a política " +
     "de recomendações do sistema). Lista vazia significa que nada foi registrado ainda.",

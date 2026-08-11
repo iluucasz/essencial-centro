@@ -57,7 +57,7 @@ describe("montarPromptSistema", () => {
     expect(prompt).toContain("Nunca mostre nomes fictícios");
   });
 
-  it("descreve a navegação real de medicamentos sem inventar menu de pacientes", () => {
+  it("descreve a navegação real de suplementos sem inventar menu de pacientes", () => {
     const prompt = montarPromptSistema({
       dataAtual: new Date("2026-07-15T12:00:00.000Z"),
       nomeProfissional: "Ana Souza",
@@ -65,7 +65,7 @@ describe("montarPromptSistema", () => {
 
     expect(prompt).toContain('Nunca chame o item "Clientes" de "Pacientes"');
     expect(prompt).toContain("não é um item do menu lateral");
-    expect(prompt).toContain("Medicamentos informados e alertas de segurança");
+    expect(prompt).toContain("Suplementos indicados");
     expect(prompt).toContain("menu Clientes");
   });
 
