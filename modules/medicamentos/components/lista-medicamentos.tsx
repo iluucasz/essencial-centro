@@ -70,7 +70,7 @@ function DetalhesMedicamento({ medicamento }: { medicamento: MedicamentoLista })
   return (
     <div className="grid gap-5">
       <dl className="grid gap-3 rounded-2xl bg-creme p-4 sm:grid-cols-2">
-        <CampoDetalhe label="Medicamento" valor={medicamento.nome} />
+        <CampoDetalhe label="Suplemento" valor={medicamento.nome} />
         <CampoDetalhe label="Dosagem" valor={medicamento.dosagem} />
         <CampoDetalhe label="Frequência" valor={medicamento.frequencia} />
         <CampoDetalhe label="Profissional prescritor" valor={medicamento.profissionalPrescritor} />

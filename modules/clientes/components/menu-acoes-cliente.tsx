@@ -84,13 +84,7 @@ function BlocoVisualizacao({
   );
 }
 
-function VisualizacaoCliente({
-  cliente,
-  medicamentosEmUso,
-}: {
-  cliente: ClienteFormulario;
-  medicamentosEmUso?: string | null;
-}) {
+function VisualizacaoCliente({ cliente }: { cliente: ClienteFormulario }) {
   return (
     <div className="grid gap-5">
       <div className="rounded-2xl border border-roxo/10 bg-lilas/15 p-4">
@@ -164,7 +158,7 @@ function VisualizacaoCliente({
           <BlocoVisualizacao
             icone={<Pill className="size-4" aria-hidden="true" />}
             label="Medicamentos em uso"
-            valor={medicamentosEmUso ?? cliente.medicamentos}
+            valor={cliente.medicamentos}
           />
           <BlocoVisualizacao
             icone={<Activity className="size-4" aria-hidden="true" />}
@@ -207,11 +201,9 @@ function VisualizacaoCliente({
 
 export function MenuAcoesCliente({
   cliente,
-  medicamentosEmUso,
   podeExcluir,
 }: {
   cliente: ClienteFormulario;
-  medicamentosEmUso?: string | null;
   podeExcluir: boolean;
 }) {
   const router = useRouter();
@@ -309,7 +301,7 @@ export function MenuAcoesCliente({
         <Modal.Backdrop variant="opaque">
           <Modal.Container className="w-[calc(100vw-1rem)] sm:w-full" size="lg">
             <ConteudoModal titulo="Cadastro do cliente">
-              <VisualizacaoCliente cliente={cliente} medicamentosEmUso={medicamentosEmUso} />
+              <VisualizacaoCliente cliente={cliente} />
             </ConteudoModal>
           </Modal.Container>
         </Modal.Backdrop>

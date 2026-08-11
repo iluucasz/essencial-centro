@@ -56,7 +56,7 @@ const dataOpcional = z.preprocess((value) => {
 
 export const criarMedicamentoInformadoSchema = z.object({
   clienteId: z.string().uuid("Selecione um cliente."),
-  nome: z.string().trim().min(2, "Informe o medicamento.").max(200),
+  nome: z.string().trim().min(2, "Informe o suplemento.").max(200),
   dosagem: textoCurtoOpcional,
   frequencia: textoCurtoOpcional,
   profissionalPrescritor: textoCurtoOpcional,

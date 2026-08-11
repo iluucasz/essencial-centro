@@ -79,14 +79,14 @@ export function FormularioMedicamento({
 
       <div className="grid min-w-0 gap-2">
         <label className="text-sm font-medium text-foreground" htmlFor="nome">
-          Medicamento informado
+          Suplemento indicado
         </label>
         <input
           className={classeCampo}
           defaultValue={medicamento?.nome}
           id="nome"
           name="nome"
-          placeholder="Ex.: Dipirona"
+          placeholder="Ex.: Vitamina D3"
           required
         />
         {state?.campos?.nome?.length ? (
@@ -104,7 +104,7 @@ export function FormularioMedicamento({
             defaultValue={medicamento?.dosagem ?? undefined}
             id="dosagem"
             name="dosagem"
-            placeholder="Ex.: 500 mg"
+            placeholder="Ex.: 2.000 UI"
           />
         </div>
         <div className="grid min-w-0 gap-2">
@@ -148,7 +148,7 @@ export function FormularioMedicamento({
           defaultValue={medicamento?.alergiaRelacionada ?? undefined}
           id="alergiaRelacionada"
           name="alergiaRelacionada"
-          placeholder="Ex.: alergia a dipirona relatada pela cliente"
+          placeholder="Ex.: intolerância a lactose relatada pela cliente"
         />
       </div>
 
@@ -161,7 +161,7 @@ export function FormularioMedicamento({
           defaultValue={medicamento?.alertaInteracao ?? undefined}
           id="alertaInteracao"
           name="alertaInteracao"
-          placeholder="Ex.: verificar interação com anticoagulantes"
+          placeholder="Ex.: verificar interação com anticoagulante em uso"
         />
       </div>
 
@@ -174,7 +174,7 @@ export function FormularioMedicamento({
           defaultValue={medicamento?.fonteAlerta ?? undefined}
           id="fonteAlerta"
           name="fonteAlerta"
-          placeholder="Ex.: bula, relato do cliente, Anvisa"
+          placeholder="Ex.: rótulo, relato do cliente, Anvisa"
         />
       </div>
 
@@ -193,7 +193,7 @@ export function FormularioMedicamento({
           ) : (
             <Pill className="size-4" aria-hidden="true" />
           )}
-          {medicamento ? "Salvar alterações" : "Registrar medicamento"}
+          {medicamento ? "Salvar alterações" : "Indicar suplemento"}
         </button>
       </div>
     </form>

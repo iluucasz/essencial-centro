@@ -26,7 +26,7 @@ export type EstadoExclusaoMedicamento =
 const estadoInicial: EstadoFormularioMedicamento = { status: "inicial" };
 
 const excluirMedicamentoSchema = z.object({
-  id: z.string().uuid("Medicamento inválido."),
+  id: z.string().uuid("Suplemento inválido."),
   clienteId: z.string().uuid("Cliente inválido."),
   confirmarExclusao: z.literal("true", {
     error: "Confirme que entende que a exclusão não pode ser desfeita.",
@@ -63,7 +63,7 @@ export async function criarMedicamentoInformado(
   if (!parsed.success) {
     return {
       status: "erro",
-      mensagem: "Revise os dados do medicamento.",
+      mensagem: "Revise os dados do suplemento.",
       campos: parsed.error.flatten().fieldErrors,
     } satisfies EstadoFormularioMedicamento;
   }
@@ -78,7 +78,7 @@ export async function criarMedicamentoInformado(
 
   return {
     status: "sucesso",
-    mensagem: "Medicamento registrado com sucesso.",
+    mensagem: "Suplemento registrado com sucesso.",
   } satisfies EstadoFormularioMedicamento;
 }
 
@@ -93,7 +93,7 @@ export async function atualizarMedicamentoInformado(
   if (!parsed.success) {
     return {
       status: "erro",
-      mensagem: "Revise os dados do medicamento.",
+      mensagem: "Revise os dados do suplemento.",
       campos: parsed.error.flatten().fieldErrors,
     } satisfies EstadoFormularioMedicamento;
   }
@@ -108,7 +108,7 @@ export async function atualizarMedicamentoInformado(
   if (!registro || registro.clienteId !== dados.clienteId) {
     return {
       status: "erro",
-      mensagem: "Medicamento não encontrado.",
+      mensagem: "Suplemento não encontrado.",
     } satisfies EstadoFormularioMedicamento;
   }
 
@@ -135,7 +135,7 @@ export async function atualizarMedicamentoInformado(
 
   return {
     status: "sucesso",
-    mensagem: "Medicamento atualizado com sucesso. Verifique novamente o registro.",
+    mensagem: "Suplemento atualizado com sucesso. Verifique novamente o registro.",
   } satisfies EstadoFormularioMedicamento;
 }
 
@@ -192,7 +192,7 @@ export async function excluirMedicamentoInformado(
     .limit(1);
 
   if (!registro || registro.clienteId !== clienteId) {
-    return { status: "erro", mensagem: "Medicamento não encontrado." };
+    return { status: "erro", mensagem: "Suplemento não encontrado." };
   }
 
   await db.delete(medicamentoInformado).where(eq(medicamentoInformado.id, id));

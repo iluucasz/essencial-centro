@@ -24,7 +24,7 @@ const cliente: UsuarioSessao = {
 };
 
 describe("podeGerenciarMedicamentos", () => {
-  it("restringe criação, edição e exclusão de medicamentos ao perfil profissional", () => {
+  it("restringe criação, edição e exclusão de suplementos ao perfil profissional", () => {
     expect(podeGerenciarMedicamentos(profissional)).toBe(true);
     expect(podeGerenciarMedicamentos(recepcao)).toBe(false);
     expect(podeGerenciarMedicamentos(cliente)).toBe(false);
