@@ -28,6 +28,13 @@ export const usuario = pgTable(
     role: papelUsuarioEnum("role").notNull().default("cliente"),
     senhaHash: text("senha_hash"),
     clienteId: uuid("cliente_id"),
+    /**
+     * Senha provisória pendente de troca. Sobe pra `true` quando a conta nasce com senha gerada pela
+     * clínica (todo cliente cadastrado ganha acesso ao portal) e volta pra `false` quando a própria
+     * pessoa define a dela. Enquanto `true`, painel e portal desviam pra `/definir-senha`: senha que
+     * passou pelas mãos de outra pessoa não pode continuar valendo.
+     */
+    deveTrocarSenha: boolean("deve_trocar_senha").notNull().default(false),
     ativo: boolean("ativo").notNull().default(true),
     criadoEm: timestamp("criado_em", { mode: "date" }).notNull().defaultNow(),
     atualizadoEm: timestamp("atualizado_em", { mode: "date" }).notNull().defaultNow(),
@@ -154,6 +161,21 @@ export const atualizarMeuPerfilSchema = z.object({
     .transform((value) => value.toLowerCase()),
 });
 
+/**
+ * Primeira senha de quem entrou com a provisória. Sem `senhaAtual` de propósito: a pessoa acabou de
+ * autenticar com ela e a clínica também a conhece — pedir de novo só protegeria o que já não é
+ * segredo. O acesso a este fluxo é restrito pelo `deveTrocarSenha` do próprio usuário logado.
+ */
+export const definirPrimeiraSenhaSchema = z
+  .object({
+    novaSenha: z.string().min(8, "A senha deve ter pelo menos 8 caracteres.").max(128),
+    confirmarNovaSenha: z.string(),
+  })
+  .refine((dados) => dados.novaSenha === dados.confirmarNovaSenha, {
+    message: "A confirmação não é igual à nova senha.",
+    path: ["confirmarNovaSenha"],
+  });
+
 /** Fluxo separado de `atualizarUsuario`/`atualizarMeuPerfil` de propósito — exige a senha atual
  * (a pessoa já autenticada ainda precisa provar que é ela mesma pra trocar a credencial). */
 export const alterarSenhaSchema = z
@@ -174,3 +196,4 @@ export type CriarUsuarioInput = z.infer<typeof criarUsuarioSchema>;
 export type AtualizarUsuarioInput = z.infer<typeof atualizarUsuarioSchema>;
 export type AtualizarMeuPerfilInput = z.infer<typeof atualizarMeuPerfilSchema>;
 export type AlterarSenhaInput = z.infer<typeof alterarSenhaSchema>;
+export type DefinirPrimeiraSenhaInput = z.infer<typeof definirPrimeiraSenhaSchema>;

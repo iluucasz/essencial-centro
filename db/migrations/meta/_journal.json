@@ -232,6 +232,34 @@
       "when": 1785963066002,
       "tag": "0032_green_steve_rogers",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1786043997972,
+      "tag": "0033_tranquil_steve_rogers",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1786047036513,
+      "tag": "0034_quiet_mordo",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1786214136285,
+      "tag": "0035_fresh_meltdown",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1786382424712,
+      "tag": "0036_pink_stone_men",
+      "breakpoints": true
     }
   ]
 }

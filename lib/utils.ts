@@ -16,6 +16,30 @@ export function calcularVariacaoPercentual(atual: number, anterior: number): num
   return Math.round(((atual - anterior) / anterior) * 100);
 }
 
+/** Conectores de nome composto que ficam minúsculos quando não são a primeira palavra do nome. */
+const CONECTORES_NOME = new Set(["de", "da", "do", "das", "dos", "e"]);
+
+function capitalizarPalavra(palavra: string): string {
+  // Início de palavra: começo da string ou logo após hífen/apóstrofo — cobre "Ana-Beatriz", "D'Ávila".
+  return palavra.replace(/(^|['-])\p{L}/gu, (letra) => letra.toUpperCase());
+}
+
+/**
+ * "lucas SILVA santos" → "Lucas Silva Santos"; "maria da silva" → "Maria da Silva" (conector
+ * minúsculo, como se escreve normalmente — só a primeira palavra do nome nunca vira conector).
+ */
+export function capitalizarNome(nome: string): string {
+  return nome
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .split(" ")
+    .map((palavra, indice) =>
+      indice > 0 && CONECTORES_NOME.has(palavra) ? palavra : capitalizarPalavra(palavra),
+    )
+    .join(" ");
+}
+
 export function primeiroDiaDoMes(data: Date) {
   return new Date(Date.UTC(data.getUTCFullYear(), data.getUTCMonth(), 1));
 }

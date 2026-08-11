@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   agoraBrasilia,
   calcularVariacaoPercentual,
+  capitalizarNome,
   cn,
   primeiroDiaDoMes,
   ultimoDiaDoMes,
@@ -84,5 +85,34 @@ describe("agoraBrasilia", () => {
     expect(agora.getUTCMonth()).toBe(6);
     expect(agora.getUTCDate()).toBe(17);
     expect(agora.getUTCHours()).toBe(10);
+  });
+});
+
+describe("capitalizarNome", () => {
+  it("põe maiúscula no início de cada palavra e minúscula no resto", () => {
+    expect(capitalizarNome("lucas SILVA santos")).toBe("Lucas Silva Santos");
+    expect(capitalizarNome("MARIA")).toBe("Maria");
+  });
+
+  it("colapsa espaços duplicados e remove das pontas", () => {
+    expect(capitalizarNome("  ana   clara  ")).toBe("Ana Clara");
+  });
+
+  it("capitaliza também depois de hífen e apóstrofo — nomes compostos comuns", () => {
+    expect(capitalizarNome("maria-clara")).toBe("Maria-Clara");
+    expect(capitalizarNome("d'ávila")).toBe("D'Ávila");
+  });
+
+  it("preserva acentuação ao capitalizar", () => {
+    expect(capitalizarNome("josé antônio")).toBe("José Antônio");
+  });
+
+  it("mantém conector de nome composto em minúsculo — 'Maria Da Silva' não é como se escreve", () => {
+    expect(capitalizarNome("MARIA DA SILVA")).toBe("Maria da Silva");
+    expect(capitalizarNome("joão dos santos e souza")).toBe("João dos Santos e Souza");
+  });
+
+  it("capitaliza o conector quando ele é a primeira palavra do nome", () => {
+    expect(capitalizarNome("do carmo")).toBe("Do Carmo");
   });
 });

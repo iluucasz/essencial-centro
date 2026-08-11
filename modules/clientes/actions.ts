@@ -7,6 +7,8 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { agendamento } from "@/modules/agenda/schema";
+import { criarAcessoPortal, MOTIVOS_ACESSO_PORTAL } from "@/modules/auth/acesso-portal";
+import { violaConstraintUnica } from "@/lib/db-erros";
 import { autorizarPapel } from "@/modules/auth/rbac";
 import { usuario } from "@/modules/auth/schema";
 import { biometriaCliente, tentativaIdentificacaoBiometrica } from "@/modules/biometria/schema";
@@ -21,10 +23,27 @@ import { sessao } from "@/modules/sessoes/schema";
 
 import { cliente, criarClienteSchema } from "./schema";
 
+/**
+ * Credenciais do portal geradas na criação do acesso. Só existem no retorno da action que as
+ * criou — a senha existe em texto claro nesse único instante, depois só como hash. `whatsappEnviado`
+ * diz se a mensagem de boas-vindas (com essas mesmas credenciais) chegou ao cliente: se não chegou,
+ * a tela precisa dizer pra profissional repassar por outro meio em vez de assumir que está resolvido.
+ */
+export type AcessoPortalGerado = {
+  email: string;
+  senhaProvisoria: string;
+  whatsappEnviado: boolean;
+};
+
 export type EstadoFormularioCliente = {
   status: "inicial" | "erro" | "sucesso";
   mensagem?: string;
   campos?: Record<string, string[] | undefined>;
+  /** Se o acesso não pôde ser criado (cliente sem e-mail, e-mail já em uso), vem `avisoAcesso` explicando. */
+  acessoPortal?: AcessoPortalGerado;
+  avisoAcesso?: string;
+  /** Nome do cliente recém-criado, pra o painel de credenciais dizer de quem é o acesso. */
+  nomeCriado?: string;
 };
 
 const estadoInicial: EstadoFormularioCliente = { status: "inicial" };
@@ -46,7 +65,7 @@ function getValor(formData: FormData, nome: string) {
 }
 
 function isEmailDuplicado(error: unknown) {
-  return error instanceof Error && error.message.includes("cliente_email_unique");
+  return violaConstraintUnica(error, "cliente_email_unique");
 }
 
 function parseFormularioCliente(formData: FormData) {
@@ -71,7 +90,10 @@ function parseFormularioCliente(formData: FormData) {
   });
 }
 
-export async function criarCliente(_: EstadoFormularioCliente = estadoInicial, formData: FormData) {
+export async function criarCliente(
+  _: EstadoFormularioCliente = estadoInicial,
+  formData: FormData,
+): Promise<EstadoFormularioCliente> {
   const usuarioAtual = autorizarPapel(await auth(), ["profissional", "recepcao"]);
   const parsed = parseFormularioCliente(formData);
 
@@ -83,35 +105,67 @@ export async function criarCliente(_: EstadoFormularioCliente = estadoInicial, f
     } satisfies EstadoFormularioCliente;
   }
 
+  let clienteCriadoId: string;
+
   try {
-    await db.insert(cliente).values({
-      ...parsed.data,
-      criadoPorId: usuarioAtual.id,
-      atualizadoPorId: usuarioAtual.id,
-    });
+    const [criado] = await db
+      .insert(cliente)
+      .values({
+        ...parsed.data,
+        criadoPorId: usuarioAtual.id,
+        atualizadoPorId: usuarioAtual.id,
+      })
+      .returning({ id: cliente.id });
+
+    if (!criado) throw new Error("Cliente não retornado após a inserção.");
+
+    clienteCriadoId = criado.id;
   } catch (error) {
     if (isEmailDuplicado(error)) {
       return {
         status: "erro",
-        mensagem: "Já existe um cliente com este e-mail.",
+        mensagem: "Revise os dados do cliente.",
+        campos: { email: ["Já existe um cliente com este e-mail."] },
       } satisfies EstadoFormularioCliente;
     }
 
     throw error;
   }
 
+  /*
+    Todo cliente nasce com acesso ao portal — é por ele que chegam confirmação de agendamento,
+    lembretes e QR de presença. Nunca desfaz o cadastro se o acesso não puder ser criado: o cliente
+    é o dado principal, o login é consequência (ver `criarAcessoPortal`).
+  */
+  const acesso = await criarAcessoPortal({
+    clienteId: clienteCriadoId,
+    nome: parsed.data.nome,
+    email: parsed.data.email,
+    telefone: parsed.data.telefone,
+  });
+
   revalidatePath("/painel/clientes");
 
   return {
     status: "sucesso",
     mensagem: "Cliente cadastrado com sucesso.",
+    nomeCriado: parsed.data.nome,
+    ...(acesso.criado
+      ? {
+          acessoPortal: {
+            email: acesso.email,
+            senhaProvisoria: acesso.senhaProvisoria,
+            whatsappEnviado: acesso.whatsapp.enviado,
+          },
+        }
+      : { avisoAcesso: MOTIVOS_ACESSO_PORTAL[acesso.motivo] }),
   } satisfies EstadoFormularioCliente;
 }
 
 export async function atualizarCliente(
   _: EstadoFormularioCliente = estadoInicial,
   formData: FormData,
-) {
+): Promise<EstadoFormularioCliente> {
   const usuarioAtual = autorizarPapel(await auth(), ["profissional", "recepcao"]);
   const clienteId = clienteIdSchema.safeParse(getValor(formData, "id"));
   const parsed = parseFormularioCliente(formData);
@@ -153,7 +207,8 @@ export async function atualizarCliente(
     if (isEmailDuplicado(error)) {
       return {
         status: "erro",
-        mensagem: "Já existe um cliente com este e-mail.",
+        mensagem: "Revise os dados do cliente.",
+        campos: { email: ["Já existe um cliente com este e-mail."] },
       } satisfies EstadoFormularioCliente;
     }
 
@@ -274,4 +329,58 @@ export async function registrarConsentimentoBiometria(formData: FormData) {
     .where(eq(cliente.id, clienteId));
 
   revalidatePath(`/painel/clientes/${clienteId}`);
+}
+
+export type EstadoAcessoPortal = {
+  status: "inicial" | "erro" | "sucesso";
+  mensagem?: string;
+  acessoPortal?: AcessoPortalGerado;
+};
+
+/**
+ * Gera o acesso ao portal de um cliente que já existe — cadastros anteriores a este fluxo, ou aqueles
+ * cujo e-mail só foi preenchido depois. Sem isso o cliente não recebe WhatsApp nem lembrete:
+ * `notificarCliente` exige um usuário vinculado ao cadastro.
+ */
+export async function gerarAcessoPortalCliente(
+  _: EstadoAcessoPortal = { status: "inicial" },
+  formData: FormData,
+): Promise<EstadoAcessoPortal> {
+  autorizarPapel(await auth(), ["profissional", "recepcao"]);
+
+  const id = clienteIdSchema.safeParse(getValor(formData, "clienteId"));
+
+  if (!id.success) return { status: "erro", mensagem: "Cliente inválido." };
+
+  const [registro] = await db
+    .select({ nome: cliente.nome, email: cliente.email, telefone: cliente.telefone })
+    .from(cliente)
+    .where(eq(cliente.id, id.data))
+    .limit(1);
+
+  if (!registro) return { status: "erro", mensagem: "Cliente não encontrado." };
+
+  const acesso = await criarAcessoPortal({
+    clienteId: id.data,
+    nome: registro.nome,
+    email: registro.email,
+    telefone: registro.telefone,
+  });
+
+  if (!acesso.criado) {
+    return { status: "erro", mensagem: MOTIVOS_ACESSO_PORTAL[acesso.motivo] };
+  }
+
+  revalidatePath("/painel/clientes");
+  revalidatePath(`/painel/clientes/${id.data}`);
+
+  return {
+    status: "sucesso",
+    mensagem: "Acesso ao portal criado.",
+    acessoPortal: {
+      email: acesso.email,
+      senhaProvisoria: acesso.senhaProvisoria,
+      whatsappEnviado: acesso.whatsapp.enviado,
+    },
+  };
 }

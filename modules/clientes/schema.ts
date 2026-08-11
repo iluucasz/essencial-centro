@@ -2,7 +2,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { date, pgTable, text, timestamp, uuid, boolean, uniqueIndex } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
-import { agoraBrasilia } from "@/lib/utils";
+import { agoraBrasilia, capitalizarNome } from "@/lib/utils";
 import { usuario } from "@/modules/auth/schema";
 
 const textoCurtoOpcional = z.preprocess(
@@ -65,7 +65,13 @@ export const clienteSelectSchema = createSelectSchema(cliente);
 export const clienteInsertSchema = createInsertSchema(cliente);
 
 export const criarClienteSchema = z.object({
-  nome: z.string().trim().min(2, "Informe o nome do cliente.").max(120),
+  nome: z
+    .string()
+    .trim()
+    .min(2, "Informe o nome do cliente.")
+    .max(120)
+    .refine((valor) => valor.trim().split(/\s+/).length >= 2, "Informe nome e sobrenome.")
+    .transform(capitalizarNome),
   dataNascimento: dataNascimentoSchema,
   telefone: textoCurtoOpcional,
   email: textoCurtoOpcional.pipe(z.string().email("Informe um e-mail válido.").optional()),

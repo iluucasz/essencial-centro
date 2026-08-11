@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import { LoaderCircle, Save } from "lucide-react";
 
 import { CampoDataCalendario } from "@/components/ui/calendario-tailgrids";
+import { CredenciaisGeradas } from "@/modules/auth/components/credenciais-geradas";
 import {
   type CamposEnderecoCliente,
   extrairEnderecoCliente,
@@ -47,10 +48,6 @@ export type ClienteFormulario = {
   observacoesInternas: string | null;
 };
 
-function valorInicial(valor: string | null | undefined) {
-  return valor ?? undefined;
-}
-
 function formatarDataInput(data?: Date | null) {
   if (!data) return undefined;
 
@@ -77,6 +74,13 @@ function MensagemFormulario({ state }: { state: EstadoFormularioCliente | undefi
   );
 }
 
+/*
+  Controlado, não `defaultValue` solto: um `<form action={...}>` do React 19 reseta os campos NÃO
+  controlados assim que a Server Action termina — mesmo quando o retorno é um erro de validação (o
+  React só sabe que a promise resolveu, não que o app considera aquilo uma falha). Um campo controlado
+  é imune, porque o valor vem do estado do próprio componente, não do atributo `defaultValue` do DOM
+  — mesma proteção que `CampoEndereco`/`CampoDataCalendario` já usam com sucesso mais abaixo.
+*/
 function CampoTexto({
   defaultValue,
   error,
@@ -96,6 +100,7 @@ function CampoTexto({
   required?: boolean;
   type?: string;
 }) {
+  const [valor, setValor] = useState(defaultValue ?? "");
   const errorId = `${name}-erro`;
 
   return (
@@ -107,13 +112,14 @@ function CampoTexto({
         aria-describedby={error?.length ? errorId : undefined}
         aria-invalid={error?.length ? true : undefined}
         className={classeCampo}
-        defaultValue={defaultValue}
         id={name}
         inputMode={inputMode}
         name={name}
+        onChange={(event) => setValor(event.target.value)}
         placeholder={placeholder}
         required={required}
         type={type}
+        value={valor}
       />
       {error?.length ? (
         <p className="text-sm text-perigo" id={errorId}>
@@ -137,6 +143,7 @@ function CampoArea({
   name: string;
   placeholder?: string;
 }) {
+  const [valor, setValor] = useState(defaultValue ?? "");
   const errorId = `${name}-erro`;
 
   return (
@@ -148,10 +155,11 @@ function CampoArea({
         aria-describedby={error?.length ? errorId : undefined}
         aria-invalid={error?.length ? true : undefined}
         className={classeArea}
-        defaultValue={defaultValue}
         id={name}
         name={name}
+        onChange={(event) => setValor(event.target.value)}
         placeholder={placeholder}
+        value={valor}
       />
       {error?.length ? (
         <p className="text-sm text-perigo" id={errorId}>
@@ -175,6 +183,7 @@ function CampoCheckbox({
   name: string;
   required?: boolean;
 }) {
+  const [marcado, setMarcado] = useState(defaultChecked ?? false);
   const errorId = `${name}-erro`;
 
   return (
@@ -183,10 +192,11 @@ function CampoCheckbox({
         <input
           aria-describedby={error?.length ? errorId : undefined}
           aria-invalid={error?.length ? true : undefined}
+          checked={marcado}
           className="mt-1 size-4 rounded border-border text-brand focus:ring-roxo"
-          defaultChecked={defaultChecked}
           id={name}
           name={name}
+          onChange={(event) => setMarcado(event.target.checked)}
           required={required}
           type="checkbox"
         />
@@ -499,9 +509,47 @@ export function FormularioCliente({ cliente }: { cliente?: ClienteFormulario }) 
   );
   const fecharModal = useFecharModal();
 
+  /*
+    Fecha no sucesso, EXCETO quando há algo do acesso ao portal a mostrar: credenciais (a senha só
+    existe neste retorno) ou o aviso de que o acesso não pôde ser criado (e-mail em uso/ausente).
+    Sem o segundo caso, o modal fechava sozinho e a mensagem nunca chegava a ser lida.
+  */
   useEffect(() => {
-    if (state.status === "sucesso") fecharModal();
+    if (state.status === "sucesso" && !state.acessoPortal && !state.avisoAcesso) fecharModal();
   }, [state, fecharModal]);
+
+  /*
+    Substitui o formulário inteiro nos dois casos de sucesso com algo a mostrar, em vez de deixá-lo
+    reaberto por cima do aviso: um clique reflexo em "Salvar cliente" reenviaria `criarCliente` e
+    duplicaria o cadastro que acabou de dar certo.
+  */
+  if (state.status === "sucesso" && (state.acessoPortal || state.avisoAcesso)) {
+    return (
+      <div className="grid min-w-0 gap-5">
+        {state.acessoPortal ? (
+          <CredenciaisGeradas
+            email={state.acessoPortal.email}
+            nomeCliente={state.nomeCriado}
+            senhaProvisoria={state.acessoPortal.senhaProvisoria}
+            whatsappEnviado={state.acessoPortal.whatsappEnviado}
+          />
+        ) : (
+          <p className="rounded-xl bg-dourado/15 px-3 py-2 text-sm text-foreground" role="status">
+            Cliente cadastrado. {state.avisoAcesso}
+          </p>
+        )}
+        <button
+          className="inline-flex h-11 items-center justify-center gap-2 justify-self-end rounded-lg bg-brand px-5 text-sm font-semibold text-brand-foreground transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          onClick={fecharModal}
+          type="button"
+        >
+          {state.acessoPortal && !state.acessoPortal.whatsappEnviado
+            ? "Já guardei, concluir"
+            : "Concluir"}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <form action={formAction} className="grid min-w-0 gap-6">
@@ -509,9 +557,9 @@ export function FormularioCliente({ cliente }: { cliente?: ClienteFormulario }) 
 
       <div className="grid gap-4 md:grid-cols-2">
         <CampoTexto
-          defaultValue={valorInicial(cliente?.nome)}
+          defaultValue={cliente?.nome ?? undefined}
           error={state?.campos?.nome}
-          label="Nome completo"
+          label="Nome e sobrenome"
           name="nome"
           placeholder="Ex.: Thalia Eluan"
           required
@@ -524,7 +572,7 @@ export function FormularioCliente({ cliente }: { cliente?: ClienteFormulario }) 
           required
         />
         <CampoTexto
-          defaultValue={valorInicial(cliente?.telefone)}
+          defaultValue={cliente?.telefone ?? undefined}
           error={state?.campos?.telefone}
           inputMode="tel"
           label="Telefone"
@@ -532,7 +580,7 @@ export function FormularioCliente({ cliente }: { cliente?: ClienteFormulario }) 
           placeholder="Ex.: (21) 99928-1504"
         />
         <CampoTexto
-          defaultValue={valorInicial(cliente?.email)}
+          defaultValue={cliente?.email ?? undefined}
           error={state?.campos?.email}
           label="E-mail"
           name="email"
@@ -540,14 +588,14 @@ export function FormularioCliente({ cliente }: { cliente?: ClienteFormulario }) 
           type="email"
         />
         <CampoTexto
-          defaultValue={valorInicial(cliente?.profissao)}
+          defaultValue={cliente?.profissao ?? undefined}
           error={state?.campos?.profissao}
           label="Profissão"
           name="profissao"
           placeholder="Ex.: Designer"
         />
         <CampoTexto
-          defaultValue={valorInicial(cliente?.contatoEmergenciaTelefone)}
+          defaultValue={cliente?.contatoEmergenciaTelefone ?? undefined}
           error={state?.campos?.contatoEmergenciaTelefone}
           inputMode="tel"
           label="Telefone de emergência"
@@ -557,18 +605,18 @@ export function FormularioCliente({ cliente }: { cliente?: ClienteFormulario }) 
       </div>
 
       <CampoTexto
-        defaultValue={valorInicial(cliente?.contatoEmergenciaNome)}
+        defaultValue={cliente?.contatoEmergenciaNome ?? undefined}
         error={state?.campos?.contatoEmergenciaNome}
         label="Contato de emergência"
         name="contatoEmergenciaNome"
         placeholder="Ex.: Maria Eluan (mãe)"
       />
       <CampoEndereco
-        defaultValue={valorInicial(cliente?.endereco)}
+        defaultValue={cliente?.endereco ?? undefined}
         error={state?.campos?.endereco}
       />
       <CampoArea
-        defaultValue={valorInicial(cliente?.objetivoTratamento)}
+        defaultValue={cliente?.objetivoTratamento ?? undefined}
         error={state?.campos?.objetivoTratamento}
         label="Objetivo do tratamento"
         name="objetivoTratamento"
@@ -577,28 +625,28 @@ export function FormularioCliente({ cliente }: { cliente?: ClienteFormulario }) 
 
       <div className="grid gap-4 md:grid-cols-2">
         <CampoArea
-          defaultValue={valorInicial(cliente?.alergias)}
+          defaultValue={cliente?.alergias ?? undefined}
           error={state?.campos?.alergias}
           label="Alergias"
           name="alergias"
           placeholder="Ex.: Nega alergias conhecidas"
         />
         <CampoArea
-          defaultValue={valorInicial(cliente?.medicamentos)}
+          defaultValue={cliente?.medicamentos ?? undefined}
           error={state?.campos?.medicamentos}
           label="Medicamentos em uso"
           name="medicamentos"
           placeholder="Ex.: Anticoncepcional oral"
         />
         <CampoArea
-          defaultValue={valorInicial(cliente?.condicoesSaude)}
+          defaultValue={cliente?.condicoesSaude ?? undefined}
           error={state?.campos?.condicoesSaude}
           label="Condições de saúde"
           name="condicoesSaude"
           placeholder="Ex.: Sem comorbidades relatadas"
         />
         <CampoArea
-          defaultValue={valorInicial(cliente?.cirurgias)}
+          defaultValue={cliente?.cirurgias ?? undefined}
           error={state?.campos?.cirurgias}
           label="Cirurgias"
           name="cirurgias"
@@ -607,14 +655,14 @@ export function FormularioCliente({ cliente }: { cliente?: ClienteFormulario }) 
       </div>
 
       <CampoArea
-        defaultValue={valorInicial(cliente?.contraindicacoes)}
+        defaultValue={cliente?.contraindicacoes ?? undefined}
         error={state?.campos?.contraindicacoes}
         label="Contraindicações"
         name="contraindicacoes"
         placeholder="Ex.: Evitar radiofrequência em região com sensibilidade"
       />
       <CampoArea
-        defaultValue={valorInicial(cliente?.observacoesInternas)}
+        defaultValue={cliente?.observacoesInternas ?? undefined}
         error={state?.campos?.observacoesInternas}
         label="Observações internas"
         name="observacoesInternas"

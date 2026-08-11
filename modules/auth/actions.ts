@@ -2,13 +2,15 @@
 
 import { AuthError } from "next-auth";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { auth, signIn, signOut } from "@/auth";
 import { db } from "@/db";
+import { violaConstraintUnica } from "@/lib/db-erros";
 
 import { contarUsuarios, criarUsuarioComSenha } from "./credenciais";
-import { podeAlternarAtivoDe } from "./gestao";
+import { podeAlternarAtivoDe, podeExcluirUsuario } from "./gestao";
 import { autorizarPapel } from "./rbac";
 import { gerarHashSenha, verificarSenha } from "./senha";
 import {
@@ -17,6 +19,7 @@ import {
   atualizarUsuarioSchema,
   credenciaisEntradaSchema,
   criarUsuarioSchema,
+  definirPrimeiraSenhaSchema,
   usuario,
 } from "./schema";
 
@@ -40,7 +43,7 @@ function erroValidacao(
 }
 
 function isEmailDuplicado(error: unknown) {
-  return error instanceof Error && error.message.includes("usuario_email_unique");
+  return violaConstraintUnica(error, "usuario_email_unique");
 }
 
 export async function entrar(_: EstadoFormularioAuth = estadoInicial, formData: FormData) {
@@ -314,19 +317,150 @@ export async function alterarSenha(_: EstadoFormularioAuth = estadoInicial, form
   } satisfies EstadoFormularioAuth;
 }
 
-export async function alternarAtivoUsuario(formData: FormData) {
+/**
+ * Stateful (via `useActionState`), e não mais um `<form action={fn}>` de retorno `void`: o formato
+ * anterior falhava CALADO sempre que `podeAlternarAtivoDe` recusava (`return` sem mensagem) ou que
+ * `autorizarPapel` lançava sem nenhum `error.tsx` no ar pra mostrar algo — o clique "não fazia nada"
+ * e não havia como saber por quê. Agora todo caminho devolve `status`/`mensagem` pro modal exibir.
+ */
+export async function alternarAtivoUsuario(
+  _: EstadoFormularioAuth = estadoInicial,
+  formData: FormData,
+): Promise<EstadoFormularioAuth> {
   const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
 
   const id = formData.get("id");
   const ativoAtual = formData.get("ativoAtual");
-  if (typeof id !== "string" || typeof ativoAtual !== "string") return;
 
-  if (!podeAlternarAtivoDe(id, usuarioAtual.id)) return;
+  if (typeof id !== "string" || typeof ativoAtual !== "string") {
+    return { status: "erro", mensagem: "Usuário inválido." };
+  }
 
-  await db
+  if (!podeAlternarAtivoDe(id, usuarioAtual.id)) {
+    return { status: "erro", mensagem: "Você não pode alternar o próprio status." };
+  }
+
+  const atualizados = await db
     .update(usuario)
-    .set({ ativo: ativoAtual !== "true" })
-    .where(eq(usuario.id, id));
+    .set({ ativo: ativoAtual !== "true", atualizadoEm: new Date() })
+    .where(eq(usuario.id, id))
+    .returning({ id: usuario.id });
+
+  if (atualizados.length === 0) {
+    return { status: "erro", mensagem: "Usuário não encontrado." };
+  }
 
   revalidatePath("/painel/usuarios");
+
+  return {
+    status: "sucesso",
+    mensagem: ativoAtual === "true" ? "Usuário desativado." : "Usuário ativado.",
+  };
+}
+
+const excluirUsuarioSchema = z.object({
+  id: z.string().uuid("Usuário inválido."),
+  confirmarExclusao: z.literal("true", {
+    error: "Confirme que entende que a exclusão não pode ser desfeita.",
+  }),
+});
+
+/**
+ * Exclusão de VERDADE (não desativação) — só para contas `cliente` (login do portal). Uma conta
+ * `profissional`/`recepcao` tem `criadoPorId`/`atualizadoPorId`/`profissionalId` apontando pra ela em
+ * quase toda tabela clínica com `onDelete: "restrict"` — apagá-la ou apagaria o histórico de quem fez
+ * o quê, ou (na prática) o Postgres recusa a query. Pra essas, desativar é a única ferramenta; ver
+ * `podeExcluirUsuario`. Conta `cliente` não tem essa amarração: as tabelas que referenciam `usuario`
+ * a partir do lado do cliente (`conta`, `sessao_auth`, `autenticador`, `notificacao`) já são
+ * `onDelete: "cascade"`, e `usuario.clienteId` nem é FK — é só o vínculo com o cadastro clínico, que
+ * a exclusão não toca.
+ */
+export async function excluirUsuario(
+  _: EstadoFormularioAuth = estadoInicial,
+  formData: FormData,
+): Promise<EstadoFormularioAuth> {
+  autorizarPapel(await auth(), ["profissional"]);
+
+  const parsed = excluirUsuarioSchema.safeParse({
+    id: formData.get("id"),
+    confirmarExclusao: formData.get("confirmarExclusao"),
+  });
+
+  if (!parsed.success) {
+    return erroValidacao(
+      parsed.error.flatten().fieldErrors,
+      "Confirme a exclusão antes de continuar.",
+    );
+  }
+
+  const [registro] = await db
+    .select({ role: usuario.role })
+    .from(usuario)
+    .where(eq(usuario.id, parsed.data.id))
+    .limit(1);
+
+  if (!registro) {
+    return { status: "erro", mensagem: "Usuário não encontrado." };
+  }
+
+  if (!podeExcluirUsuario(registro.role)) {
+    return {
+      status: "erro",
+      mensagem: "Contas de profissional/recepção não podem ser excluídas — desative em vez disso.",
+    };
+  }
+
+  await db.delete(usuario).where(eq(usuario.id, parsed.data.id));
+
+  revalidatePath("/painel/usuarios");
+
+  return { status: "sucesso", mensagem: "Acesso ao portal excluído." };
+}
+
+/**
+ * Primeira senha de quem entrou com a provisória. Não exige a senha atual (ver
+ * `definirPrimeiraSenhaSchema`) e serve a QUALQUER papel — a clínica também pode criar uma conta de
+ * recepção com senha gerada. Só funciona enquanto `deveTrocarSenha` está de pé: fora disso a troca é
+ * pelo fluxo normal, que pede a senha vigente.
+ */
+export async function definirPrimeiraSenha(
+  _: EstadoFormularioAuth = estadoInicial,
+  formData: FormData,
+): Promise<EstadoFormularioAuth> {
+  const sessao = await auth();
+  const usuarioAtual = sessao?.user;
+
+  if (!usuarioAtual?.id) {
+    return { status: "erro", mensagem: "Entre novamente para definir sua senha." };
+  }
+
+  const parsed = definirPrimeiraSenhaSchema.safeParse({
+    novaSenha: formData.get("novaSenha"),
+    confirmarNovaSenha: formData.get("confirmarNovaSenha"),
+  });
+
+  if (!parsed.success) {
+    return erroValidacao(parsed.error.flatten().fieldErrors, "Revise os dados da senha.");
+  }
+
+  const senhaHash = await gerarHashSenha(parsed.data.novaSenha);
+
+  /*
+    WHERE amarrado a `deveTrocarSenha`: sem isso esta action seria uma troca de senha sem senha atual
+    para qualquer usuário logado — bastaria chamá-la direto. A flag é a autorização do fluxo.
+  */
+  const atualizados = await db
+    .update(usuario)
+    .set({ senhaHash, deveTrocarSenha: false, atualizadoEm: new Date() })
+    .where(and(eq(usuario.id, usuarioAtual.id), eq(usuario.deveTrocarSenha, true)))
+    .returning({ id: usuario.id });
+
+  if (atualizados.length === 0) {
+    return {
+      status: "erro",
+      mensagem: "Sua senha já foi definida. Use 'Alterar senha' no perfil.",
+    };
+  }
+
+  return { status: "sucesso", mensagem: "Senha definida com sucesso." };
 }

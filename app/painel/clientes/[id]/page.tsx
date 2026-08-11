@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Fingerprint,
   FileText,
+  FlaskConical,
   HeartPulse,
   ImagePlus,
   LayoutTemplate,
@@ -37,6 +38,8 @@ import {
   ListaAgendamentosCliente,
   type AgendamentoClienteLista,
 } from "@/modules/clientes/components/lista-agendamentos-cliente";
+import { clienteTemAcessoPortal } from "@/modules/auth/acesso-portal";
+import { BotaoAcessoPortal } from "@/modules/clientes/components/botao-acesso-portal";
 import { MenuAcoesCliente } from "@/modules/clientes/components/menu-acoes-cliente";
 import { getCliente } from "@/modules/clientes/queries";
 import type { Cliente } from "@/modules/clientes/schema";
@@ -80,6 +83,9 @@ import { listarMedicamentosDoCliente } from "@/modules/medicamentos/queries";
 import { excluirPontoDeDor, registrarDorNoAtendimento } from "@/modules/dor/actions";
 import { MapaDeDor, type PontoDorNaTela } from "@/modules/dor/components/mapa-de-dor";
 import { listarDorDoCliente } from "@/modules/dor/queries";
+import { PainelAnalises, type AnaliseNaTela } from "@/modules/analises/components/painel-analises";
+import { listarAnalisesDoCliente } from "@/modules/analises/queries";
+import { groqConfigurado } from "@/modules/assistente/config";
 import { DestaquePacoteCliente } from "@/modules/pacotes/components/destaque-pacote-cliente";
 import { montarPacotesEmDestaque } from "@/modules/pacotes/destaque";
 import { listarPacotesDoCliente } from "@/modules/pacotes/queries";
@@ -127,6 +133,7 @@ type AbaCliente =
   | "fotos"
   | "medicamentos"
   | "dor"
+  | "analises"
   | "biometria";
 
 type TomPerfil = "brand" | "dourado" | "neutro" | "perigo" | "roxo" | "salvia";
@@ -223,24 +230,6 @@ function ehClienteGestao(cliente: Awaited<ReturnType<typeof getCliente>>): clien
 
 function formatarCm(valor: number) {
   return `${valor.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} cm`;
-}
-
-function formatarMedicamentoResumo(medicamento: MedicamentoLista) {
-  return [medicamento.nome, medicamento.dosagem, medicamento.frequencia]
-    .map((item) => item?.trim())
-    .filter(Boolean)
-    .join(" · ");
-}
-
-function formatarMedicamentosEmUso(
-  medicamentos: MedicamentoLista[],
-  fallback: string | null | undefined,
-) {
-  const registros = medicamentos.map(formatarMedicamentoResumo).filter(Boolean);
-
-  if (registros.length > 0) return registros.join("\n");
-
-  return fallback?.trim() || null;
 }
 
 function BreadcrumbCliente({ nome }: { nome: string }) {
@@ -887,6 +876,8 @@ export default async function ClienteDetalhePage({
 
   const pontosDeDor = profissional ? await listarDorDoCliente(id) : null;
 
+  const analises = profissional ? await listarAnalisesDoCliente(id) : null;
+
   const modelosFicha = profissional ? await listarModelosFicha() : [];
 
   const observacoesInternas =
@@ -935,6 +926,11 @@ export default async function ClienteDetalhePage({
   const medidasParaLista: MedidaLista[] = medidasBrutas ?? [];
   const medicamentosParaLista: MedicamentoLista[] = medicamentos ?? [];
   // A data é formatada aqui (Server Component) pra não mandar Date pro client nem duplicar locale.
+  const analisesParaPainel: AnaliseNaTela[] = (analises ?? []).map((analise) => ({
+    ...analise,
+    criadoEm: formatadorDataHora.format(analise.criadoEm),
+    revisadoEm: analise.revisadoEm ? formatadorDataHora.format(analise.revisadoEm) : null,
+  }));
   const pontosParaMapa: PontoDorNaTela[] = (pontosDeDor ?? []).map((ponto) => ({
     id: ponto.id,
     regiao: ponto.regiao,
@@ -946,7 +942,6 @@ export default async function ClienteDetalhePage({
     observacao: ponto.observacao,
     registradoEm: formatadorDataHora.format(ponto.registradoEm),
   }));
-  const medicamentosEmUso = formatarMedicamentosEmUso(medicamentosParaLista, cliente.medicamentos);
   const servicosParaFichas = servicosParaSessoes;
 
   const fichasParaLista: FichaLista[] = fichas.map((item) => ({
@@ -982,6 +977,7 @@ export default async function ClienteDetalhePage({
   const pacotesAtivos = pacotes.filter((pacote) => pacote.ativo).length;
   const podeExcluirCliente = podeExcluirClientes(usuario);
   const statusCliente = pacotesAtivos > 0 ? "Ativa" : "Cadastro";
+  const temAcessoPortal = await clienteTemAcessoPortal(cliente.id);
   const pacotesEmDestaque = montarPacotesEmDestaque(
     pacotes,
     dadosSessoes?.[2] ?? [],
@@ -1013,10 +1009,15 @@ export default async function ClienteDetalhePage({
           { id: "fotos" as const, rotulo: "Fotos", contador: fotos?.length ?? 0 },
           {
             id: "medicamentos" as const,
-            rotulo: "Medicamentos",
+            rotulo: "Suplementos indicados",
             contador: medicamentos?.length ?? 0,
           },
           { id: "dor" as const, rotulo: "Mapa de dor", contador: pontosDeDor?.length ?? 0 },
+          {
+            id: "analises" as const,
+            rotulo: "Exames e análises",
+            contador: analises?.length ?? 0,
+          },
         ]
       : []),
     { id: "biometria", rotulo: "Biometria", contador: biometrias.length },
@@ -1066,11 +1067,14 @@ export default async function ClienteDetalhePage({
                     {statusCliente}
                   </span>
                 </span>
-                <MenuAcoesCliente
-                  cliente={cliente}
-                  medicamentosEmUso={medicamentosEmUso}
-                  podeExcluir={podeExcluirCliente}
-                />
+                <span className="flex items-center gap-2">
+                  {/* Só aparece quando falta o acesso: sem usuário vinculado o cliente não recebe
+                      WhatsApp, lembrete nem pedido de confirmação. */}
+                  {temAcessoPortal ? null : (
+                    <BotaoAcessoPortal clienteId={cliente.id} clienteNome={cliente.nome} />
+                  )}
+                  <MenuAcoesCliente cliente={cliente} podeExcluir={podeExcluirCliente} />
+                </span>
               </div>
               <p className="mt-2 inline-flex rounded-full bg-lilas/15 px-3 py-1 text-sm font-medium text-roxo">
                 {[cliente.profissao, formatarIdade(cliente.dataNascimento)]
@@ -1117,7 +1121,7 @@ export default async function ClienteDetalhePage({
           />
           <MetricaPerfil
             icone={<Pill className="size-4" aria-hidden="true" />}
-            label="Medicamentos"
+            label="Suplementos"
             tom="salvia"
             valor={medicamentos?.length ?? "—"}
           />
@@ -1157,7 +1161,7 @@ export default async function ClienteDetalhePage({
                 icone={<Pill className="size-4" aria-hidden="true" />}
                 tom="salvia"
                 titulo="Medicamentos em uso"
-                valor={medicamentosEmUso}
+                valor={cliente.medicamentos}
               />
               <CardResumo
                 icone={<ClipboardList className="size-4" aria-hidden="true" />}
@@ -1428,19 +1432,35 @@ export default async function ClienteDetalhePage({
             acao={
               <ModalFormulario
                 icone={<Pill className="size-4" aria-hidden />}
-                rotuloBotao="Novo medicamento"
-                titulo="Registrar medicamento"
+                rotuloBotao="Novo suplemento"
+                titulo="Indicar suplemento"
               >
                 <FormularioMedicamento clienteId={id} />
               </ModalFormulario>
             }
-            descricao="Medicamentos informados e alertas de segurança."
+            descricao="Suplementos indicados e alertas de segurança."
             icone={<Pill className="size-4" aria-hidden="true" />}
             id="medicamentos"
-            titulo="Medicamentos"
+            titulo="Suplementos indicados"
             tom="salvia"
           >
             <ListaMedicamentosGerenciavel clienteId={id} medicamentos={medicamentosParaLista} />
+          </SecaoPerfil>
+        ) : null}
+
+        {abaAtual === "analises" && analises ? (
+          <SecaoPerfil
+            descricao="Leitura de exames, biorressonância e proposta de conduta com apoio de IA."
+            icone={<FlaskConical className="size-4" aria-hidden="true" />}
+            id="analises"
+            titulo="Exames e análises"
+            tom="roxo"
+          >
+            <PainelAnalises
+              analises={analisesParaPainel}
+              clienteId={id}
+              iaConfigurada={groqConfigurado()}
+            />
           </SecaoPerfil>
         ) : null}
 
