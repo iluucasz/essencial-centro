@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 
+import { statusAgendamento } from "@/modules/agenda/schema";
+
 import {
   calcularRankingServicos,
   calcularTaxaComparecimento,
   contarAgendamentosPorStatus,
   contarClientesNovos,
 } from "./resumo";
+
+/** Esperado derivado do enum: um status novo não deve exigir editar este teste. */
+const zerado = Object.fromEntries(statusAgendamento.map((status) => [status, 0]));
 
 describe("contarAgendamentosPorStatus", () => {
   it("conta cada status corretamente", () => {
@@ -15,18 +20,31 @@ describe("contarAgendamentosPorStatus", () => {
       { status: "falta" },
       { status: "cancelado" },
       { status: "marcado" },
+      { status: "aguardando_confirmacao" },
+      { status: "recusado" },
     ]);
 
-    expect(contagem).toEqual({ marcado: 1, realizado: 2, falta: 1, cancelado: 1 });
+    expect(contagem).toEqual({
+      ...zerado,
+      marcado: 1,
+      realizado: 2,
+      falta: 1,
+      cancelado: 1,
+      aguardando_confirmacao: 1,
+      recusado: 1,
+    });
   });
 
   it("retorna tudo zerado para uma lista vazia", () => {
-    expect(contarAgendamentosPorStatus([])).toEqual({
-      marcado: 0,
-      realizado: 0,
-      falta: 0,
-      cancelado: 0,
-    });
+    expect(contarAgendamentosPorStatus([])).toEqual(zerado);
+  });
+
+  it("tem uma chave para cada status do enum — nenhum vira `undefined + 1`", () => {
+    const contagem = contarAgendamentosPorStatus([]);
+
+    for (const status of statusAgendamento) {
+      expect(contagem[status]).toBe(0);
+    }
   });
 });
 

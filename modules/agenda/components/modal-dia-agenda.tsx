@@ -1,9 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Modal, useOverlayState } from "@heroui/react";
-import { CalendarClock, Clock3, UserRound } from "lucide-react";
+import { ArrowLeft, CalendarClock, Clock3, Plus, UserRound } from "lucide-react";
 
 import { ConteudoModal } from "@/components/ui/modal-formulario";
 import { cn } from "@/lib/utils";
@@ -31,14 +31,18 @@ const classeStatus: Record<StatusAgendamento, string> = {
   marcado: "bg-lilas/25 text-roxo",
   realizado: "bg-brand/15 text-brand",
   falta: "bg-dourado/20 text-dourado",
+  aguardando_confirmacao: "bg-muted/10 text-muted",
   cancelado: "bg-perigo/10 text-perigo",
+  recusado: "bg-perigo/10 text-perigo",
 };
 
 const classeItemStatus: Record<StatusAgendamento, string> = {
   marcado: "border-l-roxo/45 bg-lilas/10",
   realizado: "border-l-brand/55 bg-brand/5",
   falta: "border-l-dourado/60 bg-dourado/10",
+  aguardando_confirmacao: "border-l-muted/55 bg-muted/5",
   cancelado: "border-l-perigo/55 bg-perigo/5",
+  recusado: "border-l-perigo/55 bg-perigo/5",
 };
 
 function contarStatus(agendamentos: AgendamentoResumo[]) {
@@ -93,15 +97,27 @@ export function BotaoDiaAgenda({
   children,
   className,
   data,
+  formularioNovoAgendamento,
   hrefDia,
 }: {
   agendamentos: AgendamentoResumo[];
   children: ReactNode;
   className?: string;
   data: Date;
+  /**
+   * Formulário de novo agendamento, já renderizado no servidor (clientes/serviços/profissionais não
+   * cruzam a fronteira como referência). Ausente = o botão nem aparece.
+   */
+  formularioNovoAgendamento?: ReactNode;
   hrefDia: string;
 }) {
-  const modal = useOverlayState();
+  /*
+    O formulário troca de lugar com o resumo DENTRO do mesmo modal, em vez de abrir um segundo modal
+    por cima: dois overlays empilhados disputam a armadilha de foco do react-aria, e o de baixo
+    acabaria capturando o teclado.
+  */
+  const [criando, setCriando] = useState(false);
+  const modal = useOverlayState({ onOpenChange: (aberto) => !aberto && setCriando(false) });
   const totais = contarStatus(agendamentos).filter(({ total }) => total > 0);
 
   return (
@@ -113,8 +129,28 @@ export function BotaoDiaAgenda({
       <Modal state={modal}>
         <Modal.Backdrop variant="opaque">
           <Modal.Container size="lg">
-            <ConteudoModal titulo="Agenda do dia">
-              {modal.isOpen ? (
+            <ConteudoModal titulo={criando ? "Novo agendamento" : "Agenda do dia"}>
+              {modal.isOpen && criando ? (
+                <div className="grid gap-4">
+                  {/*
+                    Voltar vai ACIMA do formulário, como link discreto — mesmo padrão do seletor de
+                    modelo de ficha. Embaixo ele disputava a linha com o "Criar agendamento" do
+                    próprio formulário, que é alinhado à direita, e os dois saíam desencontrados.
+                  */}
+                  <button
+                    className="inline-flex w-fit items-center gap-2 text-sm font-medium text-roxo transition hover:text-brand"
+                    onClick={() => setCriando(false)}
+                    type="button"
+                  >
+                    <ArrowLeft className="size-4" aria-hidden="true" />
+                    Voltar para a agenda do dia
+                  </button>
+
+                  {formularioNovoAgendamento}
+                </div>
+              ) : null}
+
+              {modal.isOpen && !criando ? (
                 <div className="grid gap-5">
                   <div className="grid gap-3 rounded-2xl border border-border bg-background/40 p-4">
                     <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -151,7 +187,18 @@ export function BotaoDiaAgenda({
                     </div>
                   )}
 
-                  <div className="flex justify-end border-t border-border/70 pt-4">
+                  <div className="flex flex-col gap-2 border-t border-border/70 pt-4 sm:flex-row sm:justify-end">
+                    {formularioNovoAgendamento ? (
+                      <button
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-roxo/30 bg-lilas/10 px-4 text-sm font-semibold text-roxo transition hover:bg-lilas/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+                        onClick={() => setCriando(true)}
+                        type="button"
+                      >
+                        <Plus className="size-4" aria-hidden="true" />
+                        Novo agendamento
+                      </button>
+                    ) : null}
+
                     <Link
                       className="inline-flex h-10 items-center justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-brand-foreground transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
                       href={hrefDia}

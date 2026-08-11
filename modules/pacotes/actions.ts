@@ -7,11 +7,18 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { listarAgendamentosMarcadosDoProfissionalNoPeriodo } from "@/modules/agenda/queries";
+import {
+  STATUS_INICIAL_AGENDAMENTO,
+  expiracaoTokenConfirmacao,
+  gerarTokenConfirmacao,
+  mensagemPedidoConfirmacao,
+} from "@/modules/agenda/confirmacao";
+import { urlConfirmacaoContrato } from "@/modules/agenda/confirmacao-url";
 import { agendamento, interpretarDataHoraParede } from "@/modules/agenda/schema";
+import { cliente } from "@/modules/clientes/schema";
 import { autorizarPapel } from "@/modules/auth/rbac";
 import { notificarCliente } from "@/modules/notificacoes/criar-notificacao";
 import { ocorrenciasEmConflito } from "@/modules/recorrencia/gerar";
-import { mensagemAgendaGerada } from "@/modules/recorrencia/mensagem";
 import { servico } from "@/modules/servicos/schema";
 
 import { agendarContratoSchema, criarPacoteSchema, pacote } from "./schema";
@@ -173,6 +180,14 @@ export async function agendarContrato(
     observacoes,
   } = parsed.data;
   const contratoId = crypto.randomUUID();
+  const tokenConfirmacao = gerarTokenConfirmacao();
+
+  const [dadosCliente] = await db
+    .select({ nome: cliente.nome })
+    .from(cliente)
+    .where(eq(cliente.id, clienteId))
+    .limit(1);
+  const primeiroNome = dadosCliente?.nome.trim().split(/\s+/)[0] ?? "tudo bem";
 
   await db.batch([
     db.insert(pacote).values({
@@ -187,6 +202,8 @@ export async function agendarContrato(
       situacaoPagamento,
       modalidade,
       observacoes,
+      tokenConfirmacao,
+      tokenExpiraEm: expiracaoTokenConfirmacao(),
       criadoPorId: usuarioAtual.id,
       atualizadoPorId: usuarioAtual.id,
     }),
@@ -198,6 +215,8 @@ export async function agendarContrato(
         pacoteId: contratoId,
         inicio: ocorrencia.inicio,
         duracaoMinutos,
+        // Nasce aguardando o "de acordo" do cliente — só o aceite dele leva pra `marcado`.
+        status: STATUS_INICIAL_AGENDAMENTO,
         modalidade,
         observacoes,
         criadoPorId: usuarioAtual.id,
@@ -206,13 +225,33 @@ export async function agendarContrato(
     ),
   ]);
 
+  /*
+    Pede a confirmação em vez de avisar que está agendado: o cliente confere a lista completa das
+    datas e responde no link. `notificarCliente` já cuida dos canais (in-app + WhatsApp) e nunca
+    lança — se o WhatsApp falhar, o contrato continua criado e a clínica reenvia pelo painel.
+  */
+  const sessoesParaMensagem = ocorrencias.map((ocorrencia) => ({
+    inicio: ocorrencia.inicio,
+    duracaoMinutos,
+  }));
+
   await notificarCliente({
     clienteId,
     tipo: "agendamento_criado",
-    titulo: "Atendimentos agendados",
-    mensagem: mensagemAgendaGerada(srv.nome, inicios.length, inicioSpan),
+    titulo: "Confirme seus atendimentos",
+    mensagem: mensagemPedidoConfirmacao({
+      primeiroNome,
+      servicoNome: srv.nome,
+      sessoes: sessoesParaMensagem,
+      url: await urlConfirmacaoContrato(tokenConfirmacao),
+    }),
     link: "/portal/agendamentos",
   });
+
+  await db
+    .update(pacote)
+    .set({ confirmacaoEnviadaEm: new Date() })
+    .where(eq(pacote.id, contratoId));
 
   revalidatePath("/painel/agenda");
   revalidatePath("/painel/pacotes");

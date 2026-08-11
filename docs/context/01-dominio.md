@@ -28,8 +28,19 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
   pacote/avulsa → tabela de N datas editáveis (pré-preenchida por padrão de repetição via
   `modules/recorrencia/gerar.ts`) → cria 1 contrato + N agendamentos.
   Consumir 1 sessão = marcar um `Agendamento` como `realizado` (derivado). Ver `04-roadmap.md`.
+  Ao ser criado, o contrato ganha um **token de confirmação** (`tokenConfirmacao`, 7 dias) e o cliente
+  recebe no WhatsApp a lista completa das datas com o link `/confirmar/[token]`. O token vive no
+  CONTRATO, não em cada agendamento: o cliente confirma o conjunto de datas de uma vez.
+  `confirmadoEm`/`recusadoEm`/`motivoRecusa` registram a resposta. Regras em
+  `modules/agenda/confirmacao.ts`.
 - **Agendamento** — atendimento marcado: cliente, serviço, profissional, data/hora, duração,
-  vínculo com contrato (`pacoteId`), status (marcado, realizado, falta, cancelado), observações. `checkinEm`
+  vínculo com contrato (`pacoteId`), status, observações.
+  **Ciclo de vida do status**: nasce `aguardando_confirmacao` → o aceite do cliente no link leva todas
+  as sessões do contrato pra `marcado`; a recusa leva pra `recusado` (distinto de `cancelado`, que é
+  decisão da clínica). De `marcado` segue pra `realizado`/`falta`/`cancelado`. A profissional também
+  pode aplicar `marcado` à mão (cliente que confirmou por telefone) ou reenviar o link pelo painel.
+  `aguardando_confirmacao` **ocupa o horário** na checagem de sobreposição (`statusQueOcupamAgenda`) —
+  sem isso um segundo cliente marcaria o mesmo slot enquanto o primeiro decide. `checkinEm`
   registra a confirmação de presença (chegada na clínica; pela agenda, em modal; e via QR Code/link direto
   em `/painel/checkin/[id]`) — independente do status
   "realizado", que só a profissional marca ao concluir o atendimento. `lembreteDiaAnteriorEm`/
@@ -75,8 +86,13 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
 - **MovimentacaoEstoque** — só registra **saídas** de um `Lote` (quantidade consumida + motivo
   livre). Disponível de um lote/produto é sempre calculado (inicial − saídas), nunca um campo
   mutável — mesmo princípio de "computado, não guardado" de `Pacote`/`LancamentoFinanceiro`.
-- **MedicamentoInformado** (`modules/medicamentos`, Fase 2) — "Medicamentos informados e alertas de
-  segurança" do brief: medicamento, dosagem, frequência, profissional prescritor, data de início,
+- **MedicamentoInformado** (`modules/medicamentos`, Fase 2) — exibido como **"Suplementos indicados"**
+  desde que a clínica passou a ter terapeutas ortomoleculares: o registro é o que a profissional
+  **indica**, não o que a cliente relata tomar (isso continua em `cliente.medicamentos`, texto livre
+  do cadastro, rotulado "Medicamentos em uso"). O nome interno do módulo, da tabela
+  (`medicamento_informado`) e da rota (`?aba=medicamentos`) foi mantido de propósito — renomear tudo
+  exigiria migração e quebraria links já compartilhados, sem ganho funcional. Campos: nome, dosagem,
+  frequência, profissional prescritor, data de início,
   alergia relacionada, alerta de interação, fonte do alerta. `alertaInteracao` é **sempre texto
   digitado pela profissional** — nunca calculado/sugerido pelo sistema. `verificadoPorId`/
   `verificadoEm` são uma etapa separada e deliberada da criação (informar ≠ verificar). Acesso

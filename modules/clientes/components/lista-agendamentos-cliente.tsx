@@ -55,14 +55,18 @@ const classeStatusAgendamento: Record<StatusAgendamento, string> = {
   marcado: "bg-lilas/25 text-roxo",
   realizado: "bg-brand/15 text-brand",
   falta: "bg-dourado/20 text-dourado",
+  aguardando_confirmacao: "bg-muted/10 text-muted",
   cancelado: "bg-perigo/10 text-perigo",
+  recusado: "bg-perigo/10 text-perigo",
 };
 
 const classeLinhaAgendamento: Record<StatusAgendamento, string> = {
   marcado: "border-l-roxo/45 bg-lilas/10",
   realizado: "border-l-brand/55 bg-brand/5",
   falta: "border-l-dourado/60 bg-dourado/10",
+  aguardando_confirmacao: "border-l-muted/55 bg-muted/5",
   cancelado: "border-l-perigo/55 bg-perigo/5",
+  recusado: "border-l-perigo/55 bg-perigo/5",
 };
 
 const formatadorDataCurta = new Intl.DateTimeFormat("pt-BR", {

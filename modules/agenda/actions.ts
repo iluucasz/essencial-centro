@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, eq, isNotNull, isNull } from "drizzle-orm";
-import QRCode from "qrcode";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -14,13 +13,14 @@ import { deveAvisarPacoteAcabando } from "@/modules/pacotes/progresso";
 import { obterProgressoPacote } from "@/modules/pacotes/queries";
 import { servico } from "@/modules/servicos/schema";
 
-import { urlCheckin } from "./checkin-url";
+import { qrCheckinBase64 } from "./qr-whatsapp";
 import { mensagemAtendimentoCancelado, mensagemAtendimentoMarcado } from "./mensagem-notificacao";
 import { listarAgendamentosDoProfissionalNoDia } from "./queries";
 import {
   agendamento,
   atualizarAgendamentoSchema,
   atualizarStatusAgendamentoSchema,
+  type StatusAgendamentoManual,
   concluirAgendamentoSchema,
   confirmarPresencaSchema,
   criarAgendamentoSchema,
@@ -58,16 +58,6 @@ async function nomeDoServico(servicoId: string) {
     .limit(1);
 
   return registro?.nome ?? "serviço";
-}
-
-/** QR de presença de um agendamento em base64 puro (sem prefixo data:), pra anexar no WhatsApp. */
-async function qrCheckinBase64(agendamentoId: string) {
-  const dataUrl = await QRCode.toDataURL(await urlCheckin(agendamentoId), {
-    margin: 1,
-    width: 320,
-  });
-
-  return dataUrl.split(",")[1] ?? "";
 }
 
 async function notificarPacoteAcabandoSeNecessario(pacoteId: string | null) {
@@ -331,6 +321,15 @@ export async function excluirAgendamento(
   } satisfies EstadoExclusaoAgendamento;
 }
 
+/** Derivado do status aplicado, pra um status novo no schema não cair num `else` genérico errado. */
+const MENSAGEM_POR_STATUS: Record<StatusAgendamentoManual, string> = {
+  marcado: "Agendamento confirmado.",
+  realizado: "Atendimento marcado como realizado.",
+  falta: "Falta registrada.",
+  cancelado: "Agendamento cancelado.",
+  recusado: "Recusa do cliente registrada.",
+};
+
 async function aplicarStatusAgendamento(formData: FormData): Promise<EstadoFormularioAgendamento> {
   const usuarioAtual = autorizarPapel(await auth(), ["profissional", "recepcao"]);
 
@@ -417,12 +416,7 @@ async function aplicarStatusAgendamento(formData: FormData): Promise<EstadoFormu
 
   return {
     status: "sucesso",
-    mensagem:
-      parsed.data.status === "cancelado"
-        ? "Agendamento cancelado."
-        : parsed.data.status === "falta"
-          ? "Falta registrada."
-          : "Atendimento marcado como realizado.",
+    mensagem: MENSAGEM_POR_STATUS[parsed.data.status],
   };
 }
 

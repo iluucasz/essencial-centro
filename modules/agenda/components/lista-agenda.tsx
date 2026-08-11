@@ -1,6 +1,7 @@
 import { CalendarClock, Home, UserRound } from "lucide-react";
 
 import { podeConfirmarPresenca } from "@/modules/agenda/checkin";
+import { AvatarUsuario } from "@/modules/auth/components/avatar-usuario";
 import { formatarHorarioPresenca } from "@/modules/agenda/formatacao";
 import { rotulosStatusAgendamento, type StatusAgendamento } from "@/modules/agenda/schema";
 
@@ -14,14 +15,18 @@ const classePorStatus: Record<StatusAgendamento, string> = {
   marcado: "bg-lilas/25 text-roxo",
   realizado: "bg-brand/15 text-brand",
   falta: "bg-dourado/20 text-dourado",
+  aguardando_confirmacao: "bg-muted/10 text-muted",
   cancelado: "bg-perigo/10 text-perigo",
+  recusado: "bg-perigo/10 text-perigo",
 };
 
 const classeLinhaPorStatus: Record<StatusAgendamento, string> = {
   marcado: "border-l-roxo/45 bg-lilas/10",
   realizado: "border-l-brand/55 bg-brand/5",
   falta: "border-l-dourado/60 bg-dourado/10",
+  aguardando_confirmacao: "border-l-muted/55 bg-muted/5",
   cancelado: "border-l-perigo/55 bg-perigo/5",
+  recusado: "border-l-perigo/55 bg-perigo/5",
 };
 
 function formatarHorario(data: Date) {
@@ -60,38 +65,59 @@ export function ListaAgenda({ agendamentos }: { agendamentos: AgendamentoResumo[
               agendamento={agendamento}
               className="grid min-w-0 gap-3 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo md:col-span-3 md:grid-cols-[5rem_minmax(0,1.1fr)_minmax(0,1fr)] md:items-center"
             >
-              <span className="text-sm font-semibold text-foreground md:text-base">
-                {formatarHorario(agendamento.inicio)}
+              {/*
+                No mobile o horário divide a linha com o status, em vez de ocupar uma linha só —
+                era uma das linhas desperdiçadas que deixavam o card comprido demais. No desktop o
+                status volta pra coluna de ações e este bloco fica só com a hora.
+              */}
+              <span className="flex items-center justify-between gap-2 md:block">
+                <span className="text-base font-semibold text-foreground">
+                  {formatarHorario(agendamento.inicio)}
+                </span>
+                <span
+                  className={`rounded-full px-2.5 py-1 text-xs font-medium md:hidden ${classePorStatus[agendamento.status]}`}
+                >
+                  {rotulosStatusAgendamento[agendamento.status]}
+                </span>
               </span>
 
               <span className="min-w-0">
                 <span className="block font-medium text-foreground">{agendamento.clienteNome}</span>
-                <span
-                  className={`mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                    agendamento.profissionalNome
-                      ? "bg-lilas/25 text-roxo"
-                      : "bg-background text-muted"
-                  }`}
-                >
-                  <UserRound className="size-3.5 shrink-0" aria-hidden="true" />
-                  <span className="truncate">
-                    Profissional: {agendamento.profissionalNome ?? "Sem profissional"}
+
+                {/* Foto de quem atende no lugar do texto "Profissional: X" — reconhece mais rápido. */}
+                <span className="mt-1.5 flex min-w-0 items-center gap-2">
+                  {agendamento.profissionalId ? (
+                    <AvatarUsuario
+                      imagem={agendamento.profissionalImagem ?? null}
+                      nome={agendamento.profissionalNome ?? "Profissional"}
+                      tamanho="sm"
+                      usuarioId={agendamento.profissionalId}
+                    />
+                  ) : (
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-background text-muted">
+                      <UserRound className="size-3.5" aria-hidden="true" />
+                    </span>
+                  )}
+                  <span className="truncate text-xs font-medium text-muted">
+                    {agendamento.profissionalNome ?? "Sem profissional"}
                   </span>
                 </span>
               </span>
 
-              <span className="min-w-0 text-sm text-muted">
-                <span className="block truncate font-medium text-foreground">
+              {/* Serviço e duração numa linha: eram duas, e "60 min" não merece linha própria. */}
+              <span className="flex min-w-0 items-baseline gap-1.5 text-sm">
+                <span className="truncate font-medium text-foreground">
                   {agendamento.servicoNome}
                 </span>
-                <span className="mt-1 block">{agendamento.duracaoMinutos} min</span>
+                <span className="shrink-0 text-muted">· {agendamento.duracaoMinutos} min</span>
               </span>
             </BotaoDetalhesAgendamento>
 
             <div className="flex flex-col gap-2 md:items-end">
               <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                {/* No mobile o status já aparece ao lado do horário; aqui só do md pra cima. */}
                 <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${classePorStatus[agendamento.status]}`}
+                  className={`hidden rounded-full px-2.5 py-1 text-xs font-medium md:inline ${classePorStatus[agendamento.status]}`}
                 >
                   {rotulosStatusAgendamento[agendamento.status]}
                 </span>
@@ -111,7 +137,12 @@ export function ListaAgenda({ agendamentos }: { agendamentos: AgendamentoResumo[
               </div>
 
               {agendamento.status === "marcado" ? (
-                <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                /*
+                  Grade de 2 colunas no mobile: com `flex-wrap` os botões ficavam de larguras
+                  diferentes e quebravam de forma irregular. Cada filho ocupa a célula inteira, então
+                  os quatro saem alinhados. Do md pra cima volta a ser flex à direita.
+                */
+                <div className="grid grid-cols-2 gap-2 *:w-full md:flex md:flex-wrap md:items-center md:justify-end md:*:w-auto">
                   {podeConfirmarPresenca(agendamento.status, agendamento.checkinEm) ? (
                     <BotaoConfirmarPresenca agendamento={agendamento} />
                   ) : null}

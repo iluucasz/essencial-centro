@@ -45,6 +45,23 @@ export const pacote = pgTable("pacote", {
   modalidade: text("modalidade"),
   observacoes: text("observacoes"),
   ativo: boolean("ativo").notNull().default(true),
+
+  /**
+   * Confirmação do cliente por WhatsApp. Vive no CONTRATO e não em cada agendamento porque o cliente
+   * confirma o conjunto de datas de uma vez — foi a decisão de produto: "as datas estão corretas?".
+   *
+   * `tokenConfirmacao` é o segredo do link público (`/confirmar/[token]`), igual ao padrão de
+   * `modules/fichas`. `confirmadoEm`/`recusadoEm` são mutuamente exclusivos e servem de registro do
+   * que o cliente respondeu e quando.
+   */
+  tokenConfirmacao: text("token_confirmacao").unique(),
+  tokenExpiraEm: timestamp("token_expira_em", { mode: "date" }),
+  confirmacaoEnviadaEm: timestamp("confirmacao_enviada_em", { mode: "date" }),
+  confirmadoEm: timestamp("confirmado_em", { mode: "date" }),
+  recusadoEm: timestamp("recusado_em", { mode: "date" }),
+  /** O que o cliente escreveu ao recusar, se escreveu — ajuda a remarcar sem ligar pra perguntar. */
+  motivoRecusa: text("motivo_recusa"),
+
   criadoPorId: uuid("criado_por_id")
     .notNull()
     .references(() => usuario.id, { onDelete: "restrict" }),

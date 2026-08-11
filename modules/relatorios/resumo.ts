@@ -1,11 +1,14 @@
-import type { StatusAgendamento } from "@/modules/agenda/schema";
+import { statusAgendamento, type StatusAgendamento } from "@/modules/agenda/schema";
 
 export type ContagemPorStatus = Record<StatusAgendamento, number>;
 
 export function contarAgendamentosPorStatus(
   agendamentos: { status: StatusAgendamento }[],
 ): ContagemPorStatus {
-  const contagem: ContagemPorStatus = { marcado: 0, realizado: 0, falta: 0, cancelado: 0 };
+  // Derivado do enum em vez de literal: um status novo entra aqui sozinho, sem virar `undefined + 1`.
+  const contagem = Object.fromEntries(
+    statusAgendamento.map((status) => [status, 0]),
+  ) as ContagemPorStatus;
 
   for (const agendamento of agendamentos) {
     contagem[agendamento.status] += 1;

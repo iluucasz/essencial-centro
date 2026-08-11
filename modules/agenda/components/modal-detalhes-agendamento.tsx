@@ -26,6 +26,7 @@ import { rotulosSituacaoPagamento } from "@/modules/pacotes/schema";
 
 import { BotaoConfirmarPresenca } from "./modal-confirmar-presenca";
 import { BotaoRealizarAgendamento } from "./modal-realizar-agendamento";
+import { AcoesConfirmacaoPendente } from "./acoes-confirmacao-pendente";
 import { BotaoConfirmarStatusAgendamento } from "./modal-status-agendamento";
 import type { AgendamentoResumo } from "./tipos-agenda";
 
@@ -44,7 +45,9 @@ const classeStatus: Record<StatusAgendamento, string> = {
   marcado: "border-roxo/25 bg-lilas/20 text-roxo",
   realizado: "border-brand/25 bg-brand/10 text-brand",
   falta: "border-dourado/30 bg-dourado/15 text-dourado",
+  aguardando_confirmacao: "border-muted/25 bg-muted/10 text-muted",
   cancelado: "border-perigo/25 bg-perigo/10 text-perigo",
+  recusado: "border-perigo/25 bg-perigo/10 text-perigo",
 };
 
 function valorMoeda(valorCentavos: number | null) {
@@ -86,6 +89,11 @@ function CampoDetalhe({
 }
 
 function AcoesAgendamento({ agendamento }: { agendamento: AgendamentoResumo }) {
+  // Pendente de confirmação tem ações próprias — não é "resolvido" nem dá pra concluir/registrar falta.
+  if (agendamento.status === "aguardando_confirmacao") {
+    return <AcoesConfirmacaoPendente agendamentoId={agendamento.id} />;
+  }
+
   if (agendamento.status !== "marcado") {
     return (
       <p className="rounded-xl bg-background px-3 py-2 text-sm text-muted">

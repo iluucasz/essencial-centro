@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, isNull, lt, lte, ne } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lt, lte, ne } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -9,7 +9,7 @@ import { pacote } from "@/modules/pacotes/schema";
 import { servico } from "@/modules/servicos/schema";
 import { usuario } from "@/modules/auth/schema";
 
-import { agendamento } from "./schema";
+import { agendamento, statusQueOcupamAgenda } from "./schema";
 
 function limitesDoDia(data: Date) {
   const inicioDoDia = new Date(data);
@@ -37,6 +37,8 @@ const colunasAgendamento = {
   servicoNome: servico.nome,
   servicoValorCentavos: servico.valorCentavos,
   profissionalNome: usuario.name,
+  // Pathname da foto no blob: o chip da agenda monta a URL da rota autenticada com ele.
+  profissionalImagem: usuario.image,
   pacoteQuantidadeSessoes: pacote.quantidadeSessoes,
   pacoteValorCentavos: pacote.valorCentavos,
   pacoteSituacaoPagamento: pacote.situacaoPagamento,
@@ -164,7 +166,7 @@ export async function listarAgendamentosDoProfissionalNoDia(profissionalId: stri
         eq(agendamento.profissionalId, profissionalId),
         gte(agendamento.inicio, inicioDoDia),
         lt(agendamento.inicio, inicioDoDiaSeguinte),
-        eq(agendamento.status, "marcado"),
+        inArray(agendamento.status, statusQueOcupamAgenda),
       ),
     );
 }
@@ -172,7 +174,7 @@ export async function listarAgendamentosDoProfissionalNoDia(profissionalId: stri
 /**
  * Usado pela criação de série recorrente (modules/recorrencia) para checar conflitos de todas as
  * ocorrências de uma vez — sem checagem de role própria (a action que chama já validou o papel).
- * Só os `marcado` do intervalo importam para sobreposição.
+ * Só os status que ocupam a agenda importam para sobreposição (ver `statusQueOcupamAgenda`).
  */
 export async function listarAgendamentosMarcadosDoProfissionalNoPeriodo(
   profissionalId: string,
@@ -187,7 +189,7 @@ export async function listarAgendamentosMarcadosDoProfissionalNoPeriodo(
         eq(agendamento.profissionalId, profissionalId),
         gte(agendamento.inicio, inicio),
         lt(agendamento.inicio, fim),
-        eq(agendamento.status, "marcado"),
+        inArray(agendamento.status, statusQueOcupamAgenda),
       ),
     );
 }
@@ -216,6 +218,8 @@ export async function listarAgendamentosDoCliente(clienteId: string) {
       servicoNome: servico.nome,
       servicoValorCentavos: servico.valorCentavos,
       profissionalNome: usuario.name,
+      // Pathname da foto no blob: o chip da agenda monta a URL da rota autenticada com ele.
+      profissionalImagem: usuario.image,
     })
     .from(agendamento)
     .innerJoin(servico, eq(servico.id, agendamento.servicoId))
@@ -280,11 +284,14 @@ export async function listarAgendamentosParaLembretes() {
       lembreteDiaAnteriorEm: agendamento.lembreteDiaAnteriorEm,
       lembreteHorasAntesEm: agendamento.lembreteHorasAntesEm,
       servicoNome: servico.nome,
+      clienteNome: cliente.nome,
     })
     .from(agendamento)
     .innerJoin(servico, eq(servico.id, agendamento.servicoId))
+    .innerJoin(cliente, eq(cliente.id, agendamento.clienteId))
     .where(
       and(
+        // Só `marcado`: quem ainda não confirmou (ou recusou) não recebe lembrete nem QR.
         eq(agendamento.status, "marcado"),
         gte(agendamento.inicio, agora),
         lte(agendamento.inicio, limite),
@@ -306,9 +313,10 @@ async function exigirClienteIdDaSessao() {
 }
 
 /**
- * Atendimentos ativos do cliente: os que ainda estão `marcado`. O status é a fonte de verdade, não
- * o relógio — um horário que já passou continua "marcado" até a profissional resolvê-lo na agenda
- * (marcar falta/realizado/cancelar). Por isso não filtramos por data aqui.
+ * Atendimentos ativos do cliente: `marcado` e os que ainda aguardam a confirmação dele — sem o
+ * segundo, o cliente que recebeu o pedido de confirmação abriria o portal e não veria nada.
+ * O status é a fonte de verdade, não o relógio — um horário que já passou continua ativo até a
+ * profissional resolvê-lo na agenda (falta/realizado/cancelado). Por isso não filtramos por data.
  */
 export async function listarMeusAgendamentos() {
   const clienteId = await exigirClienteIdDaSessao();
@@ -320,7 +328,9 @@ export async function listarMeusAgendamentos() {
     .innerJoin(servico, eq(servico.id, agendamento.servicoId))
     .innerJoin(usuario, eq(usuario.id, agendamento.profissionalId))
     .leftJoin(pacote, eq(pacote.id, agendamento.pacoteId))
-    .where(and(eq(agendamento.clienteId, clienteId), eq(agendamento.status, "marcado")))
+    .where(
+      and(eq(agendamento.clienteId, clienteId), inArray(agendamento.status, statusQueOcupamAgenda)),
+    )
     .orderBy(asc(agendamento.inicio));
 }
 

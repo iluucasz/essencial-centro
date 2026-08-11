@@ -18,6 +18,7 @@ import {
 import { gerarOcorrencias } from "@/modules/recorrencia/gerar";
 
 const estadoInicial: EstadoFormularioPacote = { status: "inicial" };
+
 const classeCampo =
   "h-11 w-full min-w-0 rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition outline-none placeholder:text-muted/70 focus:border-roxo focus:ring-2 focus:ring-roxo/20";
 
@@ -62,6 +63,30 @@ function formatLocal(data: Date): string {
   )}:${pad(data.getUTCMinutes())}`;
 }
 
+/**
+ * Agora, no formato de `<input type="datetime-local">`.
+ *
+ * Passa pela mesma convenção do resto do arquivo: `parseLocal`/`formatLocal` guardam a hora de
+ * parede em campos UTC de um `Date`, pra data digitada não deslizar de fuso. Por isso os
+ * componentes locais de agora são remontados via `Date.UTC` antes de formatar — usar
+ * `toISOString()` direto jogaria a sessão 3h pra trás no Brasil.
+ */
+function agoraComoValorLocal() {
+  const agora = new Date();
+
+  return formatLocal(
+    new Date(
+      Date.UTC(
+        agora.getFullYear(),
+        agora.getMonth(),
+        agora.getDate(),
+        agora.getHours(),
+        agora.getMinutes(),
+      ),
+    ),
+  );
+}
+
 function reais(valorCentavos: number | null) {
   if (valorCentavos === null) return "";
   return String(valorCentavos / 100).replace(".", ",");
@@ -98,11 +123,13 @@ export function FormularioContrato({
   const fecharModal = useFecharModal();
 
   const servicosPorId = useMemo(() => new Map(servicos.map((s) => [s.id, s])), [servicos]);
+  // Sessão avulsa quase sempre é marcada pra hoje; deixar em branco obrigava a digitar a data toda.
+  const agoraLocal = useMemo(() => agoraComoValorLocal(), []);
 
   const [servicoId, setServicoId] = useState("");
   const [planoPacoteId, setPlanoPacoteId] = useState("");
   const [valor, setValor] = useState("");
-  const [datas, setDatas] = useState<string[]>([""]);
+  const [datas, setDatas] = useState<string[]>([agoraComoValorLocal()]);
   const [frequencia, setFrequencia] = useState<PadraoRepeticao>("semanal");
   const [diasSemanaEscolhidos, setDiasSemanaEscolhidos] = useState<number[]>([]);
   const [primeiraData, setPrimeiraData] = useState("");
@@ -120,7 +147,7 @@ export function FormularioContrato({
   function trocarServico(novo: string) {
     setServicoId(novo);
     setPlanoPacoteId("");
-    setDatas([""]);
+    setDatas([agoraLocal]);
     const s = servicosPorId.get(novo);
     setValor(reais(s?.valorCentavos ?? null));
   }
@@ -132,7 +159,9 @@ export function FormularioContrato({
     setDatas((atuais) => {
       const proximos = [...atuais];
       proximos.length = quantidade;
-      return Array.from(proximos, (v) => v ?? "");
+
+      // Só a primeira ganha "hoje": nas demais, data chutada seria pior que campo vazio.
+      return Array.from(proximos, (v, i) => v ?? (i === 0 ? agoraLocal : ""));
     });
     setValor(reais(plano ? plano.valorCentavos : (servico?.valorCentavos ?? null)));
   }
@@ -252,92 +281,101 @@ export function FormularioContrato({
         )}
       </div>
 
-      <div className="grid min-w-0 gap-4 rounded-2xl border border-border bg-background/40 p-4 sm:p-5">
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-medium text-foreground">Pré-preencher datas</p>
-          <span className="rounded-full bg-lilas/15 px-3 py-1 text-xs font-semibold text-roxo">
-            {datas.length} {datas.length === 1 ? "sessão" : "sessões"}
-          </span>
-        </div>
-
-        <div className="grid min-w-0 gap-3 sm:grid-cols-2 sm:items-end">
-          <div className="grid min-w-0 gap-2">
-            <Rotulo htmlFor="primeiraData">Primeira sessão</Rotulo>
-            <input
-              className={classeCampo}
-              id="primeiraData"
-              onChange={(e) => setPrimeiraData(e.target.value)}
-              type="datetime-local"
-              value={primeiraData}
-            />
+      {/*
+        Pré-preenchimento só faz sentido com mais de uma sessão: ele existe pra distribuir N datas por
+        uma frequência. Com sessão avulsa o bloco inteiro era ruído — a data já vem como hoje no campo
+        abaixo, e a profissional só ajusta se quiser.
+      */}
+      {datas.length > 1 ? (
+        <div className="grid min-w-0 gap-4 rounded-2xl border border-border bg-background/40 p-4 sm:p-5">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-medium text-foreground">Pré-preencher datas</p>
+            <span className="rounded-full bg-lilas/15 px-3 py-1 text-xs font-semibold text-roxo">
+              {datas.length} {datas.length === 1 ? "sessão" : "sessões"}
+            </span>
           </div>
 
-          <div className="grid min-w-0 gap-2">
-            <Rotulo htmlFor="frequencia">Frequência</Rotulo>
-            <select
-              className={classeCampo}
-              id="frequencia"
-              onChange={(e) => setFrequencia(e.target.value as PadraoRepeticao)}
-              value={frequencia}
+          <div className="grid min-w-0 gap-3 sm:grid-cols-2 sm:items-end">
+            <div className="grid min-w-0 gap-2">
+              <Rotulo htmlFor="primeiraData">Primeira sessão</Rotulo>
+              <input
+                className={classeCampo}
+                id="primeiraData"
+                onChange={(e) => setPrimeiraData(e.target.value)}
+                type="datetime-local"
+                value={primeiraData}
+              />
+            </div>
+
+            <div className="grid min-w-0 gap-2">
+              <Rotulo htmlFor="frequencia">Frequência</Rotulo>
+              <select
+                className={classeCampo}
+                id="frequencia"
+                onChange={(e) => setFrequencia(e.target.value as PadraoRepeticao)}
+                value={frequencia}
+              >
+                {padraoRepeticao.map((f) => (
+                  <option key={f} value={f}>
+                    {rotulosPadraoRepeticao[f]}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {frequencia === "dias_semana" ? (
+              <fieldset className="grid min-w-0 gap-2 sm:col-span-2">
+                <legend className="text-sm font-medium text-foreground">
+                  Dias da semana do atendimento
+                </legend>
+                <div className="flex min-w-0 flex-wrap gap-2">
+                  {diasDaSemana.map((dia) => {
+                    const marcado = diasSemanaEscolhidos.includes(dia.valor);
+
+                    return (
+                      <button
+                        aria-pressed={marcado}
+                        className={cn(
+                          "h-9 rounded-full border px-4 text-xs font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
+                          marcado
+                            ? "border-roxo bg-lilas/25 text-roxo"
+                            : "border-border bg-surface text-muted hover:bg-creme hover:text-roxo",
+                        )}
+                        key={dia.valor}
+                        onClick={() => alternarDiaSemana(dia.valor)}
+                        title={dia.rotulo}
+                        type="button"
+                      >
+                        {dia.abreviacao}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted">
+                  Ex.: seg, qua e sex às 14h30 — as datas se repetem semana a semana até completar
+                  as sessões. Sem nenhum dia marcado, usa o dia da primeira sessão.
+                </p>
+              </fieldset>
+            ) : null}
+
+            <button
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:bg-creme hover:text-roxo focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2 sm:w-auto sm:justify-self-end"
+              disabled={!primeiraData}
+              onClick={preencherDatas}
+              type="button"
             >
-              {padraoRepeticao.map((f) => (
-                <option key={f} value={f}>
-                  {rotulosPadraoRepeticao[f]}
-                </option>
-              ))}
-            </select>
+              <Wand2 className="size-4" aria-hidden="true" />
+              Preencher
+            </button>
           </div>
-
-          {frequencia === "dias_semana" ? (
-            <fieldset className="grid min-w-0 gap-2 sm:col-span-2">
-              <legend className="text-sm font-medium text-foreground">
-                Dias da semana do atendimento
-              </legend>
-              <div className="flex min-w-0 flex-wrap gap-2">
-                {diasDaSemana.map((dia) => {
-                  const marcado = diasSemanaEscolhidos.includes(dia.valor);
-
-                  return (
-                    <button
-                      aria-pressed={marcado}
-                      className={cn(
-                        "h-9 rounded-full border px-4 text-xs font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
-                        marcado
-                          ? "border-roxo bg-lilas/25 text-roxo"
-                          : "border-border bg-surface text-muted hover:bg-creme hover:text-roxo",
-                      )}
-                      key={dia.valor}
-                      onClick={() => alternarDiaSemana(dia.valor)}
-                      title={dia.rotulo}
-                      type="button"
-                    >
-                      {dia.abreviacao}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-xs text-muted">
-                Ex.: seg, qua e sex às 14h30 — as datas se repetem semana a semana até completar as
-                sessões. Sem nenhum dia marcado, usa o dia da primeira sessão.
-              </p>
-            </fieldset>
-          ) : null}
-
-          <button
-            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition hover:bg-creme hover:text-roxo focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2 sm:w-auto sm:justify-self-end"
-            disabled={!primeiraData}
-            onClick={preencherDatas}
-            type="button"
-          >
-            <Wand2 className="size-4" aria-hidden="true" />
-            Preencher
-          </button>
         </div>
-      </div>
+      ) : null}
 
       <div className="grid min-w-0 gap-3">
         <div className="flex min-w-0 items-center justify-between gap-3">
-          <p className="text-sm font-medium text-foreground">Datas das sessões</p>
+          <p className="text-sm font-medium text-foreground">
+            {datas.length > 1 ? "Datas das sessões" : "Data da sessão"}
+          </p>
           <span className="text-xs font-medium text-muted">
             {datas.length} {datas.length === 1 ? "data" : "datas"}
           </span>

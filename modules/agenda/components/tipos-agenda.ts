@@ -16,6 +16,8 @@ export type AgendamentoResumo = {
   servicoNome: string;
   servicoValorCentavos: number | null;
   profissionalNome: string | null;
+  /** Pathname da foto no blob; a URL da rota autenticada é montada a partir dele. */
+  profissionalImagem?: string | null;
   pacoteQuantidadeSessoes: number | null;
   pacoteSituacaoPagamento: "pendente" | "parcial" | "pago" | null;
   pacoteValorCentavos: number | null;

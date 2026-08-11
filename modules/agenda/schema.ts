@@ -8,18 +8,40 @@ import { pacote } from "@/modules/pacotes/schema";
 import { servico } from "@/modules/servicos/schema";
 import { usuario } from "@/modules/auth/schema";
 
-export const statusAgendamento = ["marcado", "realizado", "falta", "cancelado"] as const;
+/**
+ * Ciclo de vida do agendamento. `aguardando_confirmacao` é o estado de nascimento desde que a
+ * clínica passou a pedir o "de acordo" do cliente por WhatsApp: só depois do aceite dele o
+ * atendimento vale como `marcado`. `recusado` é o cliente dizendo que as datas não servem — distinto
+ * de `cancelado`, que é decisão da clínica.
+ */
+export const statusAgendamento = [
+  "aguardando_confirmacao",
+  "marcado",
+  "realizado",
+  "falta",
+  "cancelado",
+  "recusado",
+] as const;
 
 export type StatusAgendamento = (typeof statusAgendamento)[number];
 
 export const statusAgendamentoEnum = pgEnum("status_agendamento", statusAgendamento);
 
 export const rotulosStatusAgendamento: Record<StatusAgendamento, string> = {
+  aguardando_confirmacao: "Aguardando confirmação",
   marcado: "Marcado",
   realizado: "Realizado",
   falta: "Falta",
   cancelado: "Cancelado",
+  recusado: "Cliente recusou",
 };
+
+/**
+ * Status que OCUPAM o horário da profissional — a base da checagem de conflito. `aguardando_confirmacao`
+ * entra porque a clínica já reservou o horário: se ele não bloqueasse, um segundo cliente conseguiria
+ * marcar o mesmo slot enquanto o primeiro ainda decide, e a confirmação criaria overbooking.
+ */
+export const statusQueOcupamAgenda = ["aguardando_confirmacao", "marcado"] as const;
 
 export const modalidadeAtendimento = ["presencial", "domiciliar"] as const;
 
@@ -124,14 +146,24 @@ export const criarAgendamentoSchema = z.object({
   observacoes: observacoesOpcional,
 });
 
+/**
+ * Status que a profissional aplica à mão na agenda. `marcado` está aqui como saída manual do
+ * `aguardando_confirmacao`: quando o cliente responde por telefone ou na recepção em vez de abrir o
+ * link, a clínica confirma por ele. `aguardando_confirmacao` não entra — é estado de nascimento, não
+ * se volta pra ele.
+ */
 export const atualizarStatusAgendamentoSchema = z.object({
   id: z.string().uuid(),
   status: z.enum([
+    "marcado",
     "realizado",
     "falta",
     "cancelado",
+    "recusado",
   ] as const satisfies readonly StatusAgendamento[]),
 });
+
+export type StatusAgendamentoManual = z.infer<typeof atualizarStatusAgendamentoSchema>["status"];
 
 export const confirmarPresencaSchema = z.object({
   id: z.string().uuid("Agendamento inválido."),

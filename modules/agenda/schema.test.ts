@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  atualizarStatusAgendamentoSchema,
   concluirAgendamentoSchema,
   confirmarPresencaSchema,
   criarAgendamentoSchema,
   interpretarDataHoraParede,
+  statusQueOcupamAgenda,
 } from "./schema";
 
 describe("interpretarDataHoraParede", () => {
@@ -85,5 +87,36 @@ describe("confirmarPresencaSchema", () => {
     ).toBe(true);
 
     expect(confirmarPresencaSchema.safeParse({ id: "123" }).success).toBe(false);
+  });
+});
+
+describe("statusQueOcupamAgenda", () => {
+  it("inclui aguardando_confirmacao — senão dois clientes pegariam o mesmo horário", () => {
+    // Regra de negócio: a clínica já reservou o slot ao pedir a confirmação. Se este status não
+    // bloqueasse a checagem de sobreposição, o aceite do cliente criaria overbooking.
+    expect(statusQueOcupamAgenda).toContain("aguardando_confirmacao");
+    expect(statusQueOcupamAgenda).toContain("marcado");
+  });
+
+  it("não inclui status resolvidos — horário liberado volta a ser oferecido", () => {
+    for (const status of ["realizado", "falta", "cancelado", "recusado"] as const) {
+      expect(statusQueOcupamAgenda).not.toContain(status);
+    }
+  });
+});
+
+describe("atualizarStatusAgendamentoSchema", () => {
+  const id = "66666666-6666-4666-8666-666666666666";
+
+  it("aceita `marcado` — saída manual pra quem confirmou por telefone", () => {
+    expect(atualizarStatusAgendamentoSchema.safeParse({ id, status: "marcado" }).success).toBe(
+      true,
+    );
+  });
+
+  it("recusa voltar pra aguardando_confirmacao — é estado de nascimento, não destino manual", () => {
+    expect(
+      atualizarStatusAgendamentoSchema.safeParse({ id, status: "aguardando_confirmacao" }).success,
+    ).toBe(false);
   });
 });

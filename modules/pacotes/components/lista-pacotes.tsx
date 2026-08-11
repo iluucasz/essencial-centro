@@ -109,7 +109,9 @@ const classePorStatusAgendamento: Record<StatusAgendamento, string> = {
   marcado: "bg-roxo/10 text-roxo",
   realizado: "bg-brand/15 text-brand",
   falta: "bg-dourado/20 text-dourado",
+  aguardando_confirmacao: "bg-muted/10 text-muted",
   cancelado: "bg-perigo/10 text-perigo",
+  recusado: "bg-perigo/10 text-perigo",
 };
 
 function formatarValor(valorCentavos: number | null) {
