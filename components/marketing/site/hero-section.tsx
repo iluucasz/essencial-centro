@@ -54,12 +54,12 @@ export function HeroSection() {
         <div className="relative z-10">
           <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] border border-line shadow-xl shadow-forest/5">
             <Image
-              src="/images/hero-clinic.png"
-              alt="Sala de atendimento da clínica Essencial Centro com luz natural e plantas"
+              src="/profissionais_modelos/prof_1.png"
+              alt="Profissional do Essencial Centro na sala de procedimentos, ao lado do equipamento de laser"
               fill
               priority
               sizes="(max-width: 1024px) 100vw, 50vw"
-              className="object-cover"
+              className="object-cover object-top"
             />
           </div>
           <div className="absolute -bottom-6 -left-6 hidden max-w-[15rem] rounded-2xl border border-line bg-cream/95 p-4 shadow-lg backdrop-blur sm:block">

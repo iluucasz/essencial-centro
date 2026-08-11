@@ -59,11 +59,11 @@ export function ContactSection() {
             </div>
             <div className="relative hidden aspect-[16/9] overflow-hidden rounded-3xl border border-line sm:block">
               <Image
-                src="/images/treatment-detail.png"
-                alt="Detalhe de um atendimento na Essencial Centro"
+                src="/profissionais_modelos/dr_edmo.png"
+                alt="Dr. Edmo de Souza, terapeuta ortomolecular do Essencial Centro"
                 fill
                 sizes="(max-width: 1024px) 100vw, 40vw"
-                className="object-cover"
+                className="object-cover object-top"
               />
             </div>
           </div>

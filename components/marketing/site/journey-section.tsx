@@ -36,11 +36,11 @@ export function JourneySection() {
           <div className="relative">
             <div className="relative aspect-square overflow-hidden rounded-[2rem] border border-cream/15">
               <Image
-                src="/images/journey.png"
-                alt="Acompanhamento digital do tratamento: tablet, caderno e folhas de eucalipto"
+                src="/profissionais_modelos/prof_2.png"
+                alt="Ana Carolina, podóloga do Essencial Centro"
                 fill
                 sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover"
+                className="object-cover object-top"
               />
             </div>
 

@@ -1,6 +1,8 @@
 import Image from "next/image";
 import { Check } from "lucide-react";
 
+import { RESPONSAVEL } from "@/lib/marketing/clinic";
+
 const HIGHLIGHTS = [
   "Atendimento individualizado e humanizado",
   "Protocolos baseados em avaliação criteriosa",
@@ -15,16 +17,17 @@ export function AboutSection() {
         <div className="relative order-2 lg:order-1">
           <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] border border-line shadow-xl shadow-forest/5">
             <Image
-              src="/images/professional.png"
-              alt="Profissional responsável pela clínica Essencial Centro"
+              src="/profissionais_modelos/prof_3.png"
+              alt={`${RESPONSAVEL.nome}, ${RESPONSAVEL.titulo} responsável pelo Essencial Centro`}
               fill
               sizes="(max-width: 1024px) 100vw, 50vw"
-              className="object-cover"
+              className="object-cover object-top"
             />
           </div>
-          <div className="absolute -top-4 -right-4 hidden rounded-2xl border border-line bg-clay px-5 py-4 text-cream shadow-lg sm:block">
-            <p className="font-serif text-2xl font-semibold">100%</p>
-            <p className="text-xs text-cream/85">dedicação a cada cliente</p>
+          {/* Assina a foto: numa clínica, saber quem atende importa mais que um selo genérico. */}
+          <div className="absolute -top-4 -right-4 hidden max-w-56 rounded-2xl border border-line bg-clay px-5 py-4 text-cream shadow-lg sm:block">
+            <p className="font-serif text-xl font-semibold">{RESPONSAVEL.nome}</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-cream/85">{RESPONSAVEL.titulo}</p>
           </div>
         </div>
 

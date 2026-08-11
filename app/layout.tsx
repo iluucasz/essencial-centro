@@ -24,9 +24,13 @@ const fraunces = Fraunces({
   weight: ["400", "500", "600", "700"],
 });
 
+/**
+ * O favicon vem de `app/icon.png` e `app/apple-icon.png`, detectados por convenção do App Router —
+ * os dois são gerados a partir de `public/logo/logotipo.png` (recorte quadrado da arte + redução).
+ */
 export const metadata: Metadata = {
   title: "Essencial Centro",
-  description: "Essencial Centro",
+  description: "Estética, saúde e bem-estar com acompanhamento clínico digital.",
 };
 
 export default function RootLayout({

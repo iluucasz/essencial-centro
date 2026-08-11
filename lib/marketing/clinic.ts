@@ -159,6 +159,15 @@ export const DIFFERENTIALS = [
   },
 ];
 
+/**
+ * Profissional responsável, assinada na seção "Sobre". Nome e título confirmados pelo cliente —
+ * numa clínica isso é informação pública sobre pessoa real, então não preencher por suposição.
+ */
+export const RESPONSAVEL = {
+  nome: "Edvania Crespo",
+  titulo: "Terapeuta Ortomolecular e Ozonioterapeuta",
+} as const;
+
 export const FAQ = [
   {
     question: "Meus dados de saúde ficam protegidos?",

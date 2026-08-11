@@ -6,38 +6,7 @@ import { ChevronDown, LogOut } from "lucide-react";
 import { sair } from "@/modules/auth/actions";
 import { rotulosPapelUsuario, type PapelUsuario } from "@/modules/auth/rbac";
 
-function iniciais(nome: string) {
-  const partes = nome.trim().split(/\s+/).slice(0, 2);
-
-  return partes.map((parte) => parte[0]?.toUpperCase()).join("") || "?";
-}
-
-function AvatarUsuario({
-  imagem,
-  nome,
-  usuarioId,
-}: {
-  imagem: string | null;
-  nome: string;
-  usuarioId: string;
-}) {
-  return (
-    <span className="flex size-9 items-center justify-center overflow-hidden rounded-full bg-brand text-sm font-semibold text-brand-foreground">
-      {imagem ? (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element -- imagem privada servida via rota autenticada, sem otimização estática do Next */}
-          <img
-            alt={`Foto de ${nome}`}
-            className="size-full object-cover"
-            src={`/api/usuarios/${usuarioId}/foto?v=${encodeURIComponent(imagem)}`}
-          />
-        </>
-      ) : (
-        iniciais(nome)
-      )}
-    </span>
-  );
-}
+import { AvatarUsuario } from "./avatar-usuario";
 
 export function MenuUsuario({
   nome,
