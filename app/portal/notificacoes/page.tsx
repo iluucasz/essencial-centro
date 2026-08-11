@@ -8,8 +8,8 @@ export default async function NotificacoesPage() {
   const notificacoes = await listarMinhasNotificacoes();
 
   return (
-    <main className="area-interna mx-auto min-h-screen w-full max-w-[1600px] bg-creme px-6 py-8">
-      <div className="grid gap-6">
+    <main className="area-interna mx-auto min-h-screen w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
+      <div className="grid gap-5 sm:gap-6">
         <Link
           className="inline-flex w-fit items-center gap-2 text-sm font-medium text-roxo hover:text-brand"
           href="/portal"
@@ -18,12 +18,14 @@ export default async function NotificacoesPage() {
           Voltar ao portal
         </Link>
 
-        <header>
-          <p className="flex items-center gap-2 text-sm font-medium text-muted">
-            <Bell className="size-4" aria-hidden="true" />
-            Área do cliente
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold text-roxo">Notificações</h1>
+        <header className="flex items-center gap-3">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-brand text-brand-foreground">
+            <Bell className="size-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-muted">Área do cliente</p>
+            <h1 className="text-xl font-semibold text-roxo sm:text-2xl">Notificações</h1>
+          </div>
         </header>
 
         <ListaNotificacoes notificacoes={notificacoes} />
