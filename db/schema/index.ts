@@ -25,3 +25,4 @@ export * from "../../modules/medicamentos/schema";
 export * from "../../modules/assistente/schema";
 export * from "../../modules/biometria/schema";
 export * from "../../modules/dor/schema";
+export * from "../../modules/analises/schema";
