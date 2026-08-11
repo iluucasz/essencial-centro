@@ -58,14 +58,18 @@ const classesStatusAgenda: Record<StatusAgendamento, string> = {
   marcado: "bg-lilas/25 text-roxo",
   realizado: "bg-brand/15 text-brand",
   falta: "bg-dourado/20 text-dourado",
+  aguardando_confirmacao: "bg-muted/10 text-muted",
   cancelado: "bg-perigo/10 text-perigo",
+  recusado: "bg-perigo/10 text-perigo",
 };
 
 const rotulosStatusPainel: Record<StatusAgendamento, string> = {
   marcado: "Agendado",
   realizado: "Realizado",
   falta: "Falta",
+  aguardando_confirmacao: "Cancelado",
   cancelado: "Cancelado",
+  recusado: "Cancelado",
 };
 
 type IconePainel = ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
@@ -208,7 +212,7 @@ export default async function PainelPage() {
         {
           href: "/painel/clientes",
           icone: Pill,
-          label: "Medicamentos pendentes",
+          label: "Suplementos pendentes",
           valor: alertasOperacionais.medicamentosPendentes,
         },
       ]

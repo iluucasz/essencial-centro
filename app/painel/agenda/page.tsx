@@ -1,8 +1,10 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { CalendarClock, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
 import { ModalFormulario } from "@/components/ui/modal-formulario";
 import { agoraBrasilia, cn } from "@/lib/utils";
+import { AvatarUsuario } from "@/modules/auth/components/avatar-usuario";
 import { listarProfissionaisAtivos } from "@/modules/auth/queries";
 import { FiltrosAgenda } from "@/modules/agenda/components/filtros-agenda";
 import { FormularioContrato } from "@/modules/agenda/components/formulario-contrato";
@@ -60,7 +62,9 @@ const classesEventoPorStatus: Record<StatusAgendamento, string> = {
   marcado: "border-l-roxo bg-lilas/15 text-roxo",
   realizado: "border-l-brand bg-brand/10 text-brand",
   falta: "border-l-dourado bg-dourado/15 text-dourado",
+  aguardando_confirmacao: "border-l-muted bg-muted/10 text-muted",
   cancelado: "border-l-perigo bg-perigo/10 text-perigo",
+  recusado: "border-l-perigo bg-perigo/10 text-perigo",
 };
 
 function criarDataUtc(ano: number, mes: number, dia: number) {
@@ -241,11 +245,20 @@ function EventoCalendario({ agendamento }: { agendamento: AgendamentoDaAgenda })
   return (
     <span
       className={cn(
-        "block truncate rounded-md border-l-2 px-2 py-1 text-xs font-medium",
+        "flex items-center gap-2 rounded-lg border-l-[3px] py-1.5 pr-2.5 pl-2 text-xs font-medium",
         classesEventoPorStatus[agendamento.status],
       )}
     >
-      {formatadorHorario.format(agendamento.inicio)} · {agendamento.clienteNome}
+      {/* Quem atende, direto no chip: na visão de mês é o que evita abrir cada item pra descobrir. */}
+      <AvatarUsuario
+        imagem={agendamento.profissionalImagem}
+        nome={agendamento.profissionalNome ?? "Profissional"}
+        tamanho="sm"
+        usuarioId={agendamento.profissionalId}
+      />
+      <span className="truncate">
+        {formatadorHorario.format(agendamento.inicio)} · {agendamento.clienteNome}
+      </span>
     </span>
   );
 }
@@ -253,6 +266,7 @@ function EventoCalendario({ agendamento }: { agendamento: AgendamentoDaAgenda })
 function DiasAgendaMobile({
   agendamentosPorDia,
   busca,
+  formularioNovoAgendamento,
   cliente,
   dataSelecionada,
   dias,
@@ -263,6 +277,7 @@ function DiasAgendaMobile({
 }: {
   agendamentosPorDia: Map<string, AgendamentoDaAgenda[]>;
   busca: string;
+  formularioNovoAgendamento: ReactNode;
   cliente: string;
   dataSelecionada: Date;
   dias: Date[];
@@ -283,6 +298,7 @@ function DiasAgendaMobile({
         return (
           <BotaoDiaAgenda
             agendamentos={agendamentos}
+            formularioNovoAgendamento={formularioNovoAgendamento}
             className={cn(
               "grid w-full gap-3 rounded-2xl border border-border bg-surface p-3 text-left transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
               selecionado && "border-roxo bg-lilas/15",
@@ -335,6 +351,7 @@ function DiasAgendaMobile({
 function GradeMensal({
   agendamentosPorDia,
   busca,
+  formularioNovoAgendamento,
   cliente,
   dataSelecionada,
   modalidade,
@@ -344,6 +361,7 @@ function GradeMensal({
 }: {
   agendamentosPorDia: Map<string, AgendamentoDaAgenda[]>;
   busca: string;
+  formularioNovoAgendamento: ReactNode;
   cliente: string;
   dataSelecionada: Date;
   modalidade: string;
@@ -362,6 +380,7 @@ function GradeMensal({
       <DiasAgendaMobile
         agendamentosPorDia={agendamentosPorDia}
         busca={busca}
+        formularioNovoAgendamento={formularioNovoAgendamento}
         cliente={cliente}
         dataSelecionada={dataSelecionada}
         dias={diasDoMes}
@@ -389,6 +408,7 @@ function GradeMensal({
               return (
                 <BotaoDiaAgenda
                   agendamentos={agendamentos}
+                  formularioNovoAgendamento={formularioNovoAgendamento}
                   key={iso}
                   className={cn(
                     "block min-h-36 w-full border-r border-b border-border p-3 text-left transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
@@ -431,6 +451,7 @@ function GradeMensal({
 function GradeSemana({
   agendamentosPorDia,
   busca,
+  formularioNovoAgendamento,
   cliente,
   dataSelecionada,
   modalidade,
@@ -440,6 +461,7 @@ function GradeSemana({
 }: {
   agendamentosPorDia: Map<string, AgendamentoDaAgenda[]>;
   busca: string;
+  formularioNovoAgendamento: ReactNode;
   cliente: string;
   dataSelecionada: Date;
   modalidade: string;
@@ -455,6 +477,7 @@ function GradeSemana({
       <DiasAgendaMobile
         agendamentosPorDia={agendamentosPorDia}
         busca={busca}
+        formularioNovoAgendamento={formularioNovoAgendamento}
         cliente={cliente}
         dataSelecionada={dataSelecionada}
         dias={dias}
@@ -472,6 +495,7 @@ function GradeSemana({
             return (
               <BotaoDiaAgenda
                 agendamentos={agendamentos}
+                formularioNovoAgendamento={formularioNovoAgendamento}
                 key={iso}
                 className={cn(
                   "block min-h-96 w-full p-4 text-left transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo",
@@ -572,6 +596,19 @@ export default async function AgendaPage({
         ? formatadorDataLonga.format(dataSelecionada)
         : formatadorMesAno.format(dataSelecionada);
 
+  /*
+    Um único elemento reusado no botão do topo e dentro do modal de cada dia. Vai como ReactNode
+    porque `clientes`/`servicos`/`profissionais` são dados de servidor — o componente cliente não
+    consegue buscá-los.
+  */
+  const formularioNovoAgendamento = (
+    <FormularioContrato
+      clientes={clientes.map((c) => ({ id: c.id, nome: c.nome }))}
+      profissionais={profissionais.map((p) => ({ id: p.id, nome: p.name ?? p.email ?? "" }))}
+      servicos={servicos}
+    />
+  );
+
   return (
     <div className="grid min-w-0 gap-6">
       <header className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -588,14 +625,7 @@ export default async function AgendaPage({
           rotuloBotao="Novo agendamento"
           titulo="Novo agendamento"
         >
-          <FormularioContrato
-            clientes={clientes.map((c) => ({ id: c.id, nome: c.nome }))}
-            profissionais={profissionais.map((p) => ({
-              id: p.id,
-              nome: p.name ?? p.email ?? "",
-            }))}
-            servicos={servicos}
-          />
+          {formularioNovoAgendamento}
         </ModalFormulario>
       </header>
 
@@ -714,6 +744,7 @@ export default async function AgendaPage({
           <GradeSemana
             agendamentosPorDia={agendamentosPorDia}
             busca={busca}
+            formularioNovoAgendamento={formularioNovoAgendamento}
             cliente={clienteFiltro}
             dataSelecionada={dataSelecionada}
             modalidade={modalidadeFiltro}
@@ -729,6 +760,7 @@ export default async function AgendaPage({
           <GradeMensal
             agendamentosPorDia={agendamentosPorDia}
             busca={busca}
+            formularioNovoAgendamento={formularioNovoAgendamento}
             cliente={clienteFiltro}
             dataSelecionada={dataSelecionada}
             modalidade={modalidadeFiltro}

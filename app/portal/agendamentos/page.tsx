@@ -19,7 +19,9 @@ function formatarDataHora(data: Date) {
 const classesBadgeStatus: Record<Exclude<StatusAgendamento, "marcado">, string> = {
   realizado: "border-brand/25 bg-brand/10 text-brand",
   falta: "border-perigo/25 bg-perigo/10 text-perigo",
+  aguardando_confirmacao: "border-muted/25 bg-muted/10 text-muted",
   cancelado: "border-perigo/25 bg-perigo/10 text-perigo",
+  recusado: "border-perigo/25 bg-perigo/10 text-perigo",
 };
 
 type Agendamento = Awaited<ReturnType<typeof listarMeusAgendamentos>>[number];

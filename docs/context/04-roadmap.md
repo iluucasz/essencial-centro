@@ -125,9 +125,11 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
     (`frequenciaRecorrencia` → tipo `frequencia_recorrencia` no banco) continua só `semanal|mensal`; os
     dois padrões novos vivem em `padraoRepeticao`, usado apenas na hora de gerar as datas.
 
-- ✅ Alertas de medicamentos — `modules/medicamentos` (`medicamentoInformado`, seção "Medicamentos
-  informados e alertas de segurança" em `/painel/clientes/[id]`, restrito a `profissional`). Campos
-  exatamente os sugeridos no brief: medicamento, dosagem, frequência, profissional prescritor, data
+- ✅ Suplementos indicados e alertas — `modules/medicamentos` (`medicamentoInformado`, aba
+  "Suplementos indicados" em `/painel/clientes/[id]`, restrito a `profissional`). Nasceu do brief como
+  "Medicamentos informados"; virou "Suplementos indicados" quando a equipe passou a ter terapia
+  ortomolecular — só os rótulos mudaram, o schema e a rota seguem com o nome antigo (ver `01-dominio.md`).
+  Campos: nome, dosagem, frequência, profissional prescritor, data
   de início, alergia relacionada, alerta de interação, fonte do alerta. **`alertaInteracao` é
   preenchido manualmente pela profissional — o sistema nunca sugere/calcula interações** (a
   restrição mais explícita do brief para essa área). "Informar" e "verificar" são duas ações

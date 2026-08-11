@@ -33,7 +33,9 @@ const classesBadgeStatus: Record<StatusAgendamento, string> = {
   marcado: "border-roxo/25 bg-lilas/15 text-roxo",
   realizado: "border-brand/25 bg-brand/10 text-brand",
   falta: "border-perigo/25 bg-perigo/10 text-perigo",
+  aguardando_confirmacao: "border-border bg-creme text-muted",
   cancelado: "border-border bg-creme text-muted",
+  recusado: "border-border bg-creme text-muted",
 };
 
 export default async function CheckinAgendamentoPage({

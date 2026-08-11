@@ -37,7 +37,9 @@ const classePorStatusAgendamento: Record<StatusAgendamento, string> = {
   marcado: "bg-lilas/25 text-roxo",
   realizado: "bg-brand/15 text-brand",
   falta: "bg-dourado/20 text-dourado",
+  aguardando_confirmacao: "bg-muted/10 text-muted",
   cancelado: "bg-perigo/10 text-perigo",
+  recusado: "bg-perigo/10 text-perigo",
 };
 
 const classePorSituacaoPagamento: Record<SituacaoPagamento, string> = {

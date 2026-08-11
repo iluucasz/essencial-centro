@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
@@ -110,11 +111,19 @@ function Sidebar({
       <div className="relative flex h-16 items-center justify-center px-2">
         {colapsada ? null : (
           <Link
-            className="mx-auto max-w-44 text-center font-heading text-xl leading-tight font-semibold text-brand transition hover:text-roxo focus-visible:rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-roxo"
+            aria-label="Essencial Centro — ir para o painel"
+            className="mx-auto transition hover:opacity-80 focus-visible:rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-roxo"
             href="/painel"
             onClick={onNavigate}
           >
-            Essencial Centro
+            <Image
+              alt="Essencial Centro"
+              className="h-14 w-auto"
+              height={512}
+              priority
+              src="/logo/marca.png"
+              width={424}
+            />
           </Link>
         )}
         {onToggleCollapse ? (

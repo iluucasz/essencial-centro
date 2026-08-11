@@ -11,7 +11,10 @@
   color-scheme: light;
 
   /* superfícies */
-  --background: #f8f0ed; /* creme rosado — fundo das páginas */
+  --background: #f8f0ed; /* creme rosado — fundo das páginas do site público */
+  /* Fundo das áreas internas. Fica no :root porque `body` e `.area-interna` precisam do mesmo valor
+     e o body não consegue ler um token declarado num filho — ver a regra `body:has(.area-interna)`. */
+  --background-interno: #f7f6fa;
   --foreground: #293630; /* texto escuro */
   --surface: #ffffff; /* cartões */
   --surface-foreground: var(--foreground);
@@ -118,6 +121,18 @@ h6 {
  * renderizado dentro do escopo, sem precisar trocar classe por classe.
  */
 .area-interna {
-  --background: #f7f6fa;
+  --background: var(--background-interno);
   --border: #ececf3; /* bordas quase invisíveis — telas densas pedem contraste mais fraco */
+}
+
+/**
+ * O fundo do BODY propaga para o canvas e pinta o viewport inteiro — e o painel é `h-dvh`, que no
+ * mobile é MENOR que o viewport "grande" enquanto a barra de endereço está visível. A sobra
+ * aparecia como uma faixa do creme rosado do site por baixo do painel.
+ *
+ * `.area-interna` não resolve sozinha porque ela vive numa div DENTRO do body: trocar o token ali
+ * não muda o fundo do próprio body. Daí a regra olhar para dentro com `:has()`.
+ */
+body:has(.area-interna) {
+  background: var(--background-interno);
 }
