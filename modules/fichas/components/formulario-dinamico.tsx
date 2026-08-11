@@ -46,6 +46,7 @@ export function FormularioDinamico({
   rotuloEnviar = "Salvar ficha",
   exigirConfirmacao = false,
   textoConfirmacao = "Confirmar e salvar esta ficha?",
+  somenteVisualizacao = false,
 }: {
   campos: CampoModelo[];
   aoEnviar: (dados: {
@@ -58,6 +59,12 @@ export function FormularioDinamico({
   rotuloEnviar?: string;
   exigirConfirmacao?: boolean;
   textoConfirmacao?: string;
+  /**
+   * Prévia: renderiza os campos exatamente como o cliente vê, mas sem o botão de enviar. Existe pra
+   * a pré-visualização do construtor usar ESTE componente em vez de reimplementar a renderização —
+   * uma cópia iria divergir do formulário real na primeira mudança.
+   */
+  somenteVisualizacao?: boolean;
 }) {
   const schema = useMemo(() => schemaRespostasModelo(campos), [campos]);
   const {
@@ -98,7 +105,20 @@ export function FormularioDinamico({
   }
 
   return (
-    <form className="grid gap-5" onSubmit={handleSubmit(enviar)}>
+    <form
+      className="grid gap-5"
+      onSubmit={
+        somenteVisualizacao
+          ? (evento) => {
+              // `stopPropagation` importa: na prévia do construtor este form vive dentro de um modal
+              // em portal, e evento de portal borbulha pela ÁRVORE DO REACT — sem isso, um Enter aqui
+              // dispararia o "Revisar e salvar" do formulário de fora.
+              evento.preventDefault();
+              evento.stopPropagation();
+            }
+          : handleSubmit(enviar)
+      }
+    >
       {servicos && servicos.length > 0 ? (
         <label className="grid gap-1.5">
           <span className="text-sm font-medium text-foreground">Serviço (opcional)</span>
@@ -196,6 +216,52 @@ export function FormularioDinamico({
                   <CampoSimNao campo={campo} register={register} watch={watch} />
                 ) : null}
 
+                {campo.tipo === "selecao_imagem" ? (
+                  /*
+                    Cartões com radio escondido: o clique na figura inteira seleciona, que é o ponto
+                    de um campo ilustrado — mirar num radinho de 16px anula o ganho da imagem.
+                  */
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {(campo.opcoesImagem ?? []).map((opcao) => (
+                      /*
+                        `flex flex-col` e não `grid`: o card estica pra igualar a altura do vizinho, e
+                        num grid de linhas `auto` o `align-content: stretch` distribui a sobra DENTRO
+                        das linhas — o rótulo de cada card acabava numa altura diferente. Em coluna
+                        flex a sobra vai toda pro fim.
+                      */
+                      <label
+                        className="flex h-full cursor-pointer flex-col gap-3 rounded-2xl border-2 border-border bg-surface p-3 transition hover:border-roxo/40 has-checked:border-roxo has-checked:bg-lilas/10"
+                        key={opcao.rotulo}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- URL de blob externo */}
+                        <img
+                          alt=""
+                          className="h-40 w-full shrink-0 rounded-xl bg-white object-contain"
+                          src={opcao.imagem}
+                        />
+                        <span className="flex flex-1 items-start gap-2">
+                          <input
+                            className="mt-0.5 size-4 shrink-0 border-border text-brand focus:ring-roxo"
+                            type="radio"
+                            value={opcao.rotulo}
+                            {...register(campo.id)}
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-semibold text-foreground">
+                              {opcao.rotulo}
+                            </span>
+                            {opcao.descricao ? (
+                              <span className="mt-1 block text-xs leading-relaxed text-muted">
+                                {opcao.descricao}
+                              </span>
+                            ) : null}
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                ) : null}
+
                 {campo.tipo === "selecao_multipla" ? (
                   <div className="grid gap-2 rounded-xl border border-border p-3">
                     {(campo.opcoes ?? []).map((opcao) => (
@@ -256,7 +322,7 @@ export function FormularioDinamico({
             </button>
           </div>
         </div>
-      ) : (
+      ) : somenteVisualizacao ? null : (
         <div className="flex justify-end">
           <button
             className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-brand px-5 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo disabled:cursor-not-allowed disabled:opacity-60"

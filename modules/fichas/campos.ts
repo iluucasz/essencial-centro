@@ -17,6 +17,7 @@ export const tiposCampo = [
   "sim_nao",
   "selecao_unica",
   "selecao_multipla",
+  "selecao_imagem",
   "aceite",
 ] as const;
 
@@ -32,12 +33,13 @@ export const rotulosTipoCampo: Record<TipoCampo, string> = {
   sim_nao: "Sim / Não",
   selecao_unica: "Seleção única",
   selecao_multipla: "Seleção múltipla",
+  selecao_imagem: "Escolha com imagem",
   aceite: "Aceite de termo",
 };
 
 /** Campos apenas de layout — não geram resposta. */
 const tiposSemResposta: readonly TipoCampo[] = ["secao", "paragrafo"];
-/** Campos que exigem uma lista de opções. */
+/** Campos que exigem uma lista de opções em texto. */
 const tiposComOpcoes: readonly TipoCampo[] = ["selecao_unica", "selecao_multipla"];
 
 export function campoEhInput(tipo: TipoCampo) {
@@ -46,6 +48,18 @@ export function campoEhInput(tipo: TipoCampo) {
 
 export function campoUsaOpcoes(tipo: TipoCampo) {
   return tiposComOpcoes.includes(tipo);
+}
+
+/**
+ * Escolha ilustrada: cada opção é uma imagem + rótulo (+ descrição). Existe porque escala clínica
+ * ilustrada — a de Bristol é o caso concreto — depende da figura pra pessoa se reconhecer; só o texto
+ * ("bolinhas pequenas, separadas e duras") faz o cliente errar a resposta.
+ *
+ * Usa uma lista própria (`opcoesImagem`) em vez de `opcoes`, porque cada item tem três partes e
+ * `opcoes` é `string[]` — enfiar imagem ali exigiria codificar tudo numa string.
+ */
+export function campoUsaOpcoesImagem(tipo: TipoCampo) {
+  return tipo === "selecao_imagem";
 }
 
 export const audienciasCampo = ["cliente", "profissional"] as const;
@@ -64,6 +78,23 @@ export function camposVisiveisParaCliente(campos: CampoModelo[]): CampoModelo[] 
   return campos.filter((campo) => !campoEhInput(campo.tipo) || campo.quemPreenche === "cliente");
 }
 
+/**
+ * Uma opção ilustrada. `imagem` é a URL pública do Vercel Blob — e é pública de propósito: o
+ * formulário do cliente (`/ficha/[token]`) é aberto SEM login, então a figura precisa carregar sem
+ * sessão. Diferente de foto de cliente ou exame, aqui a arte é ativo do MODELO de ficha (ex.: escala
+ * de Bristol), não dado de saúde de ninguém.
+ */
+export const opcaoImagemSchema = z.object({
+  rotulo: z.string().trim().min(1, "Dê um nome à opção.").max(120),
+  imagem: z.string().trim().url("Envie a imagem da opção."),
+  descricao: z.preprocess(
+    (valor) => (typeof valor === "string" && valor.trim() === "" ? undefined : valor),
+    z.string().trim().max(400).optional(),
+  ),
+});
+
+export type OpcaoImagem = z.infer<typeof opcaoImagemSchema>;
+
 export const campoModeloSchema = z
   .object({
     id: z.string().trim().min(1).max(80),
@@ -75,12 +106,38 @@ export const campoModeloSchema = z
     ),
     obrigatorio: z.boolean().default(false),
     opcoes: z.array(z.string().trim().min(1).max(200)).max(60).optional(),
+    opcoesImagem: z.array(opcaoImagemSchema).max(20).optional(),
     detalheSeSim: z.boolean().optional(),
     quemPreenche: z.enum(audienciasCampo).default("cliente"),
   })
   .superRefine((campo, ctx) => {
     if (campoUsaOpcoes(campo.tipo) && (campo.opcoes?.length ?? 0) < 1) {
       ctx.addIssue({ code: "custom", path: ["opcoes"], message: "Adicione ao menos uma opção." });
+    }
+
+    if (campoUsaOpcoesImagem(campo.tipo)) {
+      const imagens = campo.opcoesImagem ?? [];
+
+      if (imagens.length < 2) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["opcoesImagem"],
+          message: "Adicione ao menos duas opções para a pessoa escolher.",
+        });
+      }
+
+      // Rótulo é o que vai gravado na resposta: repetido tornaria a resposta ambígua.
+      const rotulos = new Set<string>();
+      imagens.forEach((opcao, indice) => {
+        if (rotulos.has(opcao.rotulo)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["opcoesImagem", indice, "rotulo"],
+            message: "Rótulo repetido.",
+          });
+        }
+        rotulos.add(opcao.rotulo);
+      });
     }
   });
 
@@ -176,6 +233,13 @@ function schemaDoCampo(campo: CampoModelo): z.ZodTypeAny {
     case "selecao_unica": {
       const opcoes = campo.opcoes ?? [];
       const base = z.string().refine((v) => v === "" || opcoes.includes(v), "Opção inválida.");
+
+      return exigido ? base.refine((v) => v !== "", "Selecione uma opção.") : base;
+    }
+    case "selecao_imagem": {
+      // Grava o RÓTULO, não a URL: o texto continua legível se a imagem for trocada depois.
+      const rotulos = (campo.opcoesImagem ?? []).map((opcao) => opcao.rotulo);
+      const base = z.string().refine((v) => v === "" || rotulos.includes(v), "Opção inválida.");
 
       return exigido ? base.refine((v) => v !== "", "Selecione uma opção.") : base;
     }

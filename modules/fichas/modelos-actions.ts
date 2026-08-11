@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { autorizarPapel } from "@/modules/auth/rbac";
 
+import { descreverErrosDoModelo } from "./erros-modelo";
 import { editarModeloFichaSchema, ficha, modeloFicha, salvarModeloFichaSchema } from "./schema";
 
 export type ResultadoModeloFicha =
@@ -56,7 +57,11 @@ export async function criarModeloFicha(input: unknown): Promise<ResultadoModeloF
   if (!parsed.success) {
     return {
       status: "erro",
-      mensagem: "Revise os dados do modelo.",
+      // Diz qual campo e por quê — `flatten()` sozinho perde erro dentro de `campos[i]`.
+      mensagem: descreverErrosDoModelo(
+        parsed.error,
+        (input as { campos?: { rotulo?: string }[] } | null)?.campos,
+      ),
       campos: parsed.error.flatten().fieldErrors,
     };
   }
@@ -88,7 +93,11 @@ export async function editarModeloFicha(input: unknown): Promise<ResultadoModelo
   if (!parsed.success) {
     return {
       status: "erro",
-      mensagem: "Revise os dados do modelo.",
+      // Diz qual campo e por quê — `flatten()` sozinho perde erro dentro de `campos[i]`.
+      mensagem: descreverErrosDoModelo(
+        parsed.error,
+        (input as { campos?: { rotulo?: string }[] } | null)?.campos,
+      ),
       campos: parsed.error.flatten().fieldErrors,
     };
   }

@@ -53,10 +53,36 @@ export function DetalhesFichaDinamica({
 
         if (valorVazio(valor)) return null;
 
+        // Numa escolha ilustrada, mostrar a figura escolhida diz mais que o rótulo sozinho — é o
+        // ponto de ter usado imagem na pergunta.
+        const escolhida =
+          campo.tipo === "selecao_imagem"
+            ? campo.opcoesImagem?.find((opcao) => opcao.rotulo === respostas[campo.id])
+            : undefined;
+
         return (
           <div className="grid gap-1" key={campo.id}>
             <dt className="text-xs font-semibold text-muted">{campo.rotulo}</dt>
-            <dd className="text-sm leading-6 whitespace-pre-wrap text-foreground">{valor}</dd>
+            <dd className="text-sm leading-6 whitespace-pre-wrap text-foreground">
+              {escolhida ? (
+                <span className="flex items-start gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- URL de blob externo */}
+                  <img
+                    alt=""
+                    className="size-20 shrink-0 rounded-lg border border-border bg-white object-contain"
+                    src={escolhida.imagem}
+                  />
+                  <span className="min-w-0">
+                    <span className="block font-medium">{escolhida.rotulo}</span>
+                    {escolhida.descricao ? (
+                      <span className="mt-0.5 block text-xs text-muted">{escolhida.descricao}</span>
+                    ) : null}
+                  </span>
+                </span>
+              ) : (
+                valor
+              )}
+            </dd>
           </div>
         );
       })}

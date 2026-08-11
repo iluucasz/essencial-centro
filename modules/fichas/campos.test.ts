@@ -148,3 +148,90 @@ describe("camposVisiveisParaCliente", () => {
     expect(camposVisiveisParaCliente(campos).map((c) => c.id)).toEqual(["sec", "queixa"]);
   });
 });
+
+/**
+ * `selecao_imagem` grava o RÓTULO da opção, não a URL — se a imagem for trocada depois, a resposta
+ * antiga continua legível. Estes testes fixam isso e a validação do modelo.
+ */
+describe("selecao_imagem", () => {
+  const bristol = campo({
+    id: "bristol",
+    tipo: "selecao_imagem",
+    rotulo: "Qual se parece mais com o seu?",
+    opcoesImagem: [
+      { rotulo: "Tipo 1", imagem: "https://blob.example.com/t1.png", descricao: "Bolinhas duras." },
+      { rotulo: "Tipo 4", imagem: "https://blob.example.com/t4.png" },
+    ],
+  });
+
+  it("aceita o rótulo de uma opção e recusa valor fora da lista", () => {
+    expect(validarRespostasModelo([bristol], { bristol: "Tipo 4" })).toMatchObject({
+      ok: true,
+      dados: { bristol: "Tipo 4" },
+    });
+    expect(validarRespostasModelo([bristol], { bristol: "Tipo 9" }).ok).toBe(false);
+  });
+
+  it("recusa a URL como resposta — o que vale é o rótulo", () => {
+    expect(
+      validarRespostasModelo([bristol], { bristol: "https://blob.example.com/t4.png" }).ok,
+    ).toBe(false);
+  });
+
+  it("aceita vazio quando não é obrigatório e exige escolha quando é", () => {
+    expect(validarRespostasModelo([bristol], { bristol: "" }).ok).toBe(true);
+
+    const exigido = { ...bristol, obrigatorio: true };
+    expect(validarRespostasModelo([exigido], { bristol: "" }).ok).toBe(false);
+    expect(validarRespostasModelo([exigido], { bristol: "Tipo 1" }).ok).toBe(true);
+  });
+
+  it("começa vazio no formulário", () => {
+    expect(valoresIniciais([bristol])).toEqual({ bristol: "" });
+  });
+
+  it("exige ao menos duas opções — escolha com uma só não é escolha", () => {
+    const comUma = camposModeloSchema.safeParse([
+      { ...bristol, opcoesImagem: [bristol.opcoesImagem![0]] },
+    ]);
+    expect(comUma.success).toBe(false);
+
+    expect(camposModeloSchema.safeParse([{ ...bristol, opcoesImagem: [] }]).success).toBe(false);
+    expect(camposModeloSchema.safeParse([bristol]).success).toBe(true);
+  });
+
+  it("recusa rótulo repetido, que tornaria a resposta ambígua", () => {
+    const repetido = camposModeloSchema.safeParse([
+      {
+        ...bristol,
+        opcoesImagem: [
+          { rotulo: "Tipo 1", imagem: "https://blob.example.com/a.png" },
+          { rotulo: "Tipo 1", imagem: "https://blob.example.com/b.png" },
+        ],
+      },
+    ]);
+
+    expect(repetido.success).toBe(false);
+  });
+
+  it("recusa opção sem imagem válida", () => {
+    const semUrl = camposModeloSchema.safeParse([
+      {
+        ...bristol,
+        opcoesImagem: [
+          { rotulo: "Tipo 1", imagem: "nao-e-url" },
+          { rotulo: "Tipo 4", imagem: "https://blob.example.com/t4.png" },
+        ],
+      },
+    ]);
+
+    expect(semUrl.success).toBe(false);
+  });
+
+  it("é visível ao cliente como qualquer campo de audiência cliente", () => {
+    expect(camposVisiveisParaCliente([bristol])).toHaveLength(1);
+    expect(camposVisiveisParaCliente([{ ...bristol, quemPreenche: "profissional" }])).toHaveLength(
+      0,
+    );
+  });
+});

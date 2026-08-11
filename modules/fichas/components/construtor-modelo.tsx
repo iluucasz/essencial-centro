@@ -3,17 +3,26 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFieldArray, useForm } from "react-hook-form";
-import { ChevronDown, ChevronUp, LoaderCircle, Plus, Trash2 } from "lucide-react";
+import { Modal, useOverlayState } from "@heroui/react";
+import { ChevronDown, ChevronUp, Eye, LoaderCircle, Plus, Trash2 } from "lucide-react";
 
 import { criarModeloFicha, editarModeloFicha } from "@/modules/fichas/modelos-actions";
 import {
   audienciasCampo,
+  campoEhInput,
+  camposVisiveisParaCliente,
   campoUsaOpcoes,
+  campoUsaOpcoesImagem,
   rotulosAudienciaCampo,
   rotulosTipoCampo,
   tiposCampo,
   type CampoModelo,
 } from "@/modules/fichas/campos";
+
+import { ConteudoModal } from "@/components/ui/modal-formulario";
+
+import { EditorOpcoesImagem } from "./editor-opcoes-imagem";
+import { FormularioDinamico } from "./formulario-dinamico";
 
 type ValoresConstrutor = {
   nome: string;
@@ -65,6 +74,7 @@ export function ConstrutorModelo({
   const [erroGeral, setErroGeral] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const previa = useOverlayState();
 
   const campos = watch("campos");
 
@@ -219,6 +229,13 @@ export function ConstrutorModelo({
                 </label>
               ) : null}
 
+              {tipoAtual && campoUsaOpcoesImagem(tipoAtual) ? (
+                <EditorOpcoesImagem
+                  aoAlterar={(novas) => setValue(`campos.${indice}.opcoesImagem`, novas)}
+                  opcoesIniciais={campos?.[indice]?.opcoesImagem ?? []}
+                />
+              ) : null}
+
               <div className="flex flex-wrap gap-4">
                 <label className="flex items-center gap-2 text-sm text-foreground">
                   <input
@@ -255,7 +272,8 @@ export function ConstrutorModelo({
 
       {erroGeral ? (
         <p
-          className="rounded-lg bg-perigo/10 px-3 py-2 text-sm font-medium text-perigo"
+          // `whitespace-pre-line`: a mensagem vem com uma linha por problema encontrado.
+          className="rounded-lg bg-perigo/10 px-3 py-2 text-sm font-medium whitespace-pre-line text-perigo"
           role="alert"
         >
           {erroGeral}
@@ -287,7 +305,16 @@ export function ConstrutorModelo({
           </div>
         </div>
       ) : (
-        <div className="flex justify-end">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <button
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-roxo/30 bg-lilas/10 px-5 text-sm font-semibold text-roxo transition hover:bg-lilas/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+            onClick={() => previa.open()}
+            type="button"
+          >
+            <Eye className="size-4" aria-hidden />
+            Pré-visualizar
+          </button>
+
           <button
             className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-brand px-5 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
             type="submit"
@@ -296,6 +323,58 @@ export function ConstrutorModelo({
           </button>
         </div>
       )}
+
+      <Modal state={previa}>
+        <Modal.Backdrop variant="opaque">
+          <Modal.Container size="lg">
+            <ConteudoModal titulo="Como o cliente vai ver">
+              <PreviaDoCliente campos={campos ?? []} />
+            </ConteudoModal>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
     </form>
+  );
+}
+
+/**
+ * Prévia do formulário. Mostra só o que o cliente enxerga (`camposVisiveisParaCliente`): campo de
+ * audiência "profissional" fica fora, senão a prévia mentiria sobre o que ele vai receber.
+ *
+ * Renderiza pelo `FormularioDinamico` de verdade, em modo `somenteVisualizacao` — uma reimplementação
+ * divergiria do formulário real na primeira mudança.
+ */
+function PreviaDoCliente({ campos }: { campos: CampoModelo[] }) {
+  const visiveis = camposVisiveisParaCliente(campos).filter((campo) => campo.rotulo.trim());
+  const ocultos = campos.filter(
+    (campo) => campoEhInput(campo.tipo) && campo.quemPreenche === "profissional",
+  ).length;
+
+  const temResposta = visiveis.some((campo) => campoEhInput(campo.tipo));
+
+  return (
+    <div className="grid gap-4">
+      <p className="rounded-xl border border-border bg-creme px-3 py-2 text-xs leading-relaxed text-muted">
+        É assim que a ficha aparece no link enviado ao cliente.
+        {ocultos > 0
+          ? ` ${ocultos} campo${ocultos > 1 ? "s" : ""} de preenchimento da profissional não aparece${ocultos > 1 ? "m" : ""} aqui.`
+          : ""}
+      </p>
+
+      {!temResposta ? (
+        <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted">
+          Nenhum campo para o cliente responder ainda. Dê um título aos campos e marque
+          &quot;Cliente preenche&quot;.
+        </p>
+      ) : (
+        <div className="rounded-2xl border border-border bg-surface p-4">
+          <FormularioDinamico
+            aoEnviar={async () => ({ status: "sucesso" })}
+            campos={visiveis}
+            somenteVisualizacao
+          />
+        </div>
+      )}
+    </div>
   );
 }
