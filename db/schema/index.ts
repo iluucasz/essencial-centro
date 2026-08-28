@@ -26,3 +26,4 @@ export * from "../../modules/assistente/schema";
 export * from "../../modules/biometria/schema";
 export * from "../../modules/dor/schema";
 export * from "../../modules/analises/schema";
+export * from "../../modules/whatsapp/schema";

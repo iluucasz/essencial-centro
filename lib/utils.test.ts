@@ -4,6 +4,7 @@ import {
   calcularVariacaoPercentual,
   capitalizarNome,
   cn,
+  mesmoDiaCalendario,
   primeiroDiaDoMes,
   ultimoDiaDoMes,
 } from "@/lib/utils";
@@ -114,5 +115,34 @@ describe("capitalizarNome", () => {
 
   it("capitaliza o conector quando ele é a primeira palavra do nome", () => {
     expect(capitalizarNome("do carmo")).toBe("Do Carmo");
+  });
+});
+
+describe("mesmoDiaCalendario", () => {
+  it("reconhece o mesmo dia mesmo com horas diferentes", () => {
+    expect(
+      mesmoDiaCalendario(
+        new Date("2026-08-28T09:00:00.000Z"),
+        new Date("2026-08-28T23:00:00.000Z"),
+      ),
+    ).toBe(true);
+  });
+
+  it("distingue dias diferentes", () => {
+    expect(
+      mesmoDiaCalendario(
+        new Date("2026-08-28T09:00:00.000Z"),
+        new Date("2026-08-29T09:00:00.000Z"),
+      ),
+    ).toBe(false);
+  });
+
+  it("distingue anos diferentes no mesmo mês/dia", () => {
+    expect(
+      mesmoDiaCalendario(
+        new Date("2025-08-28T09:00:00.000Z"),
+        new Date("2026-08-28T09:00:00.000Z"),
+      ),
+    ).toBe(false);
   });
 });

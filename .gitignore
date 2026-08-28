@@ -25,6 +25,11 @@
 .DS_Store
 *.pem
 
+# cache local de ferramenta alheia ao projeto (Salesforce CLI) — reescrito em tempo real por algum
+# processo/extensão da IDE, sem relação com este app; sem isso ele conflita com o stash automático
+# do lint-staged toda vez que um arquivo dele fica "não rastreado" e muda entre stash e restore.
+/.sf/
+
 # debug
 npm-debug.log*
 yarn-debug.log*

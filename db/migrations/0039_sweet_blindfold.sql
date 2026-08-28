@@ -1,0 +1,1 @@
+ALTER TABLE "configuracao_aniversario" ADD COLUMN "ultimo_disparo_automatico_em" timestamp;

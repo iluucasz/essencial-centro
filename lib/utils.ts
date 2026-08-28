@@ -40,6 +40,19 @@ export function capitalizarNome(nome: string): string {
     .join(" ");
 }
 
+/**
+ * Mesmo dia de calendário (ano/mês/dia), não o mesmo instante. Ambas as datas precisam já estar no
+ * mesmo esquema — horário de parede de Brasília gravado direto nos campos UTC, como `agoraBrasilia()`
+ * devolve — pra `getUTC*` dar o dia certo sem precisar converter fuso de novo.
+ */
+export function mesmoDiaCalendario(a: Date, b: Date): boolean {
+  return (
+    a.getUTCFullYear() === b.getUTCFullYear() &&
+    a.getUTCMonth() === b.getUTCMonth() &&
+    a.getUTCDate() === b.getUTCDate()
+  );
+}
+
 export function primeiroDiaDoMes(data: Date) {
   return new Date(Date.UTC(data.getUTCFullYear(), data.getUTCMonth(), 1));
 }
