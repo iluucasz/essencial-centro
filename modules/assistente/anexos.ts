@@ -1,5 +1,3 @@
-import { PDFParse } from "pdf-parse";
-
 import {
   LIMITE_BYTES_PDF_ASSISTENTE,
   LIMITE_CARACTERES_CONTEXTO_PDF_ASSISTENTE,
@@ -122,6 +120,15 @@ export function limitarTextoExtraidoPdf(
 }
 
 export async function extrairTextoPdf(data: Uint8Array) {
+  /*
+    Import dinâmico de propósito: "pdf-parse" arrasta pdfjs-dist, que tenta carregar
+    @napi-rs/canvas para polyfill de DOMMatrix/ImageData/Path2D. Um import estático no topo do
+    arquivo faz esse carregamento acontecer sempre que QUALQUER coisa deste módulo é importada —
+    inclusive por app/api/assistente/chat/route.ts, que só usa montarContextoAnexoAssistente e
+    nunca chama extrairTextoPdf. Isso derrubava toda mensagem do assistente em produção
+    (FUNCTION_INVOCATION_FAILED / "DOMMatrix is not defined") mesmo sem PDF nenhum envolvido.
+  */
+  const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({ data });
 
   try {
