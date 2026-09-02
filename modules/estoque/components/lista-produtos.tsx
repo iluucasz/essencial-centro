@@ -28,7 +28,7 @@ export function ListaProdutos({ produtos }: { produtos: ProdutoResumo[] }) {
       {produtos.map((p) => (
         <li key={p.id}>
           <div className="grid gap-2 rounded-lg border border-border bg-surface p-3 transition hover:bg-creme sm:grid-cols-[1fr_auto] sm:items-center">
-            <Link className="min-w-0" href={`/painel/estoque/${p.id}`}>
+            <Link className="min-w-0" href={`/painel/controles/${p.id}`}>
               <span className="block truncate text-sm font-medium text-foreground">{p.nome}</span>
               <span className="mt-1 block text-sm text-muted">
                 {p.disponivel} {p.unidade ?? "un."} disponíveis

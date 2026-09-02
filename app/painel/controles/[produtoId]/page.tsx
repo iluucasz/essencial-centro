@@ -37,10 +37,10 @@ export default async function ProdutoDetalhePage({
     <div className="grid gap-6">
       <Link
         className="inline-flex w-fit items-center gap-2 text-sm font-medium text-roxo hover:text-brand"
-        href="/painel/estoque"
+        href="/painel/controles"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
-        Voltar para estoque
+        Voltar para controles
       </Link>
 
       <header>

@@ -7,10 +7,10 @@ import { usePathname } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
 import {
   BarChart3,
-  Boxes,
   CalendarClock,
   ChevronLeft,
   ChevronRight,
+  ClipboardCheck,
   LayoutDashboard,
   Menu,
   MessageCircle,
@@ -64,9 +64,9 @@ const itensNavegacao = [
     papeis: ["profissional"],
   },
   {
-    href: "/painel/estoque",
-    label: "Estoque",
-    icone: Boxes,
+    href: "/painel/controles",
+    label: "Controles",
+    icone: ClipboardCheck,
     exato: false,
     papeis: ["profissional"],
   },

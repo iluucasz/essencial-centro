@@ -281,6 +281,13 @@
       "when": 1787934046538,
       "tag": "0039_sweet_blindfold",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1788303671928,
+      "tag": "0040_cold_baron_zemo",
+      "breakpoints": true
     }
   ]
 }

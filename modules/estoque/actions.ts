@@ -69,7 +69,7 @@ export async function criarProduto(_: EstadoFormularioEstoque = estadoInicial, f
     atualizadoPorId: usuarioAtual.id,
   });
 
-  revalidatePath("/painel/estoque");
+  revalidatePath("/painel/controles");
 
   return {
     status: "sucesso",
@@ -119,8 +119,8 @@ export async function atualizarProduto(
     } satisfies EstadoFormularioEstoque;
   }
 
-  revalidatePath("/painel/estoque");
-  revalidatePath(`/painel/estoque/${produtoId.data}`);
+  revalidatePath("/painel/controles");
+  revalidatePath(`/painel/controles/${produtoId.data}`);
 
   return {
     status: "sucesso",
@@ -170,7 +170,7 @@ export async function excluirProduto(
     } satisfies EstadoExclusaoEstoque;
   }
 
-  revalidatePath("/painel/estoque");
+  revalidatePath("/painel/controles");
 
   return {
     status: "sucesso",
@@ -203,8 +203,8 @@ export async function criarLote(_: EstadoFormularioEstoque = estadoInicial, form
     criadoPorId: usuarioAtual.id,
   });
 
-  revalidatePath("/painel/estoque");
-  revalidatePath(`/painel/estoque/${parsed.data.produtoId}`);
+  revalidatePath("/painel/controles");
+  revalidatePath(`/painel/controles/${parsed.data.produtoId}`);
 
   return {
     status: "sucesso",
@@ -266,8 +266,8 @@ export async function registrarSaida(
     criadoPorId: usuarioAtual.id,
   });
 
-  revalidatePath("/painel/estoque");
-  revalidatePath(`/painel/estoque/${registroLote.produtoId}`);
+  revalidatePath("/painel/controles");
+  revalidatePath(`/painel/controles/${registroLote.produtoId}`);
 
   return {
     status: "sucesso",

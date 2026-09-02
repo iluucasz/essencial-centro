@@ -198,13 +198,13 @@ export default async function PainelPage() {
   const alertasCompactos = alertasOperacionais
     ? [
         {
-          href: "/painel/estoque",
+          href: "/painel/controles",
           icone: PackageX,
           label: "Estoque baixo",
           valor: alertasOperacionais.estoqueBaixo,
         },
         {
-          href: "/painel/estoque",
+          href: "/painel/controles",
           icone: CalendarX,
           label: "Produtos vencendo",
           valor: alertasOperacionais.lotesVencendo,

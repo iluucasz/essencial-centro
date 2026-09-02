@@ -57,7 +57,7 @@ export function MenuAcoesProduto({ produto }: { produto: ProdutoFormulario }) {
           >
             <Link
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
-              href={`/painel/estoque/${produto.id}`}
+              href={`/painel/controles/${produto.id}`}
               onClick={() => setMenuAberto(false)}
               role="menuitem"
             >
