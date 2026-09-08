@@ -49,6 +49,14 @@ export const sessao = pgTable("sessao", {
   orientacoesPosAtendimento: text("orientacoes_pos_atendimento"),
   proximaSessaoRecomendada: date("proxima_sessao_recomendada", { mode: "date" }),
 
+  /**
+   * Quando o resumo da sessão foi enviado por WhatsApp ao cliente — `null` = nunca enviado.
+   * Dispara automaticamente ao registrar a sessão (`criarSessao`) e pode ser reenviado a qualquer
+   * momento pelo botão na UI; mesma filosofia de histórico simples de `agendamento.lembreteDiaAnteriorEm`
+   * (um timestamp, não uma tabela de log — só a profissional envia isso, nunca em massa).
+   */
+  whatsappEnviadoEm: timestamp("whatsapp_enviado_em", { mode: "date" }),
+
   presencaConfirmada: boolean("presenca_confirmada").notNull().default(true),
   criadoPorId: uuid("criado_por_id")
     .notNull()

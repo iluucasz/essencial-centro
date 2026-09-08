@@ -8,9 +8,13 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { agendamento } from "@/modules/agenda/schema";
 import { autorizarPapel } from "@/modules/auth/rbac";
+import { cliente } from "@/modules/clientes/schema";
 import { notificarCliente } from "@/modules/notificacoes/criar-notificacao";
+import { urlBaseNotificacoes } from "@/modules/notificacoes/email";
+import { enviarWhatsAppTexto } from "@/modules/notificacoes/whatsapp";
 import { pacote } from "@/modules/pacotes/schema";
 
+import { caminhoPortalSessao, montarNotificacaoSessaoConcluida } from "./notificacao";
 import { criarSessaoSchema, editarSessaoSchema, sessao } from "./schema";
 
 export type EstadoFormularioSessao = {
@@ -20,6 +24,9 @@ export type EstadoFormularioSessao = {
 };
 
 export type EstadoExclusaoSessao =
+  { status: "inicial" } | { status: "sucesso" } | { status: "erro"; mensagem: string };
+
+export type EstadoEnvioWhatsAppSessao =
   { status: "inicial" } | { status: "sucesso" } | { status: "erro"; mensagem: string };
 
 const estadoInicial: EstadoFormularioSessao = { status: "inicial" };
@@ -154,22 +161,38 @@ export async function criarSessao(_: EstadoFormularioSessao = estadoInicial, for
     } satisfies EstadoFormularioSessao;
   }
 
-  await db.insert(sessao).values({
-    ...vinculos.dados,
-    dataHora: "dataHora" in vinculos ? vinculos.dataHora : undefined,
-    profissionalId: usuarioAtual.id,
-    criadoPorId: usuarioAtual.id,
-    atualizadoPorId: usuarioAtual.id,
+  const [sessaoCriada] = await db
+    .insert(sessao)
+    .values({
+      ...vinculos.dados,
+      dataHora: "dataHora" in vinculos ? vinculos.dataHora : undefined,
+      profissionalId: usuarioAtual.id,
+      criadoPorId: usuarioAtual.id,
+      atualizadoPorId: usuarioAtual.id,
+    })
+    .returning({ id: sessao.id });
+
+  // Reforço automático (in-app + e-mail + WhatsApp) sempre que a sessão é registrada — não só
+  // quando há orientações, senão a cliente nunca fica sabendo que o atendimento foi registrado.
+  const { titulo, mensagem } = montarNotificacaoSessaoConcluida({
+    regiaoTratada: parsed.data.regiaoTratada ?? null,
+    escalaDorAntes: parsed.data.escalaDorAntes ?? null,
+    escalaDorDepois: parsed.data.escalaDorDepois ?? null,
+    orientacoesPosAtendimento: parsed.data.orientacoesPosAtendimento ?? null,
+  });
+  const resultadoNotificacao = await notificarCliente({
+    clienteId: vinculos.dados.clienteId,
+    tipo: "sessao_concluida",
+    titulo,
+    mensagem,
+    link: caminhoPortalSessao(sessaoCriada.id),
   });
 
-  if (parsed.data.orientacoesPosAtendimento) {
-    await notificarCliente({
-      clienteId: vinculos.dados.clienteId,
-      tipo: "sessao_concluida",
-      titulo: "Novas orientações do seu atendimento",
-      mensagem: parsed.data.orientacoesPosAtendimento,
-      link: "/portal/sessoes",
-    });
+  if (resultadoNotificacao.whatsapp.sent) {
+    await db
+      .update(sessao)
+      .set({ whatsappEnviadoEm: new Date() })
+      .where(eq(sessao.id, sessaoCriada.id));
   }
 
   revalidatePath(`/painel/clientes/${vinculos.dados.clienteId}`);
@@ -279,6 +302,75 @@ export async function excluirSessao(
   await db.delete(sessao).where(eq(sessao.id, id));
 
   revalidatePath(`/painel/clientes/${clienteId}`);
+
+  return { status: "sucesso" };
+}
+
+const reenviarWhatsAppSchema = z.object({ id: z.string().uuid("Sessão inválida.") });
+
+/**
+ * Botão manual de "(re)enviar por WhatsApp" — dispara só o canal WhatsApp, direto (sem passar por
+ * `notificarCliente`), pra não duplicar a notificação in-app/e-mail que já aconteceu (ou deveria
+ * ter acontecido) no envio automático de `criarSessao`. Cobre os dois casos do pedido: reenviar de
+ * propósito, ou enviar pela primeira vez quando o disparo automático falhou.
+ */
+export async function reenviarSessaoWhatsApp(
+  _estado: EstadoEnvioWhatsAppSessao,
+  formData: FormData,
+): Promise<EstadoEnvioWhatsAppSessao> {
+  autorizarPapel(await auth(), ["profissional"]);
+
+  const parsed = reenviarWhatsAppSchema.safeParse({ id: getValor(formData, "id") });
+
+  if (!parsed.success) {
+    return { status: "erro", mensagem: "Sessão inválida." };
+  }
+
+  const [registro] = await db
+    .select({
+      id: sessao.id,
+      clienteId: sessao.clienteId,
+      regiaoTratada: sessao.regiaoTratada,
+      escalaDorAntes: sessao.escalaDorAntes,
+      escalaDorDepois: sessao.escalaDorDepois,
+      orientacoesPosAtendimento: sessao.orientacoesPosAtendimento,
+    })
+    .from(sessao)
+    .where(eq(sessao.id, parsed.data.id))
+    .limit(1);
+
+  if (!registro) {
+    return { status: "erro", mensagem: "Sessão não encontrada." };
+  }
+
+  const [registroCliente] = await db
+    .select({ telefone: cliente.telefone })
+    .from(cliente)
+    .where(eq(cliente.id, registro.clienteId))
+    .limit(1);
+
+  if (!registroCliente?.telefone) {
+    return { status: "erro", mensagem: "Esta cliente não tem telefone cadastrado." };
+  }
+
+  const { titulo, mensagem } = montarNotificacaoSessaoConcluida(registro);
+  const link = `${urlBaseNotificacoes()}${caminhoPortalSessao(registro.id)}`;
+
+  const resultado = await enviarWhatsAppTexto({
+    telefone: registroCliente.telefone,
+    mensagem: `${titulo}\n\n${mensagem}\n\n${link}`,
+  });
+
+  if (!resultado.sent) {
+    return {
+      status: "erro",
+      mensagem: resultado.error ?? "Não foi possível enviar pelo WhatsApp agora.",
+    };
+  }
+
+  await db.update(sessao).set({ whatsappEnviadoEm: new Date() }).where(eq(sessao.id, registro.id));
+
+  revalidatePath(`/painel/clientes/${registro.clienteId}`);
 
   return { status: "sucesso" };
 }

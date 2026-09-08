@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { usuario } from "@/modules/auth/schema";
 import { cliente } from "@/modules/clientes/schema";
 
-import { enviarEmailNotificacao } from "./email";
+import { enviarEmailNotificacao, urlBaseNotificacoes } from "./email";
 import { notificacao, type TipoNotificacao } from "./schema";
 import { canalDesativado, type ResultadoNotificacao } from "./tipos";
 import { enviarWhatsAppImagem, enviarWhatsAppTexto } from "./whatsapp";
@@ -51,6 +51,13 @@ export async function notificarCliente(params: {
     .where(eq(cliente.id, params.clienteId))
     .limit(1);
 
+  // Mesmo link absoluto que o e-mail usa no botão "Acessar no portal" — sem isso o WhatsApp nunca
+  // trazia link nenhum, só o texto solto.
+  const linkCompleto = params.link ? `${urlBaseNotificacoes()}${params.link}` : null;
+  const mensagemWhatsapp = [`${params.titulo}\n\n${params.mensagem}`, linkCompleto]
+    .filter(Boolean)
+    .join("\n\n");
+
   const [resultadoEmail, resultadoWhatsapp] = await Promise.all([
     enviarEmailNotificacao({
       destinatarioEmail: usuarioCliente.email,
@@ -64,11 +71,11 @@ export async function notificarCliente(params: {
         ? enviarWhatsAppImagem({
             telefone: registroCliente.telefone,
             imagemBase64: params.whatsappImagemBase64,
-            legenda: `${params.titulo}\n\n${params.mensagem}`,
+            legenda: mensagemWhatsapp,
           })
         : enviarWhatsAppTexto({
             telefone: registroCliente.telefone,
-            mensagem: `${params.titulo}\n\n${params.mensagem}`,
+            mensagem: mensagemWhatsapp,
           })
       : Promise.resolve(canalDesativado),
   ]);

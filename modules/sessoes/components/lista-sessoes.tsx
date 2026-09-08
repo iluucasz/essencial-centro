@@ -10,6 +10,7 @@ import {
   Ellipsis,
   Eye,
   LoaderCircle,
+  MessageCircle,
   NotebookPen,
   Pencil,
   Search,
@@ -20,7 +21,12 @@ import {
 import { usePosicaoMenuAcoes } from "@/components/ui/menu-acoes";
 import { ConteudoModal, FecharModalProvider } from "@/components/ui/modal-formulario";
 import { cn } from "@/lib/utils";
-import { excluirSessao, type EstadoExclusaoSessao } from "@/modules/sessoes/actions";
+import {
+  excluirSessao,
+  reenviarSessaoWhatsApp,
+  type EstadoEnvioWhatsAppSessao,
+  type EstadoExclusaoSessao,
+} from "@/modules/sessoes/actions";
 import {
   filtrarSessoes,
   numerarSessoesPorData,
@@ -41,9 +47,11 @@ export type SessaoLista = SessaoFormulario & {
   dataHora: Date;
   criadoEm: Date;
   atualizadoEm: Date;
+  whatsappEnviadoEm: Date | null;
 };
 
 const estadoInicialExclusao: EstadoExclusaoSessao = { status: "inicial" };
+const estadoInicialEnvioWhatsApp: EstadoEnvioWhatsAppSessao = { status: "inicial" };
 
 const classeFiltro =
   "h-10 min-w-0 rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition outline-none placeholder:text-muted/70 focus:border-roxo focus:ring-2 focus:ring-roxo/20";
@@ -99,6 +107,62 @@ function BlocoTexto({ label, valor }: { label: string; valor: string | null | un
   );
 }
 
+function BotaoWhatsAppSessao({
+  sessaoId,
+  whatsappEnviadoEm,
+}: {
+  sessaoId: string;
+  whatsappEnviadoEm: Date | null;
+}) {
+  const router = useRouter();
+  const [estado, formAction, pendente] = useActionState(
+    reenviarSessaoWhatsApp,
+    estadoInicialEnvioWhatsApp,
+  );
+
+  useEffect(() => {
+    if (estado.status === "sucesso") router.refresh();
+  }, [estado.status, router]);
+
+  return (
+    <div className="grid gap-2 rounded-2xl border border-border bg-surface p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-roxo">Envio por WhatsApp</h3>
+          <p className="mt-1 text-xs text-muted">
+            {whatsappEnviadoEm
+              ? `Enviado em ${formatadorDataHora.format(whatsappEnviadoEm)}`
+              : "Ainda não enviado"}
+          </p>
+        </div>
+        <form action={formAction}>
+          <input name="id" type="hidden" value={sessaoId} />
+          <button
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 text-xs font-semibold text-foreground transition hover:bg-creme focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={pendente}
+            type="submit"
+          >
+            {pendente ? (
+              <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
+            ) : (
+              <MessageCircle className="size-3.5 text-brand" aria-hidden="true" />
+            )}
+            {whatsappEnviadoEm ? "Reenviar" : "Enviar"}
+          </button>
+        </form>
+      </div>
+      {estado.status === "erro" ? (
+        <p className="text-xs font-medium text-perigo" role="alert">
+          {estado.mensagem}
+        </p>
+      ) : null}
+      {estado.status === "sucesso" ? (
+        <p className="text-xs font-medium text-brand">Enviado agora.</p>
+      ) : null}
+    </div>
+  );
+}
+
 function DetalhesSessao({
   agendamentos,
   pacotes,
@@ -127,6 +191,8 @@ function DetalhesSessao({
         <CampoDetalhe label="Criada em" valor={formatarDataOpcional(sessao.criadoEm)} />
         <CampoDetalhe label="Atualizada em" valor={formatarDataOpcional(sessao.atualizadoEm)} />
       </dl>
+
+      <BotaoWhatsAppSessao sessaoId={sessao.id} whatsappEnviadoEm={sessao.whatsappEnviadoEm} />
 
       <dl className="grid gap-3 rounded-2xl border border-border bg-surface p-4 sm:grid-cols-2">
         <CampoDetalhe label="Região tratada" valor={sessao.regiaoTratada} />

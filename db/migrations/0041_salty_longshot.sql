@@ -1,0 +1,1 @@
+ALTER TABLE "sessao" ADD COLUMN "whatsapp_enviado_em" timestamp;

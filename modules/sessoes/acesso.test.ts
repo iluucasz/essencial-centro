@@ -26,6 +26,7 @@ const sessaoCompleta = {
   observacoesInternas: "Cliente com pendência financeira no pacote",
   orientacoesPosAtendimento: "Beber bastante água",
   proximaSessaoRecomendada: null,
+  whatsappEnviadoEm: null,
   presencaConfirmada: true,
   criadoPorId: "u1",
   atualizadoPorId: "u1",

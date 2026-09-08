@@ -2,13 +2,15 @@ import Link from "next/link";
 import { ArrowLeft, NotebookPen } from "lucide-react";
 
 import { ErroAutorizacao } from "@/modules/auth/rbac";
+import { ListaSessoesPortal } from "@/modules/sessoes/components/lista-sessoes-portal";
 import { listarMinhasSessoes } from "@/modules/sessoes/queries";
 
-function formatarData(data: Date) {
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "long", timeZone: "UTC" }).format(data);
-}
-
-export default async function MinhasSessoesPage() {
+export default async function MinhasSessoesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ sessao?: string }>;
+}) {
+  const { sessao: sessaoDestaqueId } = await searchParams;
   let sessoes: Awaited<ReturnType<typeof listarMinhasSessoes>> = [];
   let erro: string | null = null;
 
@@ -48,39 +50,8 @@ export default async function MinhasSessoesPage() {
           <div className="rounded-lg border border-border bg-surface p-6 text-sm text-muted">
             {erro}
           </div>
-        ) : sessoes.length === 0 ? (
-          <div className="rounded-lg border border-border bg-surface p-6 text-sm text-muted">
-            Nenhuma sessão registrada ainda.
-          </div>
         ) : (
-          <ul className="grid gap-4">
-            {sessoes.map((sessao) => (
-              <li
-                key={sessao.id}
-                className="grid gap-2 rounded-lg border border-border bg-surface p-4"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-medium text-foreground">
-                    {sessao.regiaoTratada ?? "Sessão"}
-                  </span>
-                  <span className="text-xs text-muted">{formatarData(sessao.dataHora)}</span>
-                </div>
-
-                {sessao.escalaDorAntes !== null && sessao.escalaDorDepois !== null ? (
-                  <p className="text-sm text-foreground">
-                    Dor antes/depois: {sessao.escalaDorAntes} → {sessao.escalaDorDepois}
-                  </p>
-                ) : null}
-
-                {sessao.orientacoesPosAtendimento ? (
-                  <p className="text-sm text-foreground">
-                    <span className="font-medium">Orientações: </span>
-                    {sessao.orientacoesPosAtendimento}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
+          <ListaSessoesPortal sessaoDestaqueId={sessaoDestaqueId} sessoes={sessoes} />
         )}
       </div>
     </main>
