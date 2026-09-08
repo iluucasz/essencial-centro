@@ -11,7 +11,6 @@ import { rotulosSituacaoPagamento, situacoesPagamento } from "@/modules/pacotes/
 import { modalidadeAtendimento, rotulosModalidadeAtendimento } from "@/modules/agenda/schema";
 import {
   diasDaSemana,
-  padraoRepeticao,
   rotulosPadraoRepeticao,
   type PadraoRepeticao,
 } from "@/modules/recorrencia/schema";
@@ -21,6 +20,13 @@ const estadoInicial: EstadoFormularioPacote = { status: "inicial" };
 
 const classeCampo =
   "h-11 w-full min-w-0 rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition outline-none placeholder:text-muted/70 focus:border-roxo focus:ring-2 focus:ring-roxo/20";
+
+/**
+ * Só "semanal" e "dias da semana escolhidos" no pré-preenchimento de Novo agendamento — "dia sim,
+ * dia não" e "mensal" saíram a pedido, sem uso real na clínica. `gerarOcorrencias` continua
+ * suportando os dois (não é o motor que muda, só o que aparece nesse formulário).
+ */
+const OPCOES_FREQUENCIA_NOVO_AGENDAMENTO: readonly PadraoRepeticao[] = ["semanal", "dias_semana"];
 
 const OPCOES_FORMA_PAGAMENTO = [
   "Pix",
@@ -315,7 +321,7 @@ export function FormularioContrato({
                 onChange={(e) => setFrequencia(e.target.value as PadraoRepeticao)}
                 value={frequencia}
               >
-                {padraoRepeticao.map((f) => (
+                {OPCOES_FREQUENCIA_NOVO_AGENDAMENTO.map((f) => (
                   <option key={f} value={f}>
                     {rotulosPadraoRepeticao[f]}
                   </option>
