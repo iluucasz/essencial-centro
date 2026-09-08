@@ -1,12 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { copy, del, put } from "@vercel/blob";
 import { eq } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { autorizarPapel } from "@/modules/auth/rbac";
-import { enviarWhatsAppTexto } from "@/modules/notificacoes/whatsapp";
+import {
+  enviarWhatsAppMidia,
+  enviarWhatsAppTexto,
+  tipoMidiaWhatsAppPorMimetype,
+} from "@/modules/notificacoes/whatsapp";
 
 import { dispararMensagensAniversario } from "./aniversario-job";
 import { personalizarMensagem } from "./mensagens";
@@ -20,6 +25,69 @@ import {
   mensagemPredefinida,
   salvarMensagemPredefinidaSchema,
 } from "./schema";
+
+type CamposAnexo = {
+  arquivoPathname: string | null;
+  arquivoUrl: string | null;
+  arquivoNome: string | null;
+  arquivoContentType: string | null;
+  arquivoTamanhoBytes: number | null;
+};
+
+const anexoRemovido: CamposAnexo = {
+  arquivoPathname: null,
+  arquivoUrl: null,
+  arquivoNome: null,
+  arquivoContentType: null,
+  arquivoTamanhoBytes: null,
+};
+
+/**
+ * ⚠️ `access: "public"` de propósito, diferente dos anexos clínicos (documentos/análises/controles,
+ * sempre atrás de rota autenticada): isto é material de divulgação, não dado de cliente, e a
+ * Evolution API precisa buscar o arquivo direto pela URL pra mandar no WhatsApp — não tem como
+ * ela passar por uma rota autenticada nossa.
+ */
+async function uploadAnexoWhatsApp(arquivo: File, pasta: string): Promise<CamposAnexo> {
+  const blob = await put(`${pasta}/${arquivo.name}`, arquivo, {
+    access: "public",
+    addRandomSuffix: true,
+    contentType: arquivo.type || "application/octet-stream",
+  });
+
+  return {
+    arquivoPathname: blob.pathname,
+    arquivoUrl: blob.url,
+    arquivoNome: arquivo.name,
+    arquivoContentType: arquivo.type || "application/octet-stream",
+    arquivoTamanhoBytes: arquivo.size,
+  };
+}
+
+/**
+ * Resolve o anexo de um SALVAMENTO de mensagem predefinida (criação ou edição): arquivo novo
+ * substitui (apagando o antigo do blob), o checkbox remove, e não mexendo em nenhum dos dois
+ * mantém o anexo atual como estava — por isso pode devolver `{}` (nenhuma mudança).
+ */
+async function resolverAnexoPredefinida(params: {
+  arquivo: File | undefined;
+  removerArquivo: boolean;
+  pathnameAtual: string | null;
+}): Promise<CamposAnexo | Record<string, never>> {
+  if (params.arquivo) {
+    if (params.pathnameAtual) await del(params.pathnameAtual).catch(() => {});
+
+    return uploadAnexoWhatsApp(params.arquivo, "whatsapp/predefinidas");
+  }
+
+  if (params.removerArquivo) {
+    if (params.pathnameAtual) await del(params.pathnameAtual).catch(() => {});
+
+    return anexoRemovido;
+  }
+
+  return {};
+}
 
 /*
   Enviar pra muitos clientes é sequencial e com pequena pausa entre mensagens (ver
@@ -132,6 +200,8 @@ export async function salvarMensagemPredefinida(
     id: formData.get("id"),
     titulo: formData.get("titulo"),
     conteudo: formData.get("conteudo"),
+    arquivo: formData.get("arquivo"),
+    removerArquivo: formData.get("removerArquivo"),
   });
 
   if (!parsed.success) {
@@ -142,12 +212,31 @@ export async function salvarMensagemPredefinida(
     };
   }
 
+  let pathnameAtual: string | null = null;
+
+  if (parsed.data.id) {
+    const [registro] = await db
+      .select({ arquivoPathname: mensagemPredefinida.arquivoPathname })
+      .from(mensagemPredefinida)
+      .where(eq(mensagemPredefinida.id, parsed.data.id))
+      .limit(1);
+
+    pathnameAtual = registro?.arquivoPathname ?? null;
+  }
+
+  const anexo = await resolverAnexoPredefinida({
+    arquivo: parsed.data.arquivo,
+    removerArquivo: parsed.data.removerArquivo,
+    pathnameAtual,
+  });
+
   if (parsed.data.id) {
     await db
       .update(mensagemPredefinida)
       .set({
         titulo: parsed.data.titulo,
         conteudo: parsed.data.conteudo,
+        ...anexo,
         atualizadoEm: new Date(),
       })
       .where(eq(mensagemPredefinida.id, parsed.data.id));
@@ -155,6 +244,7 @@ export async function salvarMensagemPredefinida(
     await db.insert(mensagemPredefinida).values({
       titulo: parsed.data.titulo,
       conteudo: parsed.data.conteudo,
+      ...anexo,
       criadoPorId: usuarioAtual.id,
     });
   }
@@ -177,11 +267,63 @@ export async function excluirMensagemPredefinida(
 ): Promise<EstadoExclusaoMensagemPredefinida> {
   autorizarPapel(await auth(), ["profissional"]);
 
+  const [registro] = await db
+    .select({ arquivoPathname: mensagemPredefinida.arquivoPathname })
+    .from(mensagemPredefinida)
+    .where(eq(mensagemPredefinida.id, id))
+    .limit(1);
+
   await db.delete(mensagemPredefinida).where(eq(mensagemPredefinida.id, id));
+
+  // Campanhas que já herdaram este anexo têm sua PRÓPRIA cópia (ver enviarCampanhaMensagem) —
+  // apagar o blob da predefinida não afeta o histórico delas.
+  if (registro?.arquivoPathname) await del(registro.arquivoPathname).catch(() => {});
 
   revalidatePath("/painel/whatsapp");
 
   return { status: "sucesso", mensagem: "Mensagem predefinida excluída." };
+}
+
+/**
+ * Resolve o anexo de uma campanha: arquivo novo é enviado; sem arquivo novo e sem pedido de
+ * remoção, herda o anexo da mensagem predefinida escolhida (se ela tiver um) — mas como uma CÓPIA
+ * própria no blob, não uma referência à mesma. Campanha é histórico: se a predefinida for editada
+ * ou apagada depois, o que já foi enviado não pode quebrar ou mudar de conteúdo retroativamente.
+ */
+async function resolverAnexoCampanha(params: {
+  arquivo: File | undefined;
+  removerArquivo: boolean;
+  mensagemPredefinidaId: string | undefined;
+}): Promise<CamposAnexo> {
+  if (params.arquivo) return uploadAnexoWhatsApp(params.arquivo, "whatsapp/campanhas");
+  if (params.removerArquivo || !params.mensagemPredefinidaId) return anexoRemovido;
+
+  const [predefinida] = await db
+    .select({
+      arquivoPathname: mensagemPredefinida.arquivoPathname,
+      arquivoNome: mensagemPredefinida.arquivoNome,
+      arquivoContentType: mensagemPredefinida.arquivoContentType,
+      arquivoTamanhoBytes: mensagemPredefinida.arquivoTamanhoBytes,
+    })
+    .from(mensagemPredefinida)
+    .where(eq(mensagemPredefinida.id, params.mensagemPredefinidaId))
+    .limit(1);
+
+  if (!predefinida?.arquivoPathname) return anexoRemovido;
+
+  const copia = await copy(
+    predefinida.arquivoPathname,
+    `whatsapp/campanhas/${predefinida.arquivoNome ?? "anexo"}`,
+    { access: "public", addRandomSuffix: true },
+  );
+
+  return {
+    arquivoPathname: copia.pathname,
+    arquivoUrl: copia.url,
+    arquivoNome: predefinida.arquivoNome,
+    arquivoContentType: predefinida.arquivoContentType,
+    arquivoTamanhoBytes: predefinida.arquivoTamanhoBytes,
+  };
 }
 
 export type EstadoEnvioCampanha = {
@@ -214,6 +356,8 @@ export async function enviarCampanhaMensagem(
     mensagemPredefinidaId: formData.get("mensagemPredefinidaId"),
     destinatarios: formData.get("destinatarios"),
     clienteIds: formData.getAll("clienteIds"),
+    arquivo: formData.get("arquivo"),
+    removerArquivo: formData.get("removerArquivo"),
   });
 
   if (!parsed.success) {
@@ -234,12 +378,19 @@ export async function enviarCampanhaMensagem(
     return { status: "erro", mensagem: "Nenhum destinatário com telefone cadastrado." };
   }
 
+  const anexo = await resolverAnexoCampanha({
+    arquivo: parsed.data.arquivo,
+    removerArquivo: parsed.data.removerArquivo,
+    mensagemPredefinidaId: parsed.data.mensagemPredefinidaId,
+  });
+
   const [campanha] = await db
     .insert(campanhaMensagem)
     .values({
       conteudo: parsed.data.conteudo,
       mensagemPredefinidaId: parsed.data.mensagemPredefinidaId ?? null,
       destinatarios: parsed.data.destinatarios,
+      ...anexo,
       criadoPorId: usuarioAtual.id,
     })
     .returning({ id: campanhaMensagem.id });
@@ -255,10 +406,21 @@ export async function enviarCampanhaMensagem(
     if (!destinatario.telefone) continue;
 
     const primeiroNome = destinatario.nome.trim().split(/\s+/)[0] ?? destinatario.nome;
-    const resultado = await enviarWhatsAppTexto({
-      telefone: destinatario.telefone,
-      mensagem: personalizarMensagem(parsed.data.conteudo, primeiroNome),
-    });
+    const mensagemPersonalizada = personalizarMensagem(parsed.data.conteudo, primeiroNome);
+    const resultado =
+      anexo.arquivoUrl && anexo.arquivoContentType
+        ? await enviarWhatsAppMidia({
+            telefone: destinatario.telefone,
+            media: anexo.arquivoUrl,
+            mediatype: tipoMidiaWhatsAppPorMimetype(anexo.arquivoContentType),
+            mimetype: anexo.arquivoContentType,
+            legenda: mensagemPersonalizada,
+            nomeArquivo: anexo.arquivoNome ?? undefined,
+          })
+        : await enviarWhatsAppTexto({
+            telefone: destinatario.telefone,
+            mensagem: mensagemPersonalizada,
+          });
 
     await db.insert(envioCampanhaMensagem).values({
       campanhaId: campanha.id,

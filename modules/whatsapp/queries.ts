@@ -99,6 +99,8 @@ export async function listarHistoricoCampanhas(limite = 20) {
       id: campanhaMensagem.id,
       conteudo: campanhaMensagem.conteudo,
       destinatarios: campanhaMensagem.destinatarios,
+      arquivoUrl: campanhaMensagem.arquivoUrl,
+      arquivoNome: campanhaMensagem.arquivoNome,
       criadoEm: campanhaMensagem.criadoEm,
     })
     .from(campanhaMensagem)

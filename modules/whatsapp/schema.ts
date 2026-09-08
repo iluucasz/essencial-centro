@@ -76,11 +76,24 @@ export type AtualizarConfiguracaoAniversarioInput = z.infer<
 /**
  * Biblioteca de mensagens reaproveitáveis — a profissional monta uma vez ("Promoção do mês",
  * "Lembrete de retorno"...) e usa em várias campanhas depois, sem reescrever toda vez.
+ *
+ * `arquivo*`: anexo opcional (imagem, vídeo, PDF ou qualquer outro arquivo) que acompanha a
+ * mensagem. Diferente dos anexos clínicos (`modules/controles`/`modules/documentos`, que guardam
+ * só o pathname e nunca a URL — servidos por rota autenticada), este é conteúdo de
+ * marketing/divulgação, não dado de cliente: o blob fica público de propósito, e `arquivoUrl` é
+ * guardado direto (sem custo de um `head()` por leitura) porque é exatamente essa URL que a
+ * Evolution API busca na hora de enviar (`modules/notificacoes/whatsapp.ts`) e que a tela usa pra
+ * pré-visualizar/baixar.
  */
 export const mensagemPredefinida = pgTable("mensagem_predefinida", {
   id: uuid("id").defaultRandom().primaryKey(),
   titulo: text("titulo").notNull(),
   conteudo: text("conteudo").notNull(),
+  arquivoPathname: text("arquivo_pathname"),
+  arquivoUrl: text("arquivo_url"),
+  arquivoNome: text("arquivo_nome"),
+  arquivoContentType: text("arquivo_content_type"),
+  arquivoTamanhoBytes: integer("arquivo_tamanho_bytes"),
   criadoPorId: uuid("criado_por_id")
     .notNull()
     .references(() => usuario.id, { onDelete: "restrict" }),
@@ -105,6 +118,12 @@ export const campanhaMensagem = pgTable("campanha_mensagem", {
     onDelete: "set null",
   }),
   destinatarios: destinatariosCampanhaEnum("destinatarios").notNull(),
+  /** Anexo desta campanha — pode ter vindo junto do modelo escolhido ou sido trocado na hora. */
+  arquivoPathname: text("arquivo_pathname"),
+  arquivoUrl: text("arquivo_url"),
+  arquivoNome: text("arquivo_nome"),
+  arquivoContentType: text("arquivo_content_type"),
+  arquivoTamanhoBytes: integer("arquivo_tamanho_bytes"),
   criadoPorId: uuid("criado_por_id")
     .notNull()
     .references(() => usuario.id, { onDelete: "restrict" }),
@@ -129,6 +148,30 @@ export const envioCampanhaMensagem = pgTable("envio_campanha_mensagem", {
   enviadoEm: timestamp("enviado_em", { mode: "date" }).notNull().defaultNow(),
 });
 
+/** Teto generoso o bastante pra vídeo curto, mas ainda dentro do que a Evolution/WhatsApp aceitam. */
+export const TAMANHO_MAXIMO_ANEXO_WHATSAPP_BYTES = 16 * 1024 * 1024;
+
+/**
+ * Sem lista de mimetypes permitidos de propósito — "outros tipos de arquivo" é parte do pedido, e
+ * `tipoMidiaWhatsAppPorMimetype` já trata qualquer coisa que não seja imagem/vídeo como documento
+ * genérico. O teto de tamanho é a única guarda real.
+ */
+export const arquivoAnexoWhatsAppSchema = z.preprocess(
+  (valor) => (valor instanceof File && valor.size === 0 ? undefined : valor),
+  z
+    .instanceof(File, { message: "Anexo inválido." })
+    .refine(
+      (arquivo) => arquivo.size <= TAMANHO_MAXIMO_ANEXO_WHATSAPP_BYTES,
+      `O arquivo deve ter até ${TAMANHO_MAXIMO_ANEXO_WHATSAPP_BYTES / 1024 / 1024}MB.`,
+    )
+    .optional(),
+);
+
+const removerArquivoSchema = z.preprocess(
+  (valor) => valor === "on" || valor === "true",
+  z.boolean(),
+);
+
 export const salvarMensagemPredefinidaSchema = z.object({
   id: z.preprocess(
     (valor) => (typeof valor === "string" && valor.trim() !== "" ? valor : undefined),
@@ -136,6 +179,8 @@ export const salvarMensagemPredefinidaSchema = z.object({
   ),
   titulo: z.string().trim().min(2, "Informe um título.").max(120),
   conteudo: z.string().trim().min(2, "Escreva o conteúdo da mensagem.").max(1000),
+  arquivo: arquivoAnexoWhatsAppSchema,
+  removerArquivo: removerArquivoSchema,
 });
 
 const idOpcional = z.preprocess(
@@ -149,6 +194,8 @@ export const enviarCampanhaSchema = z
     mensagemPredefinidaId: idOpcional,
     destinatarios: z.enum(destinatariosCampanha),
     clienteIds: z.array(z.string().uuid()).default([]),
+    arquivo: arquivoAnexoWhatsAppSchema,
+    removerArquivo: removerArquivoSchema,
   })
   .refine((dados) => dados.destinatarios !== "selecionados" || dados.clienteIds.length > 0, {
     message: "Selecione ao menos um cliente.",

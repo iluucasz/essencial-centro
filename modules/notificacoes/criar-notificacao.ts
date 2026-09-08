@@ -7,7 +7,7 @@ import { cliente } from "@/modules/clientes/schema";
 import { enviarEmailNotificacao, urlBaseNotificacoes } from "./email";
 import { notificacao, type TipoNotificacao } from "./schema";
 import { canalDesativado, type ResultadoNotificacao } from "./tipos";
-import { enviarWhatsAppImagem, enviarWhatsAppTexto } from "./whatsapp";
+import { enviarWhatsAppMidia, enviarWhatsAppTexto } from "./whatsapp";
 
 /**
  * Usado internamente por outros módulos (agenda, sessões…) logo após uma ação real do usuário —
@@ -68,10 +68,13 @@ export async function notificarCliente(params: {
     }),
     registroCliente?.telefone
       ? params.whatsappImagemBase64
-        ? enviarWhatsAppImagem({
+        ? enviarWhatsAppMidia({
             telefone: registroCliente.telefone,
-            imagemBase64: params.whatsappImagemBase64,
+            media: params.whatsappImagemBase64,
+            mediatype: "image",
+            mimetype: "image/png",
             legenda: mensagemWhatsapp,
+            nomeArquivo: "qr-presenca.png",
           })
         : enviarWhatsAppTexto({
             telefone: registroCliente.telefone,

@@ -2,8 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   consultarStatusConexaoWhatsApp,
+  enviarWhatsAppMidia,
   enviarWhatsAppTexto,
   normalizarTelefone,
+  tipoMidiaWhatsAppPorMimetype,
 } from "./whatsapp";
 
 const ambienteOriginal = { ...process.env };
@@ -189,6 +191,84 @@ describe("enviarWhatsAppTexto", () => {
       sent: false,
       error: "Tempo limite ao chamar a Evolution API.",
     });
+  });
+});
+
+describe("tipoMidiaWhatsAppPorMimetype", () => {
+  it("classifica imagem", () => {
+    expect(tipoMidiaWhatsAppPorMimetype("image/png")).toBe("image");
+    expect(tipoMidiaWhatsAppPorMimetype("image/jpeg")).toBe("image");
+  });
+
+  it("classifica vídeo", () => {
+    expect(tipoMidiaWhatsAppPorMimetype("video/mp4")).toBe("video");
+  });
+
+  // PDF e "qualquer outro tipo de arquivo" caem em document — é o fallback genérico da
+  // Evolution/WhatsApp, não uma lista fechada de mimetypes aceitos.
+  it("classifica PDF e qualquer outro tipo como document", () => {
+    expect(tipoMidiaWhatsAppPorMimetype("application/pdf")).toBe("document");
+    expect(tipoMidiaWhatsAppPorMimetype("application/zip")).toBe("document");
+    expect(tipoMidiaWhatsAppPorMimetype("text/plain")).toBe("document");
+  });
+});
+
+describe("enviarWhatsAppMidia", () => {
+  beforeEach(() => {
+    process.env = { ...ambienteOriginal };
+  });
+
+  afterEach(() => {
+    process.env = { ...ambienteOriginal };
+    vi.restoreAllMocks();
+  });
+
+  it("manda mediatype/mimetype/media/legenda corretos pra Evolution API", async () => {
+    configurarAmbiente();
+    const fetchMock = vi
+      .spyOn(global, "fetch")
+      .mockResolvedValue(new Response("{}", { status: 200 }));
+
+    await enviarWhatsAppMidia({
+      telefone: "21999999999",
+      media: "https://exemplo.blob.vercel-storage.com/panfleto.png",
+      mediatype: "image",
+      mimetype: "image/png",
+      legenda: "Promoção do mês",
+      nomeArquivo: "panfleto.png",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, opcoes] = fetchMock.mock.calls[0]!;
+    expect(url).toBe("https://evolution.example.com/message/sendMedia/clinica");
+
+    const corpo = JSON.parse(opcoes?.body as string);
+    expect(corpo).toMatchObject({
+      number: "5521999999999",
+      mediatype: "image",
+      mimetype: "image/png",
+      media: "https://exemplo.blob.vercel-storage.com/panfleto.png",
+      fileName: "panfleto.png",
+      caption: "Promoção do mês",
+    });
+  });
+
+  it("não chama a API quando a Evolution não está configurada", async () => {
+    delete process.env.EVOLUTION_API_URL;
+    delete process.env.EVOLUTION_API_KEY;
+    delete process.env.EVOLUTION_INSTANCE;
+    const fetchMock = vi.spyOn(global, "fetch");
+
+    const resultado = await enviarWhatsAppMidia({
+      telefone: "21999999999",
+      media: "https://exemplo.blob.vercel-storage.com/arquivo.pdf",
+      mediatype: "document",
+      mimetype: "application/pdf",
+      legenda: "Olá",
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(resultado).toEqual({ attempted: false, sent: false, error: null });
   });
 });
 

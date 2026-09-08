@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { Modal, useOverlayState } from "@heroui/react";
-import { LoaderCircle, Pencil, Plus, Save, Trash2 } from "lucide-react";
+import { LoaderCircle, Paperclip, Pencil, Plus, Save, Trash2 } from "lucide-react";
 
 import {
   ConteudoModal,
@@ -17,6 +17,8 @@ import {
   type EstadoMensagemPredefinida,
 } from "@/modules/whatsapp/actions";
 import type { MensagemPredefinida } from "@/modules/whatsapp/schema";
+
+import { CampoAnexoWhatsApp } from "./campo-anexo";
 
 const estadoInicial: EstadoMensagemPredefinida = { status: "inicial" };
 
@@ -70,6 +72,19 @@ function FormularioMensagemPredefinida({ mensagem }: { mensagem?: MensagemPredef
           <p className="text-xs text-perigo">{estado.campos.conteudo[0]}</p>
         ) : null}
       </div>
+
+      <CampoAnexoWhatsApp
+        anexoAtual={
+          mensagem?.arquivoUrl && mensagem.arquivoNome
+            ? { url: mensagem.arquivoUrl, nome: mensagem.arquivoNome }
+            : null
+        }
+        idBase={`predefinida-${mensagem?.id ?? "nova"}`}
+        resetToken={estado}
+      />
+      {estado.campos?.arquivo ? (
+        <p className="text-xs text-perigo">{estado.campos.arquivo[0]}</p>
+      ) : null}
 
       {estado.status === "erro" && estado.mensagem ? (
         <p
@@ -134,6 +149,17 @@ function CartaoMensagemPredefinida({ mensagem }: { mensagem: MensagemPredefinida
         </span>
       </div>
       <p className="line-clamp-2 text-sm break-words text-muted">{mensagem.conteudo}</p>
+      {mensagem.arquivoUrl && mensagem.arquivoNome ? (
+        <a
+          className="flex w-fit items-center gap-1.5 text-xs font-medium text-roxo hover:underline"
+          href={mensagem.arquivoUrl}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          <Paperclip className="size-3.5 shrink-0" aria-hidden="true" />
+          <span className="max-w-40 truncate">{mensagem.arquivoNome}</span>
+        </a>
+      ) : null}
 
       <Modal state={modalEdicao}>
         <Modal.Backdrop variant="opaque">

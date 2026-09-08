@@ -1,4 +1,4 @@
-import { CheckCircle2, Send, Users, XCircle } from "lucide-react";
+import { CheckCircle2, Paperclip, Send, Users, XCircle } from "lucide-react";
 
 const formatadorData = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
@@ -18,6 +18,8 @@ export function HistoricoCampanhas({
     id: string;
     conteudo: string;
     destinatarios: "todos" | "selecionados";
+    arquivoUrl: string | null;
+    arquivoNome: string | null;
     criadoEm: Date;
     enviados: number;
     falhas: number;
@@ -47,6 +49,17 @@ export function HistoricoCampanhas({
           </div>
 
           <p className="line-clamp-2 text-sm break-words text-muted">{campanha.conteudo}</p>
+          {campanha.arquivoUrl && campanha.arquivoNome ? (
+            <a
+              className="flex w-fit items-center gap-1.5 text-xs font-medium text-roxo hover:underline"
+              href={campanha.arquivoUrl}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              <Paperclip className="size-3.5 shrink-0" aria-hidden="true" />
+              <span className="max-w-40 truncate">{campanha.arquivoNome}</span>
+            </a>
+          ) : null}
 
           <div className="flex flex-wrap items-center gap-3 text-xs">
             <span className="flex items-center gap-1 text-brand">

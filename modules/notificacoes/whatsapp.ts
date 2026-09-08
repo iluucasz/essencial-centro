@@ -109,14 +109,29 @@ export async function enviarWhatsAppTexto(params: {
   }
 }
 
+export const tiposMidiaWhatsApp = ["image", "video", "document"] as const;
+export type TipoMidiaWhatsApp = (typeof tiposMidiaWhatsApp)[number];
+
+/** Document é o "arquivo genérico" da Evolution/WhatsApp — cobre PDF e qualquer coisa que não seja imagem/vídeo. */
+export function tipoMidiaWhatsAppPorMimetype(mimetype: string): TipoMidiaWhatsApp {
+  if (mimetype.startsWith("image/")) return "image";
+  if (mimetype.startsWith("video/")) return "video";
+
+  return "document";
+}
+
 /**
- * Envio de imagem (ex.: QR de presença) via Evolution API (`sendMedia`). Mesma postura do
- * `enviarWhatsAppTexto`: nunca lança, é reforço não-bloqueante. `imagemBase64` é o conteúdo puro
- * (sem o prefixo `data:image/...;base64,`).
+ * Envio de mídia (imagem, vídeo, PDF ou qualquer outro arquivo) via Evolution API (`sendMedia`).
+ * Mesma postura do `enviarWhatsAppTexto`: nunca lança, é reforço não-bloqueante. `media` aceita
+ * tanto uma URL pública (o que a Evolution busca do lado dela — usado pelos anexos de campanha já
+ * armazenados no Vercel Blob) quanto base64 puro sem prefixo `data:...;base64,` (usado pelo QR de
+ * presença, gerado em memória, sem passar por storage).
  */
-export async function enviarWhatsAppImagem(params: {
+export async function enviarWhatsAppMidia(params: {
   telefone: string;
-  imagemBase64: string;
+  media: string;
+  mediatype: TipoMidiaWhatsApp;
+  mimetype: string;
   legenda: string;
   nomeArquivo?: string;
 }): Promise<ResultadoEnvioCanal> {
@@ -140,10 +155,10 @@ export async function enviarWhatsAppImagem(params: {
       headers: { "Content-Type": "application/json", apikey: apiKey },
       body: JSON.stringify({
         number: numero,
-        mediatype: "image",
-        mimetype: "image/png",
-        media: params.imagemBase64,
-        fileName: params.nomeArquivo ?? "qr-presenca.png",
+        mediatype: params.mediatype,
+        mimetype: params.mimetype,
+        media: params.media,
+        fileName: params.nomeArquivo ?? "arquivo",
         caption: params.legenda,
       }),
       signal: controlador.signal,
@@ -151,18 +166,14 @@ export async function enviarWhatsAppImagem(params: {
 
     if (!resposta.ok) {
       const corpo = await resposta.text().catch(() => "");
-      console.error(
-        "Falha ao enviar imagem no WhatsApp via Evolution API:",
-        resposta.status,
-        corpo,
-      );
+      console.error("Falha ao enviar mídia no WhatsApp via Evolution API:", resposta.status, corpo);
       return { attempted: true, sent: false, error: `Evolution API respondeu ${resposta.status}.` };
     }
 
     return { attempted: true, sent: true, error: null };
   } catch (error) {
     const timeout = error instanceof Error && error.name === "AbortError";
-    console.error("Erro ao enviar imagem no WhatsApp via Evolution API:", error);
+    console.error("Erro ao enviar mídia no WhatsApp via Evolution API:", error);
     return {
       attempted: true,
       sent: false,

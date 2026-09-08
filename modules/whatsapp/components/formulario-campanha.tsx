@@ -9,6 +9,8 @@ import { enviarCampanhaMensagem, type EstadoEnvioCampanha } from "@/modules/what
 import { personalizarMensagem } from "@/modules/whatsapp/mensagens";
 import type { MensagemPredefinida } from "@/modules/whatsapp/schema";
 
+import { CampoAnexoWhatsApp } from "./campo-anexo";
+
 const estadoInicial: EstadoEnvioCampanha = { status: "inicial" };
 const NOME_EXEMPLO = "Maria";
 
@@ -189,6 +191,8 @@ export function FormularioCampanha({
   const [destinatarios, setDestinatarios] = useState<"todos" | "selecionados">("todos");
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
 
+  const modeloSelecionado = mensagensPredefinidas.find((m) => m.id === mensagemPredefinidaId);
+
   function selecionarModelo(id: string) {
     setMensagemPredefinidaId(id);
 
@@ -254,6 +258,22 @@ export function FormularioCampanha({
             nome do cliente.
           </p>
         </div>
+
+        <CampoAnexoWhatsApp
+          anexoAtual={
+            modeloSelecionado?.arquivoUrl && modeloSelecionado.arquivoNome
+              ? { url: modeloSelecionado.arquivoUrl, nome: modeloSelecionado.arquivoNome }
+              : null
+          }
+          idBase="campanha"
+          key={mensagemPredefinidaId}
+          resetToken={estado}
+        />
+        {estado.status === "erro" && estado.campos?.arquivo ? (
+          <p className="text-sm font-medium text-perigo" role="alert">
+            {estado.campos.arquivo[0]}
+          </p>
+        ) : null}
 
         <fieldset className="grid gap-2">
           <legend className="text-sm font-medium text-foreground">Destinatários</legend>
