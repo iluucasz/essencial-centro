@@ -3,7 +3,7 @@
  *
  * Fica separado de `actions.ts`/rota para ser função pura e testável — o que o modelo recebe é a
  * parte mais fácil de degradar sem ninguém perceber, e a mais sensível: é dado de saúde saindo pra
- * um terceiro (Groq). Ver `docs/context/06-lgpd-seguranca.md`.
+ * um terceiro (DeepSeek). Ver `docs/context/06-lgpd-seguranca.md`.
  *
  * Regra que atravessa o módulo: a IA produz **apoio à decisão**, nunca conduta fechada. Toda análise
  * nasce como rascunho e só vale clinicamente depois que a profissional revisa

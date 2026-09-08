@@ -181,20 +181,23 @@ Fase 2 concluída — próximo passo é a Fase 3.
 ## Fase 3
 
 - ✅ Assistente de IA — `modules/assistente` (botão flutuante em todo `/painel/*`, restrito a
-  `profissional` — só aparece quando `GROQ_API_KEY` está configurada, senão fica oculto,
+  `profissional` — só aparece quando `DEEPSEEK_API_KEY` está configurada, senão fica oculto,
   igual à degradação silenciosa já usada em e-mail/WhatsApp). Responde perguntas em linguagem
   natural sobre dado já registrado em qualquer módulo (clientes, evolução, medidas, sessões,
   medicamentos, financeiro, estoque, agenda, pacotes, documentos, relatórios) via tool-calling
-  (Groq + Vercel AI SDK, `openai/gpt-oss-120b`) sobre as próprias `queries.ts` já autorizadas —
-  nunca acesso cru ao banco, então a mesma checagem de role/posse que protege o painel inteiro
-  protege o assistente de graça. Pode dar **recomendações de conduta/medicação como apoio à
-  decisão** (nunca prescrição/decisão automática): com aviso de que a decisão final é da
-  profissional, explicando o porquê e checando alergias/medicamentos já registrados antes de citar
-  remédio (política no prompt). O módulo `modules/medicamentos` em si continua sem calcular
-  interação (`alertaInteracao` é manual). Histórico simples por
-  profissional (`mensagem_assistente`, sem thread/conversa separada — escopo enxuto de propósito).
-  **Limitações conhecidas**: sem rate-limit/teto de custo de chamada à Groq nesta fase; contexto
-  enviado ao modelo é limitado às últimas 20 mensagens da conversa.
+  (DeepSeek + Vercel AI SDK, `deepseek-v4-flash` — trocado de Groq em 07/09/2026 por
+  instabilidade) sobre as próprias `queries.ts` já autorizadas — nunca acesso cru ao banco, então a
+  mesma checagem de role/posse que protege o painel inteiro protege o assistente de graça. Pode dar
+  **recomendações de conduta/medicação como apoio à decisão** (nunca prescrição/decisão
+  automática): com aviso de que a decisão final é da profissional, explicando o porquê e checando
+  alergias/medicamentos já registrados antes de citar remédio (política no prompt). O módulo
+  `modules/medicamentos` em si continua sem calcular interação (`alertaInteracao` é manual).
+  Histórico simples por profissional (`mensagem_assistente`, sem thread/conversa separada — escopo
+  enxuto de propósito). **Limitações conhecidas**: sem rate-limit/teto de custo de chamada à
+  DeepSeek nesta fase; contexto enviado ao modelo é limitado às últimas 20 mensagens da conversa;
+  sem busca web (a Groq tinha uma ferramenta `browser_search` nativa usada no modo PDF anexado —
+  a DeepSeek não tem equivalente, então a IA hoje só responde com o que já está registrado no
+  sistema ou no PDF anexado).
   - **Arquivar PDF no prontuário** (caso real: boletim de biorressonância, que já sai do aparelho com
     a recomendação terapêutica). Ao anexar um PDF, a rota `app/api/assistente/anexos` além de extrair
     o texto **guarda o binário** no Vercel Blob (antes era descartado) e tenta descobrir de quem é o

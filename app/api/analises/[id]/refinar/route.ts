@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { groq } from "@ai-sdk/groq";
+import { deepSeek } from "@ai-sdk/deepseek";
 import { generateText } from "ai";
 import { and, eq } from "drizzle-orm";
 
@@ -9,10 +9,10 @@ import { analiseUtilizavel, montarPromptRefinamento } from "@/modules/analises/a
 import { analiseClinica, refinarAnaliseSchema } from "@/modules/analises/schema";
 import { montarContextoClinico } from "@/modules/analises/queries";
 import {
-  ESFORCO_RACIOCINIO_COM_ANEXO,
   MAX_TOKENS_SAIDA_COM_ANEXO,
-  MODELO_GROQ_PADRAO,
-  groqConfigurado,
+  MODELO_DEEPSEEK_PADRAO,
+  OPCOES_PROVEDOR_DEEPSEEK,
+  deepseekConfigurado,
 } from "@/modules/assistente/config";
 import { ErroAutorizacao, autorizarPapel } from "@/modules/auth/rbac";
 
@@ -33,9 +33,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     throw error;
   }
 
-  if (!groqConfigurado()) {
+  if (!deepseekConfigurado()) {
     return NextResponse.json(
-      { erro: "A análise por IA não está configurada (GROQ_API_KEY ausente)." },
+      { erro: "A análise por IA não está configurada (DEEPSEEK_API_KEY ausente)." },
       { status: 503 },
     );
   }
@@ -82,7 +82,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   try {
     const resultado = await generateText({
-      model: groq(MODELO_GROQ_PADRAO),
+      model: deepSeek(MODELO_DEEPSEEK_PADRAO),
       prompt: montarPromptRefinamento({
         tipo: registro.tipo,
         analiseAtual: registro.analiseIa,
@@ -90,9 +90,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         material,
       }),
       maxOutputTokens: MAX_TOKENS_SAIDA_COM_ANEXO,
-      providerOptions: {
-        groq: { reasoningEffort: ESFORCO_RACIOCINIO_COM_ANEXO, reasoningFormat: "hidden" },
-      },
+      providerOptions: OPCOES_PROVEDOR_DEEPSEEK,
     });
 
     texto = resultado.text;

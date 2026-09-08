@@ -75,10 +75,10 @@ Regra: `painel/*` exige role `profissional` (ou `recepcao` p/ subrotas liberadas
 Alvo natural Vercel (Next). Segredos via env do provedor. `DATABASE_URL`, `AUTH_SECRET`,
 `BLOB_READ_WRITE_TOKEN` obrigatórios.
 
-## IA (fase futura — fora do MVP)
+## IA
 
-`GROQ_API_KEY` está provisionada no ambiente, mas **nenhum módulo do MVP a usa ainda**. Quando uma
-feature de IA for definida (ex.: apoio a campos inteligentes de ficha, resumo de evolução),
-avaliar antes: (1) dado de saúde é enviado a um LLM de terceiro → checar `06-lgpd-seguranca.md`
+`DEEPSEEK_API_KEY` está provisionada no ambiente e usada pelo assistente flutuante do painel
+(`modules/assistente`, ver `04-roadmap.md`) e pelas análises clínicas por IA (`modules/analises`).
+Para qualquer feature de IA nova, avaliar antes: (1) dado de saúde é enviado a um LLM de terceiro → checar `06-lgpd-seguranca.md`
 (consentimento específico, minimização de dado enviado); (2) qualquer alerta/sugestão da IA é
 **apoio**, nunca decisão clínica automática — mesma regra já aplicada a medicamentos (`04-roadmap.md`).

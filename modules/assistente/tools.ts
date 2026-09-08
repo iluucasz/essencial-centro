@@ -1,4 +1,3 @@
-import { groq } from "@ai-sdk/groq";
 import { tool, type Tool } from "ai";
 import { z } from "zod";
 
@@ -282,7 +281,7 @@ function comDatasSerializadas<T extends Record<string, Tool>>(ferramentas: T): T
   return Object.fromEntries(entradas) as T;
 }
 
-const ferramentasBaseAssistente = comDatasSerializadas({
+export const ferramentasAssistente = comDatasSerializadas({
   buscar_clientes: buscarClientesTool,
   resumo_evolucao_cliente: resumoEvolucaoClienteTool,
   medicamentos_do_cliente: medicamentosDoClienteTool,
@@ -294,18 +293,3 @@ const ferramentasBaseAssistente = comDatasSerializadas({
   relatorio_periodo: relatorioPeriodoTool,
   sessoes_do_cliente: sessoesDoClienteTool,
 });
-
-export const ferramentasAssistente = ferramentasBaseAssistente;
-
-export function ferramentasAssistenteParaContexto({
-  permitirBuscaWeb = false,
-}: {
-  permitirBuscaWeb?: boolean;
-} = {}) {
-  if (!permitirBuscaWeb) return ferramentasBaseAssistente;
-
-  return {
-    ...ferramentasBaseAssistente,
-    browser_search: groq.tools.browserSearch({}),
-  };
-}

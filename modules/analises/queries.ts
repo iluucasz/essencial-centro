@@ -78,7 +78,7 @@ export async function obterTextoExtraido(id: string, clienteId: string) {
 /**
  * Contexto clínico usado pela **recomendação terapêutica**. Monta em texto só o que ajuda a decidir
  * conduta — e nada além: sem endereço, telefone, e-mail, CPF ou documento. É esse texto que sai da
- * aplicação para a Groq, então o filtro aqui é a fronteira de privacidade do módulo.
+ * aplicação para a DeepSeek, então o filtro aqui é a fronteira de privacidade do módulo.
  */
 export async function montarContextoClinico(clienteId: string) {
   autorizarPapel(await auth(), ["profissional"]);

@@ -96,7 +96,7 @@ no enum entra visível por padrão. `tiposDocumentoSomenteProfissional` (em `mod
   Roda sobre uma lib não-oficial (Baileys) por trás da Evolution API — o risco de ban do número do
   WhatsApp discutido na Fase 2 do roadmap é do cliente, que optou por hospedar essa instância; a
   aplicação em si só fala HTTP com ela.
-- **Groq** (`modules/assistente`, Fase 3) — LLM de terceiro usado pelo assistente de IA flutuante
+- **DeepSeek** (`modules/assistente`, Fase 3) — LLM de terceiro usado pelo assistente de IA flutuante
   do painel (botão restrito a `profissional`, nunca visível pra `recepcao`/`cliente`). Recebe só o
   resultado já filtrado/resumido (`modules/assistente/reshape.ts`) da ferramenta acionada pela
   pergunta feita — nunca um dump em lote de uma tabela inteira, e nunca dado de um cliente que não
@@ -110,7 +110,10 @@ no enum entra visível por padrão. `tiposDocumentoSomenteProfissional` (em `mod
   registrados antes de citar qualquer remédio (política no prompt do sistema,
   `modules/assistente/prompt.ts`). Sem consentimento específico adicional coletado nesta fase
   (dado já é visível à própria profissional dentro do painel) — considerar no aviso de privacidade
-  quando ele for escrito, junto dos demais processadores terceirizados.
+  quando ele for escrito, junto dos demais processadores terceirizados. ⚠️ Diferente da Groq
+  (EUA), a DeepSeek é uma processadora sediada na China — transferência internacional de dado para
+  país sem decisão de adequação da ANPD; mesmo com o dado já minimizado/filtrado, vale confirmar
+  se isso muda a análise de risco antes de tratar dado de saúde real em produção.
 
 ## Segredos
 

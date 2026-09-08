@@ -1,4 +1,4 @@
-import { groq } from "@ai-sdk/groq";
+import { deepSeek } from "@ai-sdk/deepseek";
 import {
   convertToModelMessages,
   createUIMessageStream,
@@ -16,14 +16,14 @@ import { ErroAutorizacao, autorizarPapel } from "@/modules/auth/rbac";
 import { listarClientes } from "@/modules/clientes/queries";
 import { salvarMensagemAssistente } from "@/modules/assistente/actions";
 import {
-  ESFORCO_RACIOCINIO_COM_ANEXO,
   LIMITE_MENSAGENS_CONTEXTO_COM_ANEXO,
   LIMITE_MENSAGENS_CONTEXTO,
   LIMITE_PASSOS_FERRAMENTA_COM_ANEXO,
   LIMITE_PASSOS_FERRAMENTA,
   MAX_TOKENS_SAIDA_COM_ANEXO,
-  MODELO_GROQ_PADRAO,
-  groqConfigurado,
+  MODELO_DEEPSEEK_PADRAO,
+  OPCOES_PROVEDOR_DEEPSEEK,
+  deepseekConfigurado,
 } from "@/modules/assistente/config";
 import { montarJanelaContexto } from "@/modules/assistente/contexto";
 import {
@@ -34,7 +34,7 @@ import { montarPromptSistema } from "@/modules/assistente/prompt";
 import { obterAnexoAssistenteDoProfissional } from "@/modules/assistente/queries";
 import { enviarMensagemAssistenteSchema } from "@/modules/assistente/schema";
 import { gerarSugestoesAssistente } from "@/modules/assistente/sugestoes";
-import { ferramentasAssistenteParaContexto } from "@/modules/assistente/tools";
+import { ferramentasAssistente } from "@/modules/assistente/tools";
 
 export const maxDuration = 60;
 
@@ -64,9 +64,9 @@ export async function POST(request: Request) {
     throw error;
   }
 
-  if (!groqConfigurado()) {
+  if (!deepseekConfigurado()) {
     return NextResponse.json(
-      { erro: "Assistente de IA não configurado (GROQ_API_KEY ausente)." },
+      { erro: "Assistente de IA não configurado (DEEPSEEK_API_KEY ausente)." },
       { status: 503 },
     );
   }
@@ -115,18 +115,16 @@ export async function POST(request: Request) {
     },
     execute: async ({ writer }) => {
       const resultado = streamText({
-        model: groq(MODELO_GROQ_PADRAO),
+        model: deepSeek(MODELO_DEEPSEEK_PADRAO),
         instructions: montarPromptSistema({
           contextoAnexo,
           dataAtual: agoraBrasilia(),
           nomeProfissional,
         }),
         messages: mensagensModelo,
-        providerOptions: anexoAtivo
-          ? { groq: { reasoningEffort: ESFORCO_RACIOCINIO_COM_ANEXO, reasoningFormat: "hidden" } }
-          : undefined,
+        providerOptions: OPCOES_PROVEDOR_DEEPSEEK,
         maxOutputTokens: anexoAtivo ? MAX_TOKENS_SAIDA_COM_ANEXO : undefined,
-        tools: ferramentasAssistenteParaContexto({ permitirBuscaWeb: Boolean(anexoAtivo) }),
+        tools: ferramentasAssistente,
         stopWhen: stepCountIs(limitePassos),
       });
 

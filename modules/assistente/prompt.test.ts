@@ -87,7 +87,6 @@ describe("montarPromptSistema", () => {
     });
 
     expect(prompt).toContain("Modo de análise de PDF ativo");
-    expect(prompt).toContain("browser_search");
     expect(prompt).toContain("Arquivo PDF ativo: exame.pdf");
     // O sujeito do PDF não é cliente cadastrado por padrão — não vira link de perfil.
     expect(prompt).toContain("sujeito do documento");

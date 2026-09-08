@@ -85,7 +85,7 @@ import { MapaDeDor, type PontoDorNaTela } from "@/modules/dor/components/mapa-de
 import { listarDorDoCliente } from "@/modules/dor/queries";
 import { PainelAnalises, type AnaliseNaTela } from "@/modules/analises/components/painel-analises";
 import { listarAnalisesDoCliente } from "@/modules/analises/queries";
-import { groqConfigurado } from "@/modules/assistente/config";
+import { deepseekConfigurado } from "@/modules/assistente/config";
 import { DestaquePacoteCliente } from "@/modules/pacotes/components/destaque-pacote-cliente";
 import { montarPacotesEmDestaque } from "@/modules/pacotes/destaque";
 import { listarPacotesDoCliente } from "@/modules/pacotes/queries";
@@ -1459,7 +1459,7 @@ export default async function ClienteDetalhePage({
             <PainelAnalises
               analises={analisesParaPainel}
               clienteId={id}
-              iaConfigurada={groqConfigurado()}
+              iaConfigurada={deepseekConfigurado()}
             />
           </SecaoPerfil>
         ) : null}

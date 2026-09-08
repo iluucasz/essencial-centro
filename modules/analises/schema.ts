@@ -19,7 +19,7 @@ export type RefinamentoRegistrado = { instrucao: string; em: string };
  * - `analiseIa` guarda o texto do modelo **como veio**, e `observacaoProfissional` é onde a
  *   profissional corrige/complementa. Não sobrescrevemos a saída da IA com a edição dela — daqui a
  *   um ano é preciso saber o que a máquina disse e o que a pessoa concluiu.
- * - `modeloIa` grava qual modelo produziu. A Groq deprecia modelo com pouco aviso
+ * - `modeloIa` grava qual modelo produziu. Provedores de IA depreciam modelo com pouco aviso
  *   (`modules/assistente/config.ts`), e sem isso um registro antigo fica sem procedência.
  *
  * `revisadoPorId`/`revisadoEm` são etapa deliberada e separada da criação: análise não revisada é

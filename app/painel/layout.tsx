@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { precisaDefinirSenha } from "@/modules/auth/acesso-portal";
 import { ErroAutorizacao } from "@/modules/auth/rbac";
 import { exigirUsuarioAtualComImagem } from "@/modules/auth/queries";
-import { groqConfigurado } from "@/modules/assistente/config";
+import { deepseekConfigurado } from "@/modules/assistente/config";
 import { listarHistoricoAssistente } from "@/modules/assistente/queries";
 import { dispararAniversariosSeNecessarioHoje } from "@/modules/whatsapp/aniversario-lazy";
 import { PainelShell } from "@/components/layout/painel-shell";
@@ -37,7 +37,7 @@ export default async function PainelLayout({ children }: { children: ReactNode }
     redirect("/definir-senha");
   }
 
-  const assistenteDisponivel = usuario.role === "profissional" && groqConfigurado();
+  const assistenteDisponivel = usuario.role === "profissional" && deepseekConfigurado();
   const historicoAssistente = assistenteDisponivel ? await listarHistoricoAssistente() : [];
 
   /*

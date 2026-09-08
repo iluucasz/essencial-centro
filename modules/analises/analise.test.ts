@@ -198,8 +198,8 @@ describe("statusRevisao", () => {
 
 describe("analiseUtilizavel", () => {
   it("recusa vazio e resposta curta demais pra ser análise", () => {
-    // A Groq às vezes devolve vazio por estourar o teto raciocinando; guardar isso viraria um
-    // registro clínico em branco no prontuário.
+    // O provedor de IA às vezes devolve vazio por estourar o teto raciocinando; guardar isso
+    // viraria um registro clínico em branco no prontuário.
     expect(analiseUtilizavel(null)).toBe(false);
     expect(analiseUtilizavel("")).toBe(false);
     expect(analiseUtilizavel("   ")).toBe(false);

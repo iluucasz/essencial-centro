@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
-import { groq } from "@ai-sdk/groq";
+import { deepSeek } from "@ai-sdk/deepseek";
 import { generateText } from "ai";
 
 import { auth } from "@/auth";
@@ -14,10 +14,10 @@ import {
 import { montarContextoClinico } from "@/modules/analises/queries";
 import { analiseClinica, gerarAnaliseSchema } from "@/modules/analises/schema";
 import {
-  ESFORCO_RACIOCINIO_COM_ANEXO,
   MAX_TOKENS_SAIDA_COM_ANEXO,
-  MODELO_GROQ_PADRAO,
-  groqConfigurado,
+  MODELO_DEEPSEEK_PADRAO,
+  OPCOES_PROVEDOR_DEEPSEEK,
+  deepseekConfigurado,
 } from "@/modules/assistente/config";
 import { extrairTextoPdf, validarArquivoPdf } from "@/modules/assistente/anexos";
 import { ErroAutorizacao, autorizarPapel } from "@/modules/auth/rbac";
@@ -50,9 +50,9 @@ export async function POST(request: Request) {
     throw error;
   }
 
-  if (!groqConfigurado()) {
+  if (!deepseekConfigurado()) {
     return NextResponse.json(
-      { erro: "A análise por IA não está configurada (GROQ_API_KEY ausente)." },
+      { erro: "A análise por IA não está configurada (DEEPSEEK_API_KEY ausente)." },
       { status: 503 },
     );
   }
@@ -180,12 +180,10 @@ export async function POST(request: Request) {
 
   try {
     const resultado = await generateText({
-      model: groq(MODELO_GROQ_PADRAO),
+      model: deepSeek(MODELO_DEEPSEEK_PADRAO),
       prompt,
       maxOutputTokens: MAX_TOKENS_SAIDA_COM_ANEXO,
-      providerOptions: {
-        groq: { reasoningEffort: ESFORCO_RACIOCINIO_COM_ANEXO, reasoningFormat: "hidden" },
-      },
+      providerOptions: OPCOES_PROVEDOR_DEEPSEEK,
     });
 
     texto = resultado.text;
@@ -218,7 +216,7 @@ export async function POST(request: Request) {
       arquivoTamanhoBytes: arquivo?.tamanhoBytes ?? null,
       textoExtraido,
       analiseIa: texto.trim(),
-      modeloIa: MODELO_GROQ_PADRAO,
+      modeloIa: MODELO_DEEPSEEK_PADRAO,
       criadoPorId: usuarioAtual.id,
     })
     .returning({ id: analiseClinica.id });

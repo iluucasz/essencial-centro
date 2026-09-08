@@ -542,7 +542,7 @@ export function PainelAnalises({
       {!iaConfigurada ? (
         <p className="flex items-start gap-2 rounded-2xl border border-dourado/40 bg-dourado/10 p-3 text-sm font-medium text-dourado">
           <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />A análise por IA
-          está desligada porque `GROQ_API_KEY` não está configurada. As análises já registradas
+          está desligada porque `DEEPSEEK_API_KEY` não está configurada. As análises já registradas
           continuam visíveis.
         </p>
       ) : null}

@@ -1,20 +1,21 @@
 /**
- * Verificar em https://console.groq.com/docs/models antes de mexer aqui — a Groq deprecia modelo
- * com pouco aviso (ex.: llama-3.3-70b-versatile foi descontinuado em 17/06/2026 pro tier
- * free/dev). openai/gpt-oss-120b é o substituto recomendado pela própria Groq, com tool-use.
+ * Verificar https://api-docs.deepseek.com/quick_start/pricing antes de mexer aqui — a DeepSeek já
+ * removeu os aliases antigos "deepseek-chat"/"deepseek-reasoner" (24/07/2026). deepseek-v4-flash é
+ * o modelo rápido com tool-use, equivalente em papel ao antigo openai/gpt-oss-120b da Groq.
  */
-export const MODELO_GROQ_PADRAO = "openai/gpt-oss-120b";
+export const MODELO_DEEPSEEK_PADRAO = "deepseek-v4-flash";
 
 export const LIMITE_PASSOS_FERRAMENTA = 6;
 export const LIMITE_PASSOS_FERRAMENTA_COM_ANEXO = 10;
 
 /**
- * Esforço de raciocínio do gpt-oss no modo anexo. NÃO usar "high": com o contexto grande do PDF
- * (~40k chars), o modelo gasta TODO o orçamento de saída em raciocínio oculto e bate o teto de
- * tokens (finishReason "length") ANTES de escrever a resposta — retorno vazio, "carregou e parou".
- * "medium" deixa raciocínio suficiente para organizar o resumo e ainda sobra orçamento pro texto.
+ * Os modelos DeepSeek V4 vêm com "thinking" (raciocínio oculto) ligado por padrão. Já vimos essa
+ * armadilha com a Groq: reasoningEffort "high" sobre o contexto grande do PDF gastava todo o
+ * orçamento de saída raciocinando e batia o teto de tokens (finishReason "length") ANTES de
+ * escrever a resposta — retorno vazio, "carregou e parou". Desliga o thinking de propósito em vez
+ * de tentar calibrar mais um dial de esforço.
  */
-export const ESFORCO_RACIOCINIO_COM_ANEXO = "medium" as const;
+export const OPCOES_PROVEDOR_DEEPSEEK = { deepseek: { thinking: { type: "disabled" as const } } };
 /** Teto de saída no modo anexo — headroom para o resumo completo sem depender do default do provedor. */
 export const MAX_TOKENS_SAIDA_COM_ANEXO = 8000;
 export const LIMITE_MENSAGENS_CONTEXTO = 20;
@@ -30,6 +31,6 @@ export const LIMITE_CARACTERES_CONTEXTO_PDF_ASSISTENTE = 40_000;
 export const TAMANHO_TRECHO_PDF_ASSISTENTE = 2_400;
 export const SOBREPOSICAO_TRECHO_PDF_ASSISTENTE = 250;
 
-export function groqConfigurado() {
-  return Boolean(process.env.GROQ_API_KEY);
+export function deepseekConfigurado() {
+  return Boolean(process.env.DEEPSEEK_API_KEY);
 }
