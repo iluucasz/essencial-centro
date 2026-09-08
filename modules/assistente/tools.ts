@@ -1,7 +1,8 @@
 import { tool, type Tool } from "ai";
 import { z } from "zod";
 
-import { listarAgendamentosDoDia } from "@/modules/agenda/queries";
+import { listarAgendamentosDaAgenda, listarAgendamentosDoDia } from "@/modules/agenda/queries";
+import { listarAnalisesDoCliente } from "@/modules/analises/queries";
 import { ErroAutorizacao } from "@/modules/auth/rbac";
 import { listarClientes } from "@/modules/clientes/queries";
 import { listarDocumentosDoCliente } from "@/modules/documentos/queries";
@@ -19,6 +20,7 @@ import { LIMITE_RESULTADOS_BUSCA_CLIENTE, LIMITE_SESSOES_RETORNADAS } from "./co
 import {
   limitarLista,
   reshapeAgendamento,
+  reshapeAnalise,
   reshapeCliente,
   reshapeDocumento,
   reshapeLancamento,
@@ -26,6 +28,7 @@ import {
   reshapePacote,
   reshapeProduto,
   reshapeResumoEvolucao,
+  reshapeResumoFinanceiro,
   reshapeSessao,
   serializarDatas,
 } from "./reshape";
@@ -128,7 +131,7 @@ const lancamentosFinanceirosTool = tool({
       const lancamentos = await listarLancamentos({ periodo });
 
       return {
-        resumo: calcularResumoFinanceiro(lancamentos),
+        resumo: reshapeResumoFinanceiro(calcularResumoFinanceiro(lancamentos)),
         lancamentos: limitarLista(lancamentos, 30).map(reshapeLancamento),
         totalNoPeriodo: lancamentos.length,
       };
@@ -158,11 +161,35 @@ const produtosEstoqueTool = tool({
 const agendamentosDoDiaTool = tool({
   description:
     "Lista os agendamentos de um dia específico: horário, cliente, serviço, status, modalidade. " +
-    "Para 'hoje', use a data de hoje informada no prompt do sistema.",
+    "Para 'hoje', use a data de hoje informada no prompt do sistema. Para um intervalo de mais de " +
+    "um dia (ex.: 'esta semana'), use agendamentos_periodo em vez de chamar esta ferramenta várias vezes.",
   inputSchema: z.object({ data: dataAAAAMMDDSchema }),
   execute: async ({ data }) => {
     try {
       const agendamentos = await listarAgendamentosDoDia(parseDataAAAAMMDD(data));
+
+      return { agendamentos: agendamentos.map(reshapeAgendamento) };
+    } catch (erro) {
+      return erroFerramenta(erro);
+    }
+  },
+});
+
+const agendamentosPeriodoTool = tool({
+  description:
+    "Lista os agendamentos de um intervalo de dias (ex.: 'esta semana', 'próximos 7 dias'): " +
+    "horário, cliente, serviço, status, modalidade. Uma chamada só cobre o intervalo inteiro — " +
+    "não chame agendamentos_do_dia várias vezes para montar uma semana. 'inicio' e 'fim' são " +
+    "ambos incluídos no resultado (ex.: para a semana de segunda a domingo que contém hoje, use " +
+    "a segunda-feira dessa semana como inicio e o domingo seguinte como fim).",
+  inputSchema: z.object({ inicio: dataAAAAMMDDSchema, fim: dataAAAAMMDDSchema }),
+  execute: async ({ inicio, fim }) => {
+    try {
+      const inicioData = parseDataAAAAMMDD(inicio);
+      const fimExclusivo = parseDataAAAAMMDD(fim);
+      fimExclusivo.setDate(fimExclusivo.getDate() + 1);
+
+      const agendamentos = await listarAgendamentosDaAgenda(inicioData, fimExclusivo);
 
       return { agendamentos: agendamentos.map(reshapeAgendamento) };
     } catch (erro) {
@@ -204,6 +231,24 @@ const documentosDoClienteTool = tool({
   },
 });
 
+const analisesDoClienteTool = tool({
+  description:
+    "Lista as análises clínicas por IA de um cliente (leitura de exame, análise de " +
+    "biorressonância, recomendação terapêutica): tipo, título, um resumo do texto gerado e se já " +
+    "foi revisada pela profissional. Use para embasar recomendações com o que já foi analisado — " +
+    "uma análise com status 'rascunho' ainda não foi revisada por ninguém, trate com mais cautela.",
+  inputSchema: z.object({ clienteId: z.string().uuid() }),
+  execute: async ({ clienteId }) => {
+    try {
+      const analises = await listarAnalisesDoCliente(clienteId);
+
+      return { analises: analises.map(reshapeAnalise) };
+    } catch (erro) {
+      return erroFerramenta(erro);
+    }
+  },
+});
+
 const relatorioPeriodoTool = tool({
   description:
     "Relatório agregado da clínica em um período: financeiro, agendamentos por status, taxa de " +
@@ -221,7 +266,11 @@ const relatorioPeriodoTool = tool({
         fim ? parseDataAAAAMMDD(fim) : ultimoDiaDoMes(hoje),
       );
 
-      return { ...relatorio, rankingServicos: limitarLista(relatorio.rankingServicos, 5) };
+      return {
+        ...relatorio,
+        financeiro: reshapeResumoFinanceiro(relatorio.financeiro),
+        rankingServicos: limitarLista(relatorio.rankingServicos, 5),
+      };
     } catch (erro) {
       return erroFerramenta(erro);
     }
@@ -288,8 +337,10 @@ export const ferramentasAssistente = comDatasSerializadas({
   lancamentos_financeiros: lancamentosFinanceirosTool,
   produtos_estoque: produtosEstoqueTool,
   agendamentos_do_dia: agendamentosDoDiaTool,
+  agendamentos_periodo: agendamentosPeriodoTool,
   pacotes_do_cliente: pacotesDoClienteTool,
   documentos_do_cliente: documentosDoClienteTool,
+  analises_do_cliente: analisesDoClienteTool,
   relatorio_periodo: relatorioPeriodoTool,
   sessoes_do_cliente: sessoesDoClienteTool,
 });

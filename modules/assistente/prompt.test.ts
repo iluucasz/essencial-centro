@@ -27,6 +27,36 @@ describe("montarPromptSistema", () => {
     expect(prompt.toLowerCase()).toContain("medicament");
   });
 
+  // Ao ser perguntada sobre interação entre medicamentos, a IA pode opinar se for pedido (é
+  // apoio, igual a qualquer outra recomendação) — mas só depois de relatar o que está registrado
+  // no sistema, e deixando claro que a opinião dela não substitui o alerta oficial nem a avaliação
+  // profissional.
+  it("permite opinar sobre interação medicamentosa, mas só depois de relatar o alerta registrado", () => {
+    const prompt = montarPromptSistema({
+      dataAtual: new Date("2026-07-15T12:00:00.000Z"),
+      nomeProfissional: "Ana Souza",
+    });
+
+    expect(prompt).toContain(
+      "relate primeiro o que está registrado no campo de alerta de interação",
+    );
+    expect(prompt).toContain(
+      "não o alerta oficial do sistema nem uma avaliação farmacêutica/clínica completa",
+    );
+  });
+
+  it("exige que toda recomendação diga que é baseada puramente no que está registrado", () => {
+    const prompt = montarPromptSistema({
+      dataAtual: new Date("2026-07-15T12:00:00.000Z"),
+      nomeProfissional: "Ana Souza",
+    });
+
+    expect(prompt).toContain(
+      "a sugestão é baseada PURAMENTE nas informações que você tem acesso no sistema",
+    );
+    expect(prompt).toContain("medicamentos, suplementos, exames e análises, medidas, sessões");
+  });
+
   it("instrui a sempre usar ferramentas antes de responder fatos", () => {
     const prompt = montarPromptSistema({
       dataAtual: new Date("2026-07-15T12:00:00.000Z"),

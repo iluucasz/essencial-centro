@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   limitarLista,
+  reshapeAgendamento,
+  reshapeAnalise,
   reshapeCliente,
   reshapeDocumento,
   reshapeMedicamento,
+  reshapeResumoEvolucao,
+  reshapeResumoFinanceiro,
   reshapeSessao,
   serializarDatas,
   truncarTexto,
@@ -57,6 +61,137 @@ describe("reshapeCliente", () => {
   });
 });
 
+describe("reshapeResumoFinanceiro", () => {
+  // Regressão: relatorio_periodo mandava o resumo cru (centavos) pro modelo, que apresentou
+  // "receitasPagas: 53000" como "R$ 53.000,00" numa resposta real — 100x o valor verdadeiro
+  // (R$ 530,00). Toda outra ferramenta financeira já converte pra `valorReais`; esta faltava.
+  it("converte todos os campos de centavos para reais", () => {
+    const saida = reshapeResumoFinanceiro({
+      receitasPagas: 53000,
+      despesasPagas: 6000000,
+      saldo: -5947000,
+      receitasPendentes: 10000,
+      despesasPendentes: 0,
+    });
+
+    expect(saida).toEqual({
+      receitasPagasReais: 530,
+      despesasPagasReais: 60000,
+      saldoReais: -59470,
+      receitasPendentesReais: 100,
+      despesasPendentesReais: 0,
+    });
+  });
+
+  it("nunca deixa um campo em centavos (sem sufixo Reais) escapar pro modelo", () => {
+    const saida = reshapeResumoFinanceiro({
+      receitasPagas: 1,
+      despesasPagas: 1,
+      saldo: 0,
+      receitasPendentes: 1,
+      despesasPendentes: 1,
+    });
+
+    for (const chave of Object.keys(saida)) {
+      expect(chave.endsWith("Reais")).toBe(true);
+    }
+  });
+});
+
+describe("reshapeAgendamento", () => {
+  // Regressão: só mandar `inicio` (ISO com "Z") deixava o modelo livre pra "ajustar" fuso por
+  // conta própria — numa resposta real ele subtraiu 3h de um agendamento às 21h e disse "18h
+  // (horário local ajustado)", quando 21h já era o horário certo (dado gravado como horário de
+  // parede de Brasília direto no campo UTC, sem conversão — mesma convenção da tela de agenda,
+  // que lê com timeZone "UTC"). O campo `horario` pronto tira essa conta do modelo.
+  it("formata o horário com os mesmos dígitos do campo UTC, sem aplicar fuso", () => {
+    const saida = reshapeAgendamento({
+      inicio: new Date("2026-09-07T21:00:00.000Z"),
+      duracaoMinutos: 8,
+      status: "marcado",
+      modalidade: "presencial",
+      clienteNome: "Thalia Eluan",
+      servicoNome: "Drenagem Linfática Facial",
+      profissionalNome: "Edvania",
+    });
+
+    expect(saida.horario).toBe("21:00");
+  });
+
+  it("preserva minutos não-redondos", () => {
+    const saida = reshapeAgendamento({
+      inicio: new Date("2026-09-01T22:33:00.000Z"),
+      duracaoMinutos: 60,
+      status: "marcado",
+      modalidade: "presencial",
+      clienteNome: "Thalia Eluan",
+      servicoNome: "test2",
+      profissionalNome: "Edvania",
+    });
+
+    expect(saida.horario).toBe("22:33");
+  });
+
+  // Regressão: pedindo os "próximos 14 dias" (fora da semana atual), o modelo calculou o dia da
+  // semana de cabeça e chamou 15/09/2026 (terça) de "Segunda" — mesma classe de erro do horário
+  // "ajustado", resolvida do mesmo jeito: manda o valor certo pronto.
+  it("devolve o dia da semana por extenso, sem depender do modelo calcular", () => {
+    expect(
+      reshapeAgendamento({
+        inicio: new Date("2026-09-15T20:00:00.000Z"),
+        duracaoMinutos: 60,
+        status: "marcado",
+        modalidade: "presencial",
+        clienteNome: "Thalia Eluan",
+        servicoNome: "test2",
+        profissionalNome: "Edvania",
+      }).diaSemana,
+    ).toBe("terça-feira");
+  });
+});
+
+describe("reshapeResumoEvolucao", () => {
+  // Regressão: `mediaVariacao` cru (depois - antes) é negativo quando a dor CAI dentro da sessão
+  // (bom sinal) — mas numa resposta real o modelo leu esse negativo como "indica piora", o
+  // oposto do que o número mede, mesmo com `melhoraGeral` (o sinal de tendência correto) já
+  // calculado ao lado. O campo renomeado deixa o sentido explícito no nome, sem o modelo adivinhar.
+  it("inverte o sinal de mediaVariacao para uma queda de dor ficar positiva", () => {
+    const saida = reshapeResumoEvolucao({
+      totalSessoes: 5,
+      evolucaoDor: {
+        dorInicial: 2,
+        dorAtual: 5,
+        mediaVariacao: -1.2,
+        totalRegistros: 5,
+        melhoraGeral: false,
+      },
+      evolucaoMedidas: null,
+      fotos: [],
+      pacotes: [],
+    });
+
+    expect(saida.evolucaoDor).toEqual({
+      dorInicial: 2,
+      dorAtual: 5,
+      houveMelhoraGeralDaDorInicialParaAtual: false,
+      mediaDeQuantoADorCaiDentroDeCadaSessao: 1.2,
+      totalRegistrosComDor: 5,
+    });
+  });
+
+  it("não quebra quando não há nenhum registro de dor", () => {
+    const saida = reshapeResumoEvolucao({
+      totalSessoes: 0,
+      evolucaoDor: null,
+      evolucaoMedidas: null,
+      fotos: [],
+      pacotes: [],
+    });
+
+    expect(saida.evolucaoDor).toBeNull();
+  });
+});
+
 describe("reshapeDocumento — garantia LGPD", () => {
   const docComAssinatura = {
     tipo: "contrato_prestacao_servicos",
@@ -88,6 +223,25 @@ describe("reshapeDocumento — garantia LGPD", () => {
     const saida = reshapeDocumento(docComAssinatura);
 
     expect(saida.conteudoResumo?.endsWith("…")).toBe(true);
+  });
+});
+
+describe("reshapeAnalise", () => {
+  it("trunca o texto da análise em vez de mandar tudo, e mantém status de revisão", () => {
+    const saida = reshapeAnalise({
+      tipo: "exame",
+      titulo: "Hemograma completo",
+      temArquivo: true,
+      analiseIa: "Achado relevante. ".repeat(50),
+      observacaoProfissional: null,
+      status: "rascunho",
+      revisadoEm: null,
+      criadoEm: new Date("2026-08-01T00:00:00.000Z"),
+    });
+
+    expect(saida.status).toBe("rascunho");
+    expect(saida.resumoAnaliseIa?.endsWith("…")).toBe(true);
+    expect(saida.resumoAnaliseIa?.length).toBeLessThan("Achado relevante. ".repeat(50).length);
   });
 });
 

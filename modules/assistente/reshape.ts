@@ -46,16 +46,44 @@ export function reshapeCliente(c: {
   };
 }
 
+type EvolucaoDorPeriodo = {
+  dorInicial: number;
+  dorAtual: number;
+  mediaVariacao: number;
+  totalRegistros: number;
+  melhoraGeral: boolean;
+} | null;
+
+/**
+ * `mediaVariacao` cru (depois - antes, média entre sessões) é ambíguo sem contexto — negativo
+ * significa que a dor tende a CAIR de antes pra depois DENTRO de cada sessão (bom sinal pontual),
+ * o oposto do que "variação" sugere à primeira leitura. Numa resposta real, o modelo leu esse
+ * número negativo como "indica piora" — o contrário do que ele mede — mesmo com `melhoraGeral`
+ * (o sinal correto de tendência geral, já calculado) disponível ao lado. Renomear pra deixar o
+ * significado explícito no próprio nome do campo, sem o modelo ter que adivinhar.
+ */
+function reshapeEvolucaoDor(evolucaoDor: EvolucaoDorPeriodo) {
+  if (!evolucaoDor) return null;
+
+  return {
+    dorInicial: evolucaoDor.dorInicial,
+    dorAtual: evolucaoDor.dorAtual,
+    houveMelhoraGeralDaDorInicialParaAtual: evolucaoDor.melhoraGeral,
+    mediaDeQuantoADorCaiDentroDeCadaSessao: -evolucaoDor.mediaVariacao,
+    totalRegistrosComDor: evolucaoDor.totalRegistros,
+  };
+}
+
 export function reshapeResumoEvolucao(r: {
   totalSessoes: number;
-  evolucaoDor: unknown;
+  evolucaoDor: EvolucaoDorPeriodo;
   evolucaoMedidas: unknown;
   fotos: { dataFoto: Date }[];
   pacotes: { servicoNome: string; progresso: unknown; situacaoPagamento: string }[];
 }) {
   return {
     totalSessoes: r.totalSessoes,
-    evolucaoDor: r.evolucaoDor,
+    evolucaoDor: reshapeEvolucaoDor(r.evolucaoDor),
     evolucaoMedidas: r.evolucaoMedidas,
     totalFotos: r.fotos.length,
     ultimaFotoEm: r.fotos[0]?.dataFoto ?? null,
@@ -131,6 +159,29 @@ export function reshapeLancamento(l: {
   };
 }
 
+/**
+ * `calcularResumoFinanceiro` devolve tudo em centavos (uso interno, telas fazem a própria
+ * formatação). Sem essa conversão o modelo recebia `receitasPagas: 53000` — um inteiro sem
+ * unidade no nome — e já apresentou isso direto como "R$ 53.000,00" numa resposta real, 100x o
+ * valor verdadeiro (R$ 530,00). Mesma convenção de `reshapeLancamento`/`reshapePacote`: nunca
+ * manda centavos cru pro modelo, sempre `...Reais` já dividido.
+ */
+export function reshapeResumoFinanceiro(r: {
+  receitasPagas: number;
+  despesasPagas: number;
+  saldo: number;
+  receitasPendentes: number;
+  despesasPendentes: number;
+}) {
+  return {
+    receitasPagasReais: r.receitasPagas / 100,
+    despesasPagasReais: r.despesasPagas / 100,
+    saldoReais: r.saldo / 100,
+    receitasPendentesReais: r.receitasPendentes / 100,
+    despesasPendentesReais: r.despesasPendentes / 100,
+  };
+}
+
 export function reshapeProduto(p: {
   nome: string;
   unidade: string | null;
@@ -147,6 +198,28 @@ export function reshapeProduto(p: {
   };
 }
 
+/**
+ * `agendamento.inicio` guarda horário de parede de Brasília gravado direto no campo UTC (ver
+ * `agoraBrasilia` em lib/utils.ts) — igual ao formatador de `modules/agenda/components/lista-agenda.tsx`,
+ * ler com timeZone "UTC" é o jeito CERTO de pegar os dígitos de volta sem turno nenhum.
+ */
+const formatadorHorarioAgendamento = new Intl.DateTimeFormat("pt-BR", {
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "UTC",
+});
+
+/**
+ * Nome do dia da semana por extenso (ex.: "terça-feira"). Existe porque o modelo, calculando o
+ * dia da semana de cabeça a partir de `inicio` pra intervalos maiores que a semana atual (ex.:
+ * "próximos 14 dias"), já errou de verdade — chamou 15/09/2026 de "Segunda" quando era terça.
+ * `timeZone: "UTC"` de propósito, mesma convenção de `formatadorHorarioAgendamento` acima.
+ */
+const formatadorDiaSemanaAgendamento = new Intl.DateTimeFormat("pt-BR", {
+  weekday: "long",
+  timeZone: "UTC",
+});
+
 export function reshapeAgendamento(a: {
   inicio: Date;
   duracaoMinutos: number;
@@ -158,6 +231,15 @@ export function reshapeAgendamento(a: {
 }) {
   return {
     inicio: a.inicio,
+    /**
+     * Horário já formatado (ex.: "18:00"), do mesmo jeito que a tela de agenda mostra. Existe
+     * porque o modelo, ao ver só `inicio` como ISO com "Z", às vezes "ajusta" o fuso por conta
+     * própria (subtraindo 3h) mesmo esse "Z" não representando um instante UTC real — e numa
+     * resposta real chegou a inventar "18h (horário local ajustado)" pra um agendamento às 21h.
+     * Mandando o horário pronto, não sobra conta de fuso pro modelo errar.
+     */
+    horario: formatadorHorarioAgendamento.format(a.inicio),
+    diaSemana: formatadorDiaSemanaAgendamento.format(a.inicio),
     duracaoMinutos: a.duracaoMinutos,
     status: a.status,
     modalidade: a.modalidade,
@@ -202,6 +284,28 @@ export function reshapeDocumento(d: {
     assinadoEm: d.assinadoEm,
     criadoEm: d.criadoEm,
     conteudoResumo: truncarTexto(d.conteudo, LIMITE_CARACTERES_CONTEUDO_DOCUMENTO),
+  };
+}
+
+export function reshapeAnalise(a: {
+  tipo: string;
+  titulo: string;
+  temArquivo: boolean;
+  analiseIa: string;
+  observacaoProfissional: string | null;
+  status: string;
+  revisadoEm: Date | null;
+  criadoEm: Date;
+}) {
+  return {
+    tipo: a.tipo,
+    titulo: a.titulo,
+    temArquivo: a.temArquivo,
+    resumoAnaliseIa: truncarTexto(a.analiseIa, LIMITE_CARACTERES_CONTEUDO_DOCUMENTO),
+    observacaoProfissional: a.observacaoProfissional,
+    status: a.status,
+    revisadoEm: a.revisadoEm,
+    criadoEm: a.criadoEm,
   };
 }
 
