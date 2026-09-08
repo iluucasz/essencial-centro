@@ -7,13 +7,13 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock3,
+  Hourglass,
   PackageCheck,
   PackageX,
   Pill,
   TrendingDown,
   TrendingUp,
   TriangleAlert,
-  UsersRound,
   Wallet,
 } from "lucide-react";
 
@@ -25,18 +25,20 @@ import {
   ultimoDiaDoMes,
 } from "@/lib/utils";
 import { GraficoAtendimentos } from "@/modules/agenda/components/grafico-atendimentos";
-import { listarAgendamentosDoDia, listarAgendamentosUltimosDias } from "@/modules/agenda/queries";
+import {
+  contarConfirmacoesFuturas,
+  listarAgendamentosDoDia,
+  listarAgendamentosUltimosDias,
+} from "@/modules/agenda/queries";
 import type { StatusAgendamento } from "@/modules/agenda/schema";
 import { agruparAgendamentosPorDia } from "@/modules/agenda/tendencia";
 import { exigirUsuarioAtual } from "@/modules/auth/queries";
-import { listarClientes } from "@/modules/clientes/queries";
 import { contarLotesProximosDoVencimento, listarProdutos } from "@/modules/estoque/queries";
 import { listarLancamentos } from "@/modules/financeiro/queries";
 import { calcularResumoFinanceiro } from "@/modules/financeiro/resumo";
 import { contarMedicamentosPendentesVerificacao } from "@/modules/medicamentos/queries";
 import { deveAvisarPacoteAcabando } from "@/modules/pacotes/progresso";
 import { listarPacotes } from "@/modules/pacotes/queries";
-import { contarClientesNovos } from "@/modules/relatorios/resumo";
 import { AvisoPendenciasRegistroSessaoPainel } from "@/modules/sessoes/components/aviso-pendencias-registro-sessao";
 import { listarPendenciasRegistroSessao } from "@/modules/sessoes/queries";
 
@@ -165,10 +167,10 @@ export default async function PainelPage() {
   const usuario = await exigirUsuarioAtual(["profissional", "recepcao"]);
   const hoje = agoraBrasilia();
 
-  const [agendamentosHoje, clientes, pacotes, agendamentosPeriodo, pendenciasRegistroSessao] =
+  const [agendamentosHoje, confirmacoes, pacotes, agendamentosPeriodo, pendenciasRegistroSessao] =
     await Promise.all([
       listarAgendamentosDoDia(hoje),
-      listarClientes(),
+      contarConfirmacoesFuturas(),
       listarPacotes(),
       listarAgendamentosUltimosDias(30),
       usuario.role === "profissional" ? listarPendenciasRegistroSessao(4) : Promise.resolve(null),
@@ -182,16 +184,6 @@ export default async function PainelPage() {
   const pacotesAtivos = pacotes.filter((p) => p.ativo);
   const pacotesAcabando = pacotesAtivos.filter((p) =>
     deveAvisarPacoteAcabando(p.progresso.sessoesRestantes),
-  );
-
-  const novosClientesEsteMes = contarClientesNovos(
-    clientes,
-    primeiroDiaDoMes(hoje),
-    ultimoDiaDoMes(hoje),
-  );
-  const percentualCrescimentoClientes = calcularVariacaoPercentual(
-    clientes.length,
-    clientes.length - novosClientesEsteMes,
   );
 
   const pontosGrafico = agruparAgendamentosPorDia(agendamentosPeriodo, 30, hoje);
@@ -233,8 +225,8 @@ export default async function PainelPage() {
           className={cn(
             "grid divide-y divide-border",
             tendenciaFaturamento
-              ? "sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-5"
-              : "sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4",
+              ? "sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-6"
+              : "sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-5",
           )}
         >
           <MetricaPainel
@@ -246,15 +238,17 @@ export default async function PainelPage() {
           />
           <MetricaPainel
             cor="brand"
-            href="/painel/clientes"
-            icone={UsersRound}
-            label="Clientes cadastrados"
-            tendencia={
-              percentualCrescimentoClientes === null
-                ? undefined
-                : { percentual: percentualCrescimentoClientes, rotulo: "vs base anterior" }
-            }
-            valor={String(clientes.length)}
+            href="/painel/agenda"
+            icone={CheckCircle2}
+            label="Confirmaram presença"
+            valor={String(confirmacoes.confirmados)}
+          />
+          <MetricaPainel
+            cor={confirmacoes.aguardandoConfirmacao > 0 ? "dourado" : "roxo"}
+            href="/painel/agenda"
+            icone={Hourglass}
+            label="Aguardando confirmação"
+            valor={String(confirmacoes.aguardandoConfirmacao)}
           />
           <MetricaPainel
             cor="dourado"

@@ -6,6 +6,7 @@ import { agoraBrasilia } from "@/lib/utils";
 import { autorizarPapel, ErroAutorizacao } from "@/modules/auth/rbac";
 import { cliente } from "@/modules/clientes/schema";
 import { pacote } from "@/modules/pacotes/schema";
+import { contarAgendamentosPorStatus } from "@/modules/relatorios/resumo";
 import { servico } from "@/modules/servicos/schema";
 import { usuario } from "@/modules/auth/schema";
 
@@ -137,6 +138,31 @@ export async function listarClientesComAgendamentoPendenteHoje() {
         lt(agendamento.inicio, inicioDoDiaSeguinte),
       ),
     );
+}
+
+/**
+ * Confirmação de agendamentos a partir de hoje — quantos já foram confirmados pelo cliente
+ * (`marcado`) e quantos ainda esperam resposta ao pedido de confirmação por WhatsApp
+ * (`aguardando_confirmacao`). Usado pelo card do painel. Não considera o passado: um agendamento
+ * de ontem que nunca foi confirmado já é outro problema (fica visível na agenda), não isso aqui.
+ */
+export async function contarConfirmacoesFuturas() {
+  autorizarPapel(await auth(), ["profissional", "recepcao"]);
+
+  const { inicioDoDia } = limitesDoDia(agoraBrasilia());
+
+  const linhas = await db
+    .select({ status: agendamento.status })
+    .from(agendamento)
+    .where(
+      and(gte(agendamento.inicio, inicioDoDia), inArray(agendamento.status, statusQueOcupamAgenda)),
+    );
+  const porStatus = contarAgendamentosPorStatus(linhas);
+
+  return {
+    confirmados: porStatus.marcado,
+    aguardandoConfirmacao: porStatus.aguardando_confirmacao,
+  };
 }
 
 /** Usado pelos relatórios — agregado por período, sem os dados de contato do cliente. */
