@@ -2,22 +2,18 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["pdf-parse"],
-  // pdf-parse → pdfjs-dist → @napi-rs/canvas (binário nativo). O rastreamento automático de
-  // arquivos (@vercel/nft) não resolve estaticamente qual pacote de plataforma o @napi-rs/canvas
-  // vai exigir em runtime (a escolha é dinâmica, por process.platform/arch/libc), então o binário
-  // linux fica de fora do bundle da function na Vercel — foi isso que causou o
-  // "ReferenceError: DOMMatrix is not defined" em produção. Força a inclusão explícita nas duas
-  // rotas que de fato chamam extrairTextoPdf.
-  outputFileTracingIncludes: {
-    "/api/analises": [
-      "./node_modules/.pnpm/@napi-rs+canvas@*/**/*",
-      "./node_modules/.pnpm/@napi-rs+canvas-linux-x64-gnu@*/**/*",
-    ],
-    "/api/assistente/anexos": [
-      "./node_modules/.pnpm/@napi-rs+canvas@*/**/*",
-      "./node_modules/.pnpm/@napi-rs+canvas-linux-x64-gnu@*/**/*",
-    ],
-  },
+  /**
+   * ⚠️ NÃO reintroduzir `outputFileTracingIncludes` forçando `.pnpm/@napi-rs+canvas*` sem antes
+   * confirmar que o caminho existe de verdade no build da Vercel. Foi tentado em 9f2f8f9 (pra
+   * evitar "DOMMatrix is not defined" nas rotas que leem PDF) e quebrou TODO deploy subsequente
+   * por uma semana inteira (erro ENOENT no passo "direct:build" — confirmado via API da Vercel,
+   * `deployments/{id}` retorna `errorCode: "ENOENT"`; o dashboard só mostra "internal error"
+   * genérico, sem essa causa). O binário de plataforma do @napi-rs/canvas aparentemente não
+   * resolve pro mesmo caminho no ambiente de build deles que resolvia localmente no Windows.
+   * As rotas de PDF (`/api/analises`, `/api/assistente/anexos`) continuam com risco do
+   * DOMMatrix — é um problema mais estreito que vale investigar separadamente, com deploy real,
+   * antes de mexer aqui de novo.
+   */
   experimental: {
     serverActions: {
       // Next.js limita o body de Server Action a 1MB por padrão — abaixo do teto de 4MB que
