@@ -1,12 +1,13 @@
 import type { DefaultSession } from "next-auth";
 
-import type { PapelUsuario } from "@/modules/auth/rbac";
+import type { FuncaoUsuario, PapelUsuario } from "@/modules/auth/rbac";
 
 declare module "next-auth" {
   interface User {
     role?: PapelUsuario;
     clienteId?: string | null;
     ativo?: boolean;
+    funcao?: FuncaoUsuario | null;
   }
 
   interface Session {
@@ -15,6 +16,7 @@ declare module "next-auth" {
       role: PapelUsuario;
       clienteId?: string | null;
       ativo: boolean;
+      funcao?: FuncaoUsuario | null;
     } & DefaultSession["user"];
   }
 }
@@ -25,5 +27,6 @@ declare module "next-auth/jwt" {
     role?: PapelUsuario;
     clienteId?: string | null;
     ativo?: boolean;
+    funcao?: FuncaoUsuario | null;
   }
 }

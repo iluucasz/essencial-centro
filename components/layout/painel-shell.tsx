@@ -24,7 +24,8 @@ import {
 } from "lucide-react";
 
 import { MenuUsuario } from "@/modules/auth/components/menu-usuario";
-import type { PapelUsuario } from "@/modules/auth/rbac";
+import { SeletorFuncaoTeste } from "@/modules/auth/components/seletor-funcao-teste";
+import type { FuncaoUsuario, PapelUsuario } from "@/modules/auth/rbac";
 import { WidgetAssistente } from "@/modules/assistente/components/widget-assistente";
 import type { PapelMensagemAssistente } from "@/modules/assistente/schema";
 
@@ -34,6 +35,7 @@ type UsuarioShell = {
   email?: string | null;
   image?: string | null;
   role: PapelUsuario;
+  funcao?: FuncaoUsuario | null;
 };
 
 type MensagemHistoricoAssistente = {
@@ -55,6 +57,7 @@ const itensNavegacao = [
     icone: Wallet,
     exato: false,
     papeis: ["profissional"],
+    somenteAdmin: true,
   },
   {
     href: "/painel/relatorios",
@@ -62,6 +65,7 @@ const itensNavegacao = [
     icone: BarChart3,
     exato: false,
     papeis: ["profissional"],
+    somenteAdmin: true,
   },
   {
     href: "/painel/controles",
@@ -76,6 +80,7 @@ const itensNavegacao = [
     icone: UserCog,
     exato: false,
     papeis: ["profissional"],
+    somenteAdmin: true,
   },
   {
     href: "/painel/whatsapp",
@@ -93,23 +98,36 @@ const itensNavegacao = [
   },
 ] as const;
 
+/** Mesmo e-mail travado em `alternarFuncaoTeste` (`modules/auth/actions.ts`) — só decide se o
+ * seletor aparece aqui; quem garante que só essa conta troca a própria função é a Server Action. */
+const EMAIL_TESTE_FUNCAO = "lucasface99@gmail.com";
+
 function itemAtivo(pathname: string, href: string, exato: boolean) {
   return exato ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function itemDisponivelParaPapel(item: (typeof itensNavegacao)[number], papel: PapelUsuario) {
-  return !("papeis" in item) || (item.papeis as readonly PapelUsuario[]).includes(papel);
+function itemDisponivelParaUsuario(
+  item: (typeof itensNavegacao)[number],
+  papel: PapelUsuario,
+  funcao: FuncaoUsuario | null | undefined,
+) {
+  if ("papeis" in item && !(item.papeis as readonly PapelUsuario[]).includes(papel)) return false;
+  if ("somenteAdmin" in item && item.somenteAdmin && funcao !== "admin") return false;
+
+  return true;
 }
 
 function Sidebar({
   pathname,
   papel,
+  funcao,
   colapsada = false,
   onToggleCollapse,
   onNavigate,
 }: {
   pathname: string;
   papel: PapelUsuario;
+  funcao?: FuncaoUsuario | null;
   colapsada?: boolean;
   onToggleCollapse?: () => void;
   onNavigate?: () => void;
@@ -160,7 +178,7 @@ function Sidebar({
         </p>
       )}
       {itensNavegacao
-        .filter((item) => itemDisponivelParaPapel(item, papel))
+        .filter((item) => itemDisponivelParaUsuario(item, papel, funcao))
         .map(({ href, label, icone: Icone, exato }) => {
           const ativo = itemAtivo(pathname, href, exato);
 
@@ -205,7 +223,8 @@ export function PainelShell({
   const paginaAtual =
     itensNavegacao.find(
       (item) =>
-        itemDisponivelParaPapel(item, usuario.role) && itemAtivo(pathname, item.href, item.exato),
+        itemDisponivelParaUsuario(item, usuario.role, usuario.funcao) &&
+        itemAtivo(pathname, item.href, item.exato),
     )?.label ?? "Painel";
 
   return (
@@ -219,6 +238,7 @@ export function PainelShell({
       >
         <Sidebar
           colapsada={colapsada}
+          funcao={usuario.funcao}
           onToggleCollapse={() => setColapsada((atual) => !atual)}
           papel={usuario.role}
           pathname={pathname}
@@ -244,6 +264,7 @@ export function PainelShell({
               <X className="size-5" aria-hidden="true" />
             </button>
             <Sidebar
+              funcao={usuario.funcao}
               papel={usuario.role}
               pathname={pathname}
               onNavigate={() => setMenuAberto(false)}
@@ -270,13 +291,17 @@ export function PainelShell({
             </span>
           </div>
 
-          <MenuUsuario
-            email={usuario.email ?? null}
-            imagem={usuario.image ?? null}
-            nome={usuario.name ?? "Usuário"}
-            papel={usuario.role}
-            usuarioId={usuario.id}
-          />
+          <div className="flex items-center gap-3">
+            {usuario.email === EMAIL_TESTE_FUNCAO ? <SeletorFuncaoTeste /> : null}
+
+            <MenuUsuario
+              email={usuario.email ?? null}
+              imagem={usuario.image ?? null}
+              nome={usuario.name ?? "Usuário"}
+              papel={usuario.role}
+              usuarioId={usuario.id}
+            />
+          </div>
         </header>
 
         <motion.main

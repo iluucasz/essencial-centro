@@ -1,13 +1,15 @@
 import { UserPlus } from "lucide-react";
 
+import { auth } from "@/auth";
 import { ModalFormulario } from "@/components/ui/modal-formulario";
 import { FormularioUsuario } from "@/modules/auth/components/formulario-usuario";
 import { ListaUsuarios } from "@/modules/auth/components/lista-usuarios";
-import { exigirUsuarioAtual, listarUsuarios } from "@/modules/auth/queries";
+import { autorizarAdmin } from "@/modules/auth/rbac";
+import { listarUsuarios } from "@/modules/auth/queries";
 import { listarClientes } from "@/modules/clientes/queries";
 
 export default async function UsuariosPage() {
-  const usuarioAtual = await exigirUsuarioAtual(["profissional"]);
+  const usuarioAtual = autorizarAdmin(await auth());
 
   const [usuarios, clientesBrutos] = await Promise.all([listarUsuarios(), listarClientes()]);
   const clientes = clientesBrutos.map((c) => ({ id: c.id, nome: c.nome }));

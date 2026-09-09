@@ -11,7 +11,7 @@ import { violaConstraintUnica } from "@/lib/db-erros";
 
 import { contarUsuarios, criarUsuarioComSenha } from "./credenciais";
 import { podeAlternarAtivoDe, podeExcluirUsuario } from "./gestao";
-import { autorizarPapel } from "./rbac";
+import { autorizarAdmin, autorizarPapel, ErroAutorizacao, type FuncaoUsuario } from "./rbac";
 import { gerarHashSenha, verificarSenha } from "./senha";
 import {
   alterarSenhaSchema,
@@ -97,6 +97,8 @@ export async function criarPrimeiroAcesso(
     email: formData.get("email"),
     senha: formData.get("senha"),
     role: "profissional",
+    // Primeiro acesso não tem quem conceda função — nasce admin (não há outro admin pra fazer isso).
+    funcao: "admin",
   });
 
   if (!parsed.success) {
@@ -128,13 +130,14 @@ export async function criarPrimeiroAcesso(
 }
 
 export async function criarUsuario(_: EstadoFormularioAuth = estadoInicial, formData: FormData) {
-  const sessao = await auth();
-  autorizarPapel(sessao, ["profissional"]);
+  autorizarAdmin(await auth());
 
   // Campo "Cliente vinculado" só existe no HTML quando role="cliente" (ver
   // FormularioUsuario) — nos outros casos formData.get() retorna null, não "" nem undefined,
   // e o schema não aceita null. Normaliza pra "" (que o schema já trata como "não informado").
+  // Mesmo caso pra "funcao", que só existe quando role !== "cliente".
   const clienteIdBruto = formData.get("clienteId");
+  const funcaoBruta = formData.get("funcao");
 
   const parsed = criarUsuarioSchema.safeParse({
     nome: formData.get("nome"),
@@ -142,6 +145,8 @@ export async function criarUsuario(_: EstadoFormularioAuth = estadoInicial, form
     senha: formData.get("senha"),
     role: formData.get("role"),
     clienteId: typeof clienteIdBruto === "string" ? clienteIdBruto : "",
+    funcao: typeof funcaoBruta === "string" ? funcaoBruta : "",
+    cargo: formData.get("cargo"),
   });
 
   if (!parsed.success) {
@@ -173,10 +178,11 @@ export async function atualizarUsuario(
   _: EstadoFormularioAuth = estadoInicial,
   formData: FormData,
 ) {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarAdmin(await auth());
 
-  // Mesmo caso do clienteId em criarUsuario — o campo só existe no HTML quando role="cliente".
+  // Mesmo caso do clienteId em criarUsuario — os campos só existem no HTML quando o papel pede.
   const clienteIdBruto = formData.get("clienteId");
+  const funcaoBruta = formData.get("funcao");
 
   const parsed = atualizarUsuarioSchema.safeParse({
     id: formData.get("id"),
@@ -184,6 +190,8 @@ export async function atualizarUsuario(
     email: formData.get("email"),
     role: formData.get("role"),
     clienteId: typeof clienteIdBruto === "string" ? clienteIdBruto : "",
+    funcao: typeof funcaoBruta === "string" ? funcaoBruta : "",
+    cargo: formData.get("cargo"),
   });
 
   if (!parsed.success) {
@@ -198,6 +206,8 @@ export async function atualizarUsuario(
         email: parsed.data.email,
         role: parsed.data.role,
         clienteId: parsed.data.clienteId ?? null,
+        funcao: parsed.data.funcao ?? null,
+        cargo: parsed.data.cargo ?? null,
         atualizadoEm: new Date(),
       })
       .where(eq(usuario.id, parsed.data.id))
@@ -327,7 +337,7 @@ export async function alternarAtivoUsuario(
   _: EstadoFormularioAuth = estadoInicial,
   formData: FormData,
 ): Promise<EstadoFormularioAuth> {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarAdmin(await auth());
 
   const id = formData.get("id");
   const ativoAtual = formData.get("ativoAtual");
@@ -379,7 +389,7 @@ export async function excluirUsuario(
   _: EstadoFormularioAuth = estadoInicial,
   formData: FormData,
 ): Promise<EstadoFormularioAuth> {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarAdmin(await auth());
 
   const parsed = excluirUsuarioSchema.safeParse({
     id: formData.get("id"),
@@ -415,6 +425,28 @@ export async function excluirUsuario(
   revalidatePath("/painel/usuarios");
 
   return { status: "sucesso", mensagem: "Acesso ao portal excluído." };
+}
+
+/**
+ * E-mail travado no código de propósito — este não é um recurso de produto, é uma ferramenta pra
+ * quem está construindo a permissão testar admin/manager/reader na própria conta sem precisar de
+ * usuários de teste nem logout/login. Ver `SeletorFuncaoTeste`.
+ */
+const EMAIL_TESTE_FUNCAO = "lucasface99@gmail.com";
+
+/**
+ * Troca a própria função pra testar as três visões. Não usa `autorizarEscrita` de propósito: se
+ * usasse, quem estivesse testando como "reader" ficaria preso em reader, sem conseguir voltar pra
+ * admin. O guard real é o e-mail — mesmo alguém adulterando a chamada no cliente não passa daqui.
+ */
+export async function alternarFuncaoTeste(novaFuncao: FuncaoUsuario) {
+  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+
+  if (usuarioAtual.email !== EMAIL_TESTE_FUNCAO) {
+    throw new ErroAutorizacao();
+  }
+
+  await db.update(usuario).set({ funcao: novaFuncao }).where(eq(usuario.id, usuarioAtual.id));
 }
 
 /**

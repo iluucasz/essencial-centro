@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { autorizarPapel, ErroAutorizacao } from "@/modules/auth/rbac";
+import { autorizarEscrita, autorizarPapel, ErroAutorizacao } from "@/modules/auth/rbac";
 import { cliente } from "@/modules/clientes/schema";
 
 import { exigirClienteIdDaSessao } from "./queries";
@@ -55,7 +55,7 @@ export async function registrarDorNoAtendimento(
   let usuarioAtual;
 
   try {
-    usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+    usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
   } catch (erro) {
     if (erro instanceof ErroAutorizacao) return { status: "erro", mensagem: erro.message };
     throw erro;
@@ -129,7 +129,7 @@ export async function relatarMinhaDor(
  */
 export async function excluirPontoDeDor(formData: FormData): Promise<EstadoRegistroDor> {
   try {
-    autorizarPapel(await auth(), ["profissional"]);
+    autorizarEscrita(await auth(), ["profissional"]);
   } catch (erro) {
     if (erro instanceof ErroAutorizacao) return { status: "erro", mensagem: erro.message };
     throw erro;

@@ -2,7 +2,7 @@ import { and, desc, eq, gte, ilike, lte, or } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarAdmin } from "@/modules/auth/rbac";
 import { cliente } from "@/modules/clientes/schema";
 
 import { lancamentoFinanceiro } from "./schema";
@@ -45,7 +45,7 @@ function montarCondicoesLancamento(filtros?: FiltrosLancamentos) {
 }
 
 export async function listarLancamentos(filtros?: FiltrosLancamentos) {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarAdmin(await auth());
 
   return db
     .select({

@@ -16,7 +16,7 @@ import {
 import { urlConfirmacaoContrato } from "@/modules/agenda/confirmacao-url";
 import { agendamento, interpretarDataHoraParede } from "@/modules/agenda/schema";
 import { cliente } from "@/modules/clientes/schema";
-import { autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarEscrita } from "@/modules/auth/rbac";
 import { notificarCliente } from "@/modules/notificacoes/criar-notificacao";
 import { ocorrenciasEmConflito } from "@/modules/recorrencia/gerar";
 import { servico } from "@/modules/servicos/schema";
@@ -68,7 +68,7 @@ function parseFormularioPacote(formData: FormData) {
 }
 
 export async function criarPacote(_: EstadoFormularioPacote = estadoInicial, formData: FormData) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional", "recepcao"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional", "recepcao"]);
   const parsed = parseFormularioPacote(formData);
 
   if (!parsed.success) {
@@ -102,7 +102,7 @@ export async function agendarContrato(
   _: EstadoFormularioPacote = estadoInicial,
   formData: FormData,
 ): Promise<EstadoFormularioPacote> {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional", "recepcao"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional", "recepcao"]);
 
   const parsed = agendarContratoSchema.safeParse({
     clienteId: getValor(formData, "clienteId"),
@@ -267,7 +267,7 @@ export async function atualizarPacote(
   _: EstadoFormularioPacote = estadoInicial,
   formData: FormData,
 ) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional", "recepcao"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional", "recepcao"]);
   const pacoteId = pacoteIdSchema.safeParse(getValor(formData, "id"));
   const parsed = parseFormularioPacote(formData);
 
@@ -317,7 +317,7 @@ export async function excluirPacote(
   _: EstadoExclusaoPacote = estadoInicialExclusao,
   formData: FormData,
 ) {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarEscrita(await auth(), ["profissional"]);
   const pacoteId = pacoteIdSchema.safeParse(getValor(formData, "pacoteId"));
   const exclusaoConfirmada = checkboxAtivo(getValor(formData, "confirmarExclusao"));
 

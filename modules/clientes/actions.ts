@@ -9,7 +9,7 @@ import { db } from "@/db";
 import { agendamento } from "@/modules/agenda/schema";
 import { criarAcessoPortal, MOTIVOS_ACESSO_PORTAL } from "@/modules/auth/acesso-portal";
 import { violaConstraintUnica } from "@/lib/db-erros";
-import { autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarEscrita } from "@/modules/auth/rbac";
 import { usuario } from "@/modules/auth/schema";
 import { biometriaCliente, tentativaIdentificacaoBiometrica } from "@/modules/biometria/schema";
 import { documento } from "@/modules/documentos/schema";
@@ -97,7 +97,7 @@ export async function criarCliente(
   _: EstadoFormularioCliente = estadoInicial,
   formData: FormData,
 ): Promise<EstadoFormularioCliente> {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional", "recepcao"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional", "recepcao"]);
   const parsed = parseFormularioCliente(formData);
 
   if (!parsed.success) {
@@ -169,7 +169,7 @@ export async function atualizarCliente(
   _: EstadoFormularioCliente = estadoInicial,
   formData: FormData,
 ): Promise<EstadoFormularioCliente> {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional", "recepcao"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional", "recepcao"]);
   const clienteId = clienteIdSchema.safeParse(getValor(formData, "id"));
   const parsed = parseFormularioCliente(formData);
 
@@ -231,7 +231,7 @@ export async function excluirCliente(
   _: EstadoExclusaoCliente = estadoInicialExclusao,
   formData: FormData,
 ) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
   const clienteId = clienteIdSchema.safeParse(getValor(formData, "clienteId"));
   const exclusaoConfirmada = checkboxAtivo(getValor(formData, "confirmarExclusao"));
 
@@ -315,7 +315,7 @@ export async function excluirCliente(
 
 /** Opt-in separado do cadastro — biometria exige presença física, cadastro de cliente não. */
 export async function registrarConsentimentoBiometria(formData: FormData) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional", "recepcao"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional", "recepcao"]);
 
   const clienteId = getValor(formData, "clienteId");
   const consentimento = getValor(formData, "consentimento") === "true";
@@ -349,7 +349,7 @@ export async function gerarAcessoPortalCliente(
   _: EstadoAcessoPortal = { status: "inicial" },
   formData: FormData,
 ): Promise<EstadoAcessoPortal> {
-  autorizarPapel(await auth(), ["profissional", "recepcao"]);
+  autorizarEscrita(await auth(), ["profissional", "recepcao"]);
 
   const id = clienteIdSchema.safeParse(getValor(formData, "clienteId"));
 

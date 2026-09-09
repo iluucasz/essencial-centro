@@ -14,6 +14,7 @@ export type UsuarioAutenticado = {
   role: "profissional" | "recepcao" | "cliente";
   clienteId: string | null;
   ativo: boolean;
+  funcao: "admin" | "manager" | "reader" | null;
 };
 
 export async function getUsuarioPorEmail(email: string) {
@@ -41,6 +42,8 @@ export async function criarUsuarioComSenha(input: CriarUsuarioInput) {
       email: input.email,
       role: input.role,
       clienteId: input.clienteId,
+      cargo: input.cargo ?? null,
+      funcao: input.funcao ?? null,
       senhaHash,
     })
     .returning({
@@ -78,5 +81,6 @@ export async function autenticarComSenha(
     role: registro.role,
     clienteId: registro.clienteId,
     ativo: registro.ativo,
+    funcao: registro.funcao,
   };
 }

@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarEscrita } from "@/modules/auth/rbac";
 
 import { criarPlanoSchema, planoPacote } from "./schema";
 
@@ -29,7 +29,7 @@ function revalidarServico(servicoId: string) {
 }
 
 export async function criarPlano(_: EstadoFormularioPlano = estadoInicial, formData: FormData) {
-  const usuario = autorizarPapel(await auth(), ["profissional", "recepcao"]);
+  const usuario = autorizarEscrita(await auth(), ["profissional", "recepcao"]);
 
   const parsed = criarPlanoSchema.safeParse({
     servicoId: getValor(formData, "servicoId"),
@@ -62,7 +62,7 @@ export async function criarPlano(_: EstadoFormularioPlano = estadoInicial, formD
 
 /** Exclusão direta (botão no card do pacote) — template sem dado de cliente, sem confirmação. */
 export async function removerPlano(formData: FormData) {
-  autorizarPapel(await auth(), ["profissional", "recepcao"]);
+  autorizarEscrita(await auth(), ["profissional", "recepcao"]);
 
   const planoId = planoIdSchema.safeParse(getValor(formData, "planoId"));
   const servicoId = getValor(formData, "servicoId");

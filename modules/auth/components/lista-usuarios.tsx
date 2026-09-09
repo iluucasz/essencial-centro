@@ -1,6 +1,11 @@
 import { UserRound } from "lucide-react";
 
-import { rotulosPapelUsuario, type PapelUsuario } from "@/modules/auth/rbac";
+import {
+  rotulosFuncaoUsuario,
+  rotulosPapelUsuario,
+  type FuncaoUsuario,
+  type PapelUsuario,
+} from "@/modules/auth/rbac";
 import { MenuFotoUsuario } from "@/modules/fotos/components/menu-foto-usuario";
 
 import { MenuAcoesUsuario } from "./menu-acoes-usuario";
@@ -11,6 +16,8 @@ type UsuarioResumo = {
   email: string;
   image: string | null;
   role: PapelUsuario;
+  funcao: FuncaoUsuario | null;
+  cargo: string | null;
   clienteId: string | null;
   clienteFotoPerfilId: string | null;
   ativo: boolean;
@@ -21,6 +28,12 @@ const classePorPapel: Record<PapelUsuario, string> = {
   profissional: "bg-brand/15 text-brand",
   recepcao: "bg-lilas/25 text-roxo",
   cliente: "bg-creme text-muted",
+};
+
+const classePorFuncao: Record<FuncaoUsuario, string> = {
+  admin: "bg-dourado/15 text-dourado",
+  manager: "bg-brand/10 text-brand",
+  reader: "bg-creme text-muted",
 };
 
 const formatadorData = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "UTC" });
@@ -102,6 +115,13 @@ export function ListaUsuarios({
               >
                 {rotulosPapelUsuario[u.role]}
               </span>
+              {u.funcao ? (
+                <span
+                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${classePorFuncao[u.funcao]}`}
+                >
+                  {rotulosFuncaoUsuario[u.funcao]}
+                </span>
+              ) : null}
               <span
                 className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                   u.ativo ? "bg-brand/15 text-brand" : "bg-perigo/15 text-perigo"
@@ -117,6 +137,8 @@ export function ListaUsuarios({
                   nome,
                   email: u.email,
                   role: u.role,
+                  funcao: u.funcao,
+                  cargo: u.cargo,
                   clienteId: u.clienteId,
                   ativo: u.ativo,
                 }}

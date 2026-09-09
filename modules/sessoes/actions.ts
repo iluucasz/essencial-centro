@@ -7,7 +7,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { agendamento } from "@/modules/agenda/schema";
-import { autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarEscrita } from "@/modules/auth/rbac";
 import { cliente } from "@/modules/clientes/schema";
 import { notificarCliente } from "@/modules/notificacoes/criar-notificacao";
 import { urlBaseNotificacoes } from "@/modules/notificacoes/email";
@@ -140,7 +140,7 @@ async function prepararVinculosSessao<TDados extends DadosSessaoValidados>(
 }
 
 export async function criarSessao(_: EstadoFormularioSessao = estadoInicial, formData: FormData) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = criarSessaoSchema.safeParse(lerDadosSessao(formData));
 
@@ -207,7 +207,7 @@ export async function atualizarSessao(
   _: EstadoFormularioSessao = estadoInicial,
   formData: FormData,
 ) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = editarSessaoSchema.safeParse(lerDadosSessao(formData));
 
@@ -275,7 +275,7 @@ export async function excluirSessao(
   _estado: EstadoExclusaoSessao,
   formData: FormData,
 ): Promise<EstadoExclusaoSessao> {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = excluirSessaoSchema.safeParse({
     id: getValor(formData, "id"),
@@ -318,7 +318,7 @@ export async function reenviarSessaoWhatsApp(
   _estado: EstadoEnvioWhatsAppSessao,
   formData: FormData,
 ): Promise<EstadoEnvioWhatsAppSessao> {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = reenviarWhatsAppSchema.safeParse({ id: getValor(formData, "id") });
 

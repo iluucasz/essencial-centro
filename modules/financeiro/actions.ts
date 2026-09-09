@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarAdmin } from "@/modules/auth/rbac";
 
 import {
   atualizarLancamentoSchema,
@@ -56,7 +56,7 @@ export async function criarLancamento(
   _: EstadoFormularioLancamento = estadoInicial,
   formData: FormData,
 ) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarAdmin(await auth());
 
   const parsed = criarLancamentoSchema.safeParse(parseFormularioLancamento(formData));
 
@@ -86,7 +86,7 @@ export async function atualizarLancamento(
   _: EstadoFormularioLancamento = estadoInicial,
   formData: FormData,
 ) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarAdmin(await auth());
 
   const parsed = atualizarLancamentoSchema.safeParse({
     id: getValor(formData, "id"),
@@ -129,7 +129,7 @@ export async function atualizarLancamento(
 }
 
 export async function atualizarSituacaoLancamento(formData: FormData) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarAdmin(await auth());
 
   const parsed = atualizarSituacaoSchema.safeParse({
     id: getValor(formData, "id"),
@@ -154,7 +154,7 @@ export async function excluirLancamento(
   _: EstadoExclusaoLancamento = estadoInicialExclusao,
   formData: FormData,
 ) {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarAdmin(await auth());
 
   const id = lancamentoIdSchema.safeParse(getValor(formData, "id"));
   const exclusaoConfirmada = getValor(formData, "confirmarExclusao");

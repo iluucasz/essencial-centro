@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarEscrita } from "@/modules/auth/rbac";
 
 import {
   criarMedicamentoInformadoSchema,
@@ -56,7 +56,7 @@ export async function criarMedicamentoInformado(
   _: EstadoFormularioMedicamento = estadoInicial,
   formData: FormData,
 ) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = criarMedicamentoInformadoSchema.safeParse(lerDadosMedicamento(formData));
 
@@ -86,7 +86,7 @@ export async function atualizarMedicamentoInformado(
   _: EstadoFormularioMedicamento = estadoInicial,
   formData: FormData,
 ) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = editarMedicamentoInformadoSchema.safeParse(lerDadosMedicamento(formData));
 
@@ -141,7 +141,7 @@ export async function atualizarMedicamentoInformado(
 
 /** Etapa deliberada e separada da criação: "informar" não é o mesmo que "verificar". */
 export async function confirmarVerificacaoMedicamento(formData: FormData) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
 
   const id = getValor(formData, "id");
   const clienteId = getValor(formData, "clienteId");
@@ -167,7 +167,7 @@ export async function excluirMedicamentoInformado(
   _estado: EstadoExclusaoMedicamento,
   formData: FormData,
 ): Promise<EstadoExclusaoMedicamento> {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = excluirMedicamentoSchema.safeParse({
     id: getValor(formData, "id"),

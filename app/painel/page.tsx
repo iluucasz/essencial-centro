@@ -176,8 +176,11 @@ export default async function PainelPage() {
       usuario.role === "profissional" ? listarPendenciasRegistroSessao(4) : Promise.resolve(null),
     ]);
 
+  // Faturamento é dado financeiro — só admin vê, mesma regra de "/painel/financeiro" (autorizarAdmin).
   const tendenciaFaturamento =
-    usuario.role === "profissional" ? await obterTendenciaFaturamento(hoje) : null;
+    usuario.role === "profissional" && usuario.funcao === "admin"
+      ? await obterTendenciaFaturamento(hoje)
+      : null;
   const alertasOperacionais =
     usuario.role === "profissional" ? await obterAlertasOperacionais() : null;
 

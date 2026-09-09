@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { FOTO_PERFIL_CLIENTE_REGIAO } from "@/modules/fotos/perfil-schema";
 import { foto } from "@/modules/fotos/schema";
 
-import { autorizarPapel, type PapelUsuario } from "./rbac";
+import { autorizarAdmin, autorizarPapel, type PapelUsuario } from "./rbac";
 import { usuario } from "./schema";
 
 export async function getSessaoAtual() {
@@ -49,12 +49,12 @@ export async function listarProfissionaisAtivos() {
     .orderBy(asc(usuario.name));
 }
 
-/** Tela "Usuários" (`/painel/usuarios`) — quem pode criar usuário (`criarUsuario`) também é quem
- * pode listar/gerenciar. Usuário vinculado a um cliente (role "cliente") não costuma ter foto
+/** Tela "Usuários" (`/painel/usuarios`) — exclusiva de admin (quem cria/gerencia usuário também
+ * decide quem mais vira admin). Usuário vinculado a um cliente (role "cliente") não costuma ter foto
  * própria (`usuario.image` — enviada em `/painel/usuarios`); nesse caso cai pra foto de perfil
  * já cadastrada no cliente vinculado, mesma fonte usada em `listarClientes`. */
 export async function listarUsuarios() {
-  await exigirUsuarioAtual(["profissional"]);
+  autorizarAdmin(await auth());
 
   const registros = await db
     .select({
@@ -63,6 +63,8 @@ export async function listarUsuarios() {
       email: usuario.email,
       image: usuario.image,
       role: usuario.role,
+      funcao: usuario.funcao,
+      cargo: usuario.cargo,
       clienteId: usuario.clienteId,
       ativo: usuario.ativo,
       criadoEm: usuario.criadoEm,

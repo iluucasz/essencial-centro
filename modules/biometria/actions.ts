@@ -5,12 +5,12 @@ import { and, eq } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarEscrita } from "@/modules/auth/rbac";
 
 import { biometriaCliente } from "./schema";
 
 export async function desativarBiometria(formData: FormData) {
-  autorizarPapel(await auth(), ["profissional", "recepcao"]);
+  autorizarEscrita(await auth(), ["profissional", "recepcao"]);
 
   const id = formData.get("id");
   const clienteId = formData.get("clienteId");

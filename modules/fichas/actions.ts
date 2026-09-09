@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarEscrita } from "@/modules/auth/rbac";
 import { cliente } from "@/modules/clientes/schema";
 import { enviarWhatsAppTexto } from "@/modules/notificacoes/whatsapp";
 
@@ -53,7 +53,7 @@ async function carregarModelo(modeloFichaId: string) {
  * contra a definição do modelo (`validarRespostasModelo`) — nunca confia no cliente.
  */
 export async function criarFichaDeModelo(input: unknown): Promise<ResultadoFicha> {
-  const usuario = autorizarPapel(await auth(), ["profissional"]);
+  const usuario = autorizarEscrita(await auth(), ["profissional"]);
   const parsed = criarFichaDeModeloSchema.safeParse(input);
 
   if (!parsed.success) {
@@ -96,7 +96,7 @@ export async function criarFichaDeModelo(input: unknown): Promise<ResultadoFicha
 }
 
 export async function editarFichaDinamica(input: unknown): Promise<ResultadoFicha> {
-  const usuario = autorizarPapel(await auth(), ["profissional"]);
+  const usuario = autorizarEscrita(await auth(), ["profissional"]);
   const parsed = editarFichaDinamicaSchema.safeParse(input);
 
   if (!parsed.success) {
@@ -168,7 +168,7 @@ function mensagemFichaWhatsApp(nomeCliente: string, modeloNome: string, url: str
  * reforço se o WhatsApp falhar ou o cliente não tiver telefone.
  */
 export async function enviarFichaPorWhatsApp(input: unknown): Promise<ResultadoEnvioWhatsApp> {
-  const usuario = autorizarPapel(await auth(), ["profissional"]);
+  const usuario = autorizarEscrita(await auth(), ["profissional"]);
   const parsed = enviarFichaWhatsAppSchema.safeParse(input);
 
   if (!parsed.success) return { status: "erro", mensagem: "Dados inválidos para o envio." };
@@ -296,7 +296,7 @@ export async function excluirFicha(
   _estado: EstadoExclusaoFicha,
   formData: FormData,
 ): Promise<EstadoExclusaoFicha> {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = excluirFichaSchema.safeParse({
     fichaId: formData.get("fichaId"),

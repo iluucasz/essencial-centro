@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarEscrita } from "@/modules/auth/rbac";
 import { sessao } from "@/modules/sessoes/schema";
 
 import { criarMedidaSchema, editarMedidaSchema, medida } from "./schema";
@@ -64,7 +64,7 @@ async function validarSessaoDaMedida({
 }
 
 export async function criarMedida(_: EstadoFormularioMedida = estadoInicial, formData: FormData) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = criarMedidaSchema.safeParse(lerDadosMedida(formData));
 
@@ -102,7 +102,7 @@ export async function atualizarMedida(
   _: EstadoFormularioMedida = estadoInicial,
   formData: FormData,
 ) {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = editarMedidaSchema.safeParse(lerDadosMedida(formData));
 
@@ -152,7 +152,7 @@ export async function excluirMedida(
   _estado: EstadoExclusaoMedida,
   formData: FormData,
 ): Promise<EstadoExclusaoMedida> {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = excluirMedidaSchema.safeParse({
     id: getValor(formData, "id"),

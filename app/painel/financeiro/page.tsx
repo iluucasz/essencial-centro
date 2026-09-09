@@ -1,8 +1,9 @@
 import { ArrowDownCircle, ArrowUpCircle, Clock, Scale, Wallet } from "lucide-react";
 
+import { auth } from "@/auth";
 import { CardKpi } from "@/components/ui/card-kpi";
 import { ModalFormulario } from "@/components/ui/modal-formulario";
-import { exigirUsuarioAtual } from "@/modules/auth/queries";
+import { autorizarAdmin } from "@/modules/auth/rbac";
 import { listarClientes } from "@/modules/clientes/queries";
 import { FiltrosLancamentos } from "@/modules/financeiro/components/filtros-lancamentos";
 import { FormularioLancamento } from "@/modules/financeiro/components/formulario-lancamento";
@@ -35,7 +36,7 @@ const formatadorMoeda = new Intl.NumberFormat("pt-BR", { style: "currency", curr
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function FinanceiroPage({ searchParams }: { searchParams: SearchParams }) {
-  await exigirUsuarioAtual(["profissional"]);
+  autorizarAdmin(await auth());
 
   const params = await searchParams;
   const busca = textoFiltroLancamento(params.busca);

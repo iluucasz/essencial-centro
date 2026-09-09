@@ -4,7 +4,14 @@ import { useActionState, useEffect, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 
 import { atualizarUsuario, criarUsuario, type EstadoFormularioAuth } from "@/modules/auth/actions";
-import { papeisUsuario, rotulosPapelUsuario, type PapelUsuario } from "@/modules/auth/rbac";
+import {
+  funcoesUsuario,
+  papeisUsuario,
+  rotulosFuncaoUsuario,
+  rotulosPapelUsuario,
+  type FuncaoUsuario,
+  type PapelUsuario,
+} from "@/modules/auth/rbac";
 import { useFecharModal } from "@/components/ui/modal-formulario";
 
 const estadoInicial: EstadoFormularioAuth = { status: "inicial" };
@@ -40,7 +47,15 @@ export type UsuarioFormulario = {
   email: string;
   role: PapelUsuario;
   clienteId: string | null;
+  funcao: FuncaoUsuario | null;
+  cargo: string | null;
 };
+
+/** Recepção nunca vira admin — mesma regra de `validarFuncaoPorPapel` em `modules/auth/schema.ts`,
+ * repetida aqui só pra já não oferecer a opção no menu (o servidor recusa de qualquer forma). */
+function funcoesDisponiveisParaPapel(papel: PapelUsuario) {
+  return papel === "recepcao" ? funcoesUsuario.filter((f) => f !== "admin") : funcoesUsuario;
+}
 
 export function FormularioUsuario({
   clientes,
@@ -55,6 +70,16 @@ export function FormularioUsuario({
     estadoInicial,
   );
   const [papel, setPapel] = useState<PapelUsuario>(usuario?.role ?? "profissional");
+  const [funcao, setFuncao] = useState<FuncaoUsuario>(usuario?.funcao ?? "manager");
+
+  function mudarPapel(novoPapel: PapelUsuario) {
+    setPapel(novoPapel);
+
+    // Recepção não pode ficar com "admin" selecionado por trás — cai pra manager automaticamente.
+    if (novoPapel === "recepcao" && funcao === "admin") {
+      setFuncao("manager");
+    }
+  }
 
   useEffect(() => {
     if (state.status === "sucesso") {
@@ -105,7 +130,7 @@ export function FormularioUsuario({
           className={classeInput}
           id="role"
           name="role"
-          onChange={(evento) => setPapel(evento.target.value as PapelUsuario)}
+          onChange={(evento) => mudarPapel(evento.target.value as PapelUsuario)}
           value={papel}
         >
           {papeisUsuario.map((p) => (
@@ -115,6 +140,45 @@ export function FormularioUsuario({
           ))}
         </select>
       </Campo>
+
+      {papel === "cliente" ? null : (
+        <>
+          <Campo error={state.campos?.funcao} htmlFor="funcao" label="Função">
+            <select
+              className={classeInput}
+              id="funcao"
+              name="funcao"
+              onChange={(evento) => setFuncao(evento.target.value as FuncaoUsuario)}
+              value={funcao}
+            >
+              {funcoesDisponiveisParaPapel(papel).map((f) => (
+                <option key={f} value={f}>
+                  {rotulosFuncaoUsuario[f]}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted">
+              Admin vê Financeiro, Relatórios e Usuários. Manager usa o resto do painel normalmente.
+              Reader só visualiza — não cria, edita nem exclui nada.
+            </p>
+          </Campo>
+
+          <Campo error={state.campos?.cargo} htmlFor="cargo" label="Cargo (opcional)">
+            <input
+              className={classeInput}
+              defaultValue={usuario?.cargo ?? ""}
+              id="cargo"
+              maxLength={120}
+              name="cargo"
+              placeholder="Ex.: Terapeuta Ortomolecular"
+            />
+            <p className="text-xs text-muted">
+              Título livre, só descritivo. Aparece no PDF de recomendação terapêutica emitido por
+              esta pessoa.
+            </p>
+          </Campo>
+        </>
+      )}
 
       {papel === "cliente" ? (
         <Campo error={state.campos?.clienteId} htmlFor="clienteId" label="Cliente vinculado">

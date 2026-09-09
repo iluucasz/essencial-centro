@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarEscrita } from "@/modules/auth/rbac";
 import {
   enviarWhatsAppMidia,
   enviarWhatsAppTexto,
@@ -110,7 +110,7 @@ export async function atualizarConfiguracaoAniversario(
   _: EstadoConfiguracaoAniversario = estadoInicial,
   formData: FormData,
 ): Promise<EstadoConfiguracaoAniversario> {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = atualizarConfiguracaoAniversarioSchema.safeParse({
     ativo: formData.get("ativo"),
@@ -162,7 +162,7 @@ export type EstadoDisparoAniversario = {
  * do mesmo jeito que o cron não enviaria.
  */
 export async function dispararAniversariosAgora(): Promise<EstadoDisparoAniversario> {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarEscrita(await auth(), ["profissional"]);
 
   const resultado = await dispararMensagensAniversario();
 
@@ -194,7 +194,7 @@ export async function salvarMensagemPredefinida(
   _: EstadoMensagemPredefinida = estadoInicialMensagemPredefinida,
   formData: FormData,
 ): Promise<EstadoMensagemPredefinida> {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = salvarMensagemPredefinidaSchema.safeParse({
     id: formData.get("id"),
@@ -265,7 +265,7 @@ export type EstadoExclusaoMensagemPredefinida = {
 export async function excluirMensagemPredefinida(
   id: string,
 ): Promise<EstadoExclusaoMensagemPredefinida> {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarEscrita(await auth(), ["profissional"]);
 
   const [registro] = await db
     .select({ arquivoPathname: mensagemPredefinida.arquivoPathname })
@@ -349,7 +349,7 @@ export async function enviarCampanhaMensagem(
   _: EstadoEnvioCampanha = estadoInicialEnvioCampanha,
   formData: FormData,
 ): Promise<EstadoEnvioCampanha> {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = enviarCampanhaSchema.safeParse({
     conteudo: formData.get("conteudo"),

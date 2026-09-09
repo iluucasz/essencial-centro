@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarEscrita, autorizarPapel } from "@/modules/auth/rbac";
 
 import { enviarEmailNotificacao } from "./email";
 import { notificacao } from "./schema";
@@ -26,7 +26,7 @@ export async function enviarWhatsAppDeTeste(
   _: EstadoTesteWhatsApp = estadoInicialTeste,
   formData: FormData,
 ) {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarEscrita(await auth(), ["profissional"]);
 
   const telefone = formData.get("telefone");
   const mensagem = formData.get("mensagem");
@@ -66,7 +66,7 @@ export async function enviarEmailDeTeste(
   _: EstadoTesteWhatsApp = estadoInicialTeste,
   formData: FormData,
 ) {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarEscrita(await auth(), ["profissional"]);
 
   const email = formData.get("email");
   const mensagem = formData.get("mensagem");

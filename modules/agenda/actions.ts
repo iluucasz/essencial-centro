@@ -6,7 +6,7 @@ import { and, eq, isNotNull, isNull } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarEscrita } from "@/modules/auth/rbac";
 import { lancamentoFinanceiro } from "@/modules/financeiro/schema";
 import { notificarCliente } from "@/modules/notificacoes/criar-notificacao";
 import { deveAvisarPacoteAcabando } from "@/modules/pacotes/progresso";
@@ -83,7 +83,7 @@ export async function criarAgendamento(
   _: EstadoFormularioAgendamento = estadoInicial,
   formData: FormData,
 ) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional", "recepcao"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional", "recepcao"]);
 
   const parsed = criarAgendamentoSchema.safeParse({
     clienteId: getValor(formData, "clienteId"),
@@ -163,7 +163,7 @@ export async function atualizarAgendamento(
   _: EstadoFormularioAgendamento = estadoInicial,
   formData: FormData,
 ) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional", "recepcao"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional", "recepcao"]);
 
   const parsed = atualizarAgendamentoSchema.safeParse({
     id: getValor(formData, "id"),
@@ -255,7 +255,7 @@ export async function excluirAgendamento(
   _: EstadoExclusaoAgendamento = estadoInicialExclusao,
   formData: FormData,
 ) {
-  autorizarPapel(await auth(), ["profissional", "recepcao"]);
+  autorizarEscrita(await auth(), ["profissional", "recepcao"]);
 
   const id = getValor(formData, "id");
   const clienteId = getValor(formData, "clienteId");
@@ -331,7 +331,7 @@ const MENSAGEM_POR_STATUS: Record<StatusAgendamentoManual, string> = {
 };
 
 async function aplicarStatusAgendamento(formData: FormData): Promise<EstadoFormularioAgendamento> {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional", "recepcao"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional", "recepcao"]);
 
   const parsed = atualizarStatusAgendamentoSchema.safeParse({
     id: getValor(formData, "id"),
@@ -435,7 +435,7 @@ export async function concluirAgendamento(
   _: EstadoFormularioAgendamento = estadoInicial,
   formData: FormData,
 ): Promise<EstadoFormularioAgendamento> {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional", "recepcao"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional", "recepcao"]);
 
   const parsed = concluirAgendamentoSchema.safeParse({
     id: getValor(formData, "id"),
@@ -538,7 +538,7 @@ export async function concluirAgendamento(
 async function aplicarConfirmacaoPresenca(
   formData: FormData,
 ): Promise<EstadoFormularioAgendamento> {
-  autorizarPapel(await auth(), ["profissional", "recepcao"]);
+  autorizarEscrita(await auth(), ["profissional", "recepcao"]);
 
   const parsed = confirmarPresencaSchema.safeParse({
     id: getValor(formData, "id"),

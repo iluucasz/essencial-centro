@@ -7,7 +7,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarEscrita } from "@/modules/auth/rbac";
 
 import { criarFotoSchema, foto } from "./schema";
 
@@ -39,7 +39,7 @@ function getValor(formData: FormData, nome: string) {
 }
 
 export async function criarFoto(_: EstadoFormularioFoto = estadoInicial, formData: FormData) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = criarFotoSchema.safeParse({
     clienteId: getValor(formData, "clienteId"),
@@ -88,7 +88,7 @@ export async function excluirFoto(
   _: EstadoExclusaoFoto = estadoInicialExclusao,
   formData: FormData,
 ) {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = excluirFotoSchema.safeParse({
     id: getValor(formData, "id"),

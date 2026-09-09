@@ -7,7 +7,8 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { agoraBrasilia } from "@/lib/utils";
-import { ErroAutorizacao, autorizarPapel } from "@/modules/auth/rbac";
+import { ErroAutorizacao, autorizarEscrita } from "@/modules/auth/rbac";
+import { usuario } from "@/modules/auth/schema";
 import { cliente } from "@/modules/clientes/schema";
 import { enviarEmailNotificacao } from "@/modules/notificacoes/email";
 import { enviarWhatsAppMidia } from "@/modules/notificacoes/whatsapp";
@@ -32,7 +33,7 @@ const estadoInicial: EstadoAnalise = { status: "inicial" };
 
 /** Guarda comum: só `profissional` mexe em análise clínica. */
 async function exigirProfissional() {
-  return autorizarPapel(await auth(), ["profissional"]);
+  return autorizarEscrita(await auth(), ["profissional"]);
 }
 
 function erroDeValidacao(erro: z.ZodError): EstadoAnalise {
@@ -258,7 +259,17 @@ async function carregarContextoEnvio(id: string, clienteId: string) {
   return { ...analise, cliente: dadosCliente };
 }
 
-async function gerarPdfParaEnvio(contexto: ContextoEnvioRecomendacao, profissionalNome: string) {
+async function gerarPdfParaEnvio(
+  contexto: ContextoEnvioRecomendacao,
+  profissionalId: string,
+  profissionalNome: string,
+) {
+  const [dadosProfissional] = await db
+    .select({ cargo: usuario.cargo })
+    .from(usuario)
+    .where(eq(usuario.id, profissionalId))
+    .limit(1);
+
   return gerarBufferPdfRecomendacao({
     clienteNome: contexto.cliente.nome,
     clienteDataNascimento: contexto.cliente.dataNascimento,
@@ -267,6 +278,7 @@ async function gerarPdfParaEnvio(contexto: ContextoEnvioRecomendacao, profission
     clienteQueixas: contexto.cliente.queixas,
     clienteObjetivo: contexto.cliente.objetivoTratamento,
     profissionalNome,
+    profissionalCargo: dadosProfissional?.cargo ?? null,
     dataEmissao: agoraBrasilia(),
     conteudo: contexto.analiseIa,
     prescricaoMedica: contexto.prescricaoMedica,
@@ -318,6 +330,7 @@ export async function enviarRecomendacaoWhatsApp(formData: FormData): Promise<Es
 
   const { buffer, nomeArquivo } = await gerarPdfParaEnvio(
     contexto,
+    usuarioAtual.id,
     usuarioAtual.name ?? "Essencial Centro",
   );
   const primeiroNome = contexto.cliente.nome.trim().split(/\s+/)[0] ?? contexto.cliente.nome;
@@ -382,6 +395,7 @@ export async function enviarRecomendacaoEmail(formData: FormData): Promise<Estad
 
   const { buffer, nomeArquivo } = await gerarPdfParaEnvio(
     contexto,
+    usuarioAtual.id,
     usuarioAtual.name ?? "Essencial Centro",
   );
   const primeiroNome = contexto.cliente.nome.trim().split(/\s+/)[0] ?? contexto.cliente.nome;

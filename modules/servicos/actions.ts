@@ -7,7 +7,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { agendamento } from "@/modules/agenda/schema";
-import { autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarEscrita } from "@/modules/auth/rbac";
 import { pacote } from "@/modules/pacotes/schema";
 import { sessao } from "@/modules/sessoes/schema";
 
@@ -90,7 +90,7 @@ export async function criarServico(
   _: EstadoFormularioServico = estadoInicial,
   formData: FormData,
 ): Promise<EstadoFormularioServico> {
-  const usuario = autorizarPapel(await auth(), ["profissional"]);
+  const usuario = autorizarEscrita(await auth(), ["profissional"]);
   const parsed = parseFormularioServico(formData);
 
   if (!parsed.success) {
@@ -124,7 +124,7 @@ export async function atualizarServico(
   _: EstadoFormularioServico = estadoInicial,
   formData: FormData,
 ): Promise<EstadoFormularioServico> {
-  const usuario = autorizarPapel(await auth(), ["profissional"]);
+  const usuario = autorizarEscrita(await auth(), ["profissional"]);
   const servicoId = servicoIdSchema.safeParse(getValor(formData, "id"));
   const parsed = parseFormularioServico(formData);
 
@@ -208,7 +208,7 @@ async function descreverVinculosServico(servicoId: string) {
 }
 
 export async function alternarAtivoServico(formData: FormData) {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarEscrita(await auth(), ["profissional"]);
 
   const id = formData.get("id");
   const ativoAtual = formData.get("ativoAtual");
@@ -226,7 +226,7 @@ export async function excluirServico(
   _: EstadoExclusaoServico = estadoInicialExclusao,
   formData: FormData,
 ) {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarEscrita(await auth(), ["profissional"]);
   const servicoId = servicoIdSchema.safeParse(getValor(formData, "servicoId"));
   const exclusaoConfirmada = checkboxAtivo(getValor(formData, "confirmarExclusao"));
 
@@ -293,7 +293,7 @@ export async function criarOpcaoServico(
   _: EstadoCriacaoOpcaoServico = estadoInicialCriacaoOpcao,
   formData: FormData,
 ) {
-  const usuario = autorizarPapel(await auth(), ["profissional"]);
+  const usuario = autorizarEscrita(await auth(), ["profissional"]);
   const parsed = criarOpcaoServicoSchema.safeParse({
     tipo: getValor(formData, "tipo"),
     nome: getValor(formData, "nome"),
@@ -327,7 +327,7 @@ export async function excluirOpcaoServico(
   _: EstadoExclusaoOpcaoServico = estadoInicialExclusaoOpcao,
   formData: FormData,
 ) {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarEscrita(await auth(), ["profissional"]);
   const parsed = excluirOpcaoServicoSchema.safeParse({ id: getValor(formData, "id") });
 
   if (!parsed.success) {

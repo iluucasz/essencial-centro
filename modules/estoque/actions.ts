@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarEscrita } from "@/modules/auth/rbac";
 
 import { calcularQuantidadeDisponivel } from "./disponibilidade";
 import {
@@ -51,7 +51,7 @@ function parseFormularioProduto(formData: FormData) {
 }
 
 export async function criarProduto(_: EstadoFormularioEstoque = estadoInicial, formData: FormData) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = parseFormularioProduto(formData);
 
@@ -81,7 +81,7 @@ export async function atualizarProduto(
   _: EstadoFormularioEstoque = estadoInicial,
   formData: FormData,
 ) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
   const produtoId = produtoIdSchema.safeParse(getValor(formData, "id"));
   const parsed = parseFormularioProduto(formData);
 
@@ -132,7 +132,7 @@ export async function excluirProduto(
   _: EstadoExclusaoEstoque = estadoInicialExclusao,
   formData: FormData,
 ) {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarEscrita(await auth(), ["profissional"]);
   const produtoId = produtoIdSchema.safeParse(getValor(formData, "produtoId"));
   const exclusaoConfirmada = checkboxAtivo(getValor(formData, "confirmarExclusao"));
 
@@ -179,7 +179,7 @@ export async function excluirProduto(
 }
 
 export async function criarLote(_: EstadoFormularioEstoque = estadoInicial, formData: FormData) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = criarLoteSchema.safeParse({
     produtoId: getValor(formData, "produtoId"),
@@ -216,7 +216,7 @@ export async function registrarSaida(
   _: EstadoFormularioEstoque = estadoInicial,
   formData: FormData,
 ) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = registrarSaidaSchema.safeParse({
     loteId: getValor(formData, "loteId"),

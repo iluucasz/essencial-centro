@@ -7,7 +7,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarEscrita } from "@/modules/auth/rbac";
 
 import { registrarControleSchema, registroControle } from "./schema";
 
@@ -27,7 +27,7 @@ export async function registrarControle(
   _: EstadoFormularioControle = estadoInicial,
   formData: FormData,
 ): Promise<EstadoFormularioControle> {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = registrarControleSchema.safeParse({
     tipo: getValor(formData, "tipo"),
@@ -93,7 +93,7 @@ export async function excluirControle(
   _: EstadoExclusaoControle = estadoInicialExclusao,
   formData: FormData,
 ): Promise<EstadoExclusaoControle> {
-  autorizarPapel(await auth(), ["profissional"]);
+  autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = excluirControleSchema.safeParse({ id: getValor(formData, "id") });
 

@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarEscrita, autorizarPapel } from "@/modules/auth/rbac";
 import { cliente } from "@/modules/clientes/schema";
 import { documento } from "@/modules/documentos/schema";
 
@@ -41,7 +41,7 @@ export async function arquivarAnexoNoProntuario({
   clienteId: string;
   resumo: string;
 }): Promise<EstadoArquivamento> {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
 
   const [anexo] = await db
     .select({

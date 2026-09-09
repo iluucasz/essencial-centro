@@ -13,9 +13,10 @@ import {
 } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
-import { papeisUsuario } from "./rbac";
+import { funcoesUsuario, papeisUsuario, type FuncaoUsuario, type PapelUsuario } from "./rbac";
 
 export const papelUsuarioEnum = pgEnum("papel_usuario", papeisUsuario);
+export const funcaoUsuarioEnum = pgEnum("funcao_usuario", funcoesUsuario);
 
 export const usuario = pgTable(
   "usuario",
@@ -26,6 +27,18 @@ export const usuario = pgTable(
     emailVerified: timestamp("email_verified", { mode: "date" }),
     image: text("image"),
     role: papelUsuarioEnum("role").notNull().default("cliente"),
+    /**
+     * Permissão dentro de profissional/recepção — admin/manager/reader (`docs/context/06-lgpd-...`
+     * não cobre isso ainda). Nula pra `cliente`, que nunca navega em nada que função regule. Ver
+     * `modules/auth/rbac.ts` pra semântica de cada valor e `autorizarAdmin`/`autorizarEscrita`.
+     */
+    funcao: funcaoUsuarioEnum("funcao"),
+    /**
+     * Cargo/título livre, digitado na hora — "Terapeuta Ortomolecular", "Recepcionista" etc. Puramente
+     * descritivo (nunca usado em checagem de permissão, isso é `funcao`). Hoje só reflete no timbre
+     * do PDF de recomendação (`modules/analises/pdf-recomendacao.ts`), no lugar do texto fixo antigo.
+     */
+    cargo: text("cargo"),
     senhaHash: text("senha_hash"),
     clienteId: uuid("cliente_id"),
     /**
@@ -130,25 +143,62 @@ const clienteIdVinculoOpcional = z
   .optional()
   .or(z.literal("").transform(() => undefined));
 
-export const criarUsuarioSchema = credenciaisEntradaSchema.extend({
-  nome: z.string().trim().min(2, "Informe o nome do usuário.").max(120),
-  role: z.enum(papeisUsuario),
-  clienteId: clienteIdVinculoOpcional,
-});
+/** Mesmo padrão de `clienteId`: campo só existe no HTML quando o papel pede (ver `FormularioUsuario`). */
+const funcaoOpcional = z
+  .enum(funcoesUsuario)
+  .optional()
+  .or(z.literal("").transform(() => undefined));
+
+const cargoOpcional = z.preprocess((valor) => {
+  if (valor === null) return undefined;
+  if (typeof valor === "string" && valor.trim() === "") return undefined;
+
+  return valor;
+}, z.string().trim().max(120).optional());
+
+/** `cliente` nunca tem função; `profissional`/`recepção` sempre precisam de uma, e só `profissional`
+ * pode ser `admin` — ver `papelExigeFuncao`/`FuncaoUsuario` em `modules/auth/rbac.ts`. */
+function validarFuncaoPorPapel<
+  T extends { role: PapelUsuario; funcao?: FuncaoUsuario | undefined },
+>(schema: z.ZodType<T>) {
+  return schema
+    .refine((dados) => dados.role === "cliente" || dados.funcao !== undefined, {
+      message: "Escolha a função (admin, manager ou reader).",
+      path: ["funcao"],
+    })
+    .refine((dados) => dados.role !== "recepcao" || dados.funcao !== "admin", {
+      message: "Recepção não pode ter função admin — só profissional.",
+      path: ["funcao"],
+    });
+}
+
+export const criarUsuarioSchema = validarFuncaoPorPapel(
+  credenciaisEntradaSchema.extend({
+    nome: z.string().trim().min(2, "Informe o nome do usuário.").max(120),
+    role: z.enum(papeisUsuario),
+    clienteId: clienteIdVinculoOpcional,
+    cargo: cargoOpcional,
+    funcao: funcaoOpcional,
+  }),
+);
 
 /** Sem `senha` de propósito — troca de senha é um fluxo separado, mais sensível, não bundlado
  * na edição de nome/e-mail/papel. */
-export const atualizarUsuarioSchema = z.object({
-  id: z.string().uuid("Usuário inválido."),
-  nome: z.string().trim().min(2, "Informe o nome do usuário.").max(120),
-  email: z
-    .string()
-    .trim()
-    .email("Informe um e-mail válido.")
-    .transform((value) => value.toLowerCase()),
-  role: z.enum(papeisUsuario),
-  clienteId: clienteIdVinculoOpcional,
-});
+export const atualizarUsuarioSchema = validarFuncaoPorPapel(
+  z.object({
+    id: z.string().uuid("Usuário inválido."),
+    nome: z.string().trim().min(2, "Informe o nome do usuário.").max(120),
+    email: z
+      .string()
+      .trim()
+      .email("Informe um e-mail válido.")
+      .transform((value) => value.toLowerCase()),
+    role: z.enum(papeisUsuario),
+    clienteId: clienteIdVinculoOpcional,
+    cargo: cargoOpcional,
+    funcao: funcaoOpcional,
+  }),
+);
 
 /** Autoatendimento — a própria pessoa editando nome/e-mail do que ela vê no cabeçalho do
  * painel. Sem `role`/`clienteId`: isso continua exclusivo da tela "Usuários" (admin). */

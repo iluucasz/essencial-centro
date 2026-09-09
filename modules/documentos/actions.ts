@@ -6,7 +6,7 @@ import { and, eq } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { autorizarClienteDono, autorizarPapel } from "@/modules/auth/rbac";
+import { autorizarClienteDono, autorizarEscrita, autorizarPapel } from "@/modules/auth/rbac";
 
 import { assinaturaValida, podeAssinarDocumento } from "./assinatura";
 import { calcularHashConteudo } from "./hash";
@@ -35,7 +35,7 @@ export async function criarDocumento(
   _: EstadoFormularioDocumento = estadoInicial,
   formData: FormData,
 ) {
-  const usuarioAtual = autorizarPapel(await auth(), ["profissional"]);
+  const usuarioAtual = autorizarEscrita(await auth(), ["profissional"]);
 
   const parsed = criarDocumentoSchema.safeParse({
     clienteId: getValor(formData, "clienteId"),
