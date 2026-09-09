@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { deepSeek } from "@ai-sdk/deepseek";
-import { generateText } from "ai";
+import { generateObject } from "ai";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
 import {
   analiseUtilizavel,
+  blocosParaTexto,
+  estruturaAnaliseSchema,
   montarPromptAnalise,
   tipoExigeArquivo,
   tituloPadrao,
@@ -179,14 +181,15 @@ export async function POST(request: Request) {
   let texto: string;
 
   try {
-    const resultado = await generateText({
+    const resultado = await generateObject({
       model: deepSeek(MODELO_DEEPSEEK_PADRAO),
+      schema: estruturaAnaliseSchema,
       prompt,
       maxOutputTokens: MAX_TOKENS_SAIDA_COM_ANEXO,
       providerOptions: OPCOES_PROVEDOR_DEEPSEEK,
     });
 
-    texto = resultado.text;
+    texto = blocosParaTexto(resultado.object.blocos);
   } catch (error) {
     console.error("[analises] falha ao gerar análise", error);
 

@@ -96,6 +96,43 @@ describe("enviarEmailNotificacao", () => {
     });
   });
 
+  it("inclui o anexo no payload da Brevo quando informado", async () => {
+    process.env.BREVO_API_KEY = "chave-teste";
+    process.env.BREVO_SENDER_EMAIL = "contato@essencialcentro.com";
+    const fetchMock = vi
+      .spyOn(global, "fetch")
+      .mockResolvedValue(new Response("{}", { status: 201 }));
+
+    await enviarEmailNotificacao({
+      destinatarioEmail: "cliente@example.com",
+      destinatarioNome: "Cliente",
+      titulo: "Recomendação terapêutica",
+      mensagem: "Segue em anexo.",
+      anexo: { conteudoBase64: "QUJD", nomeArquivo: "Recomendacao-Cliente.pdf" },
+    });
+
+    const corpo = JSON.parse(fetchMock.mock.calls[0]![1]?.body as string);
+    expect(corpo.attachment).toEqual([{ content: "QUJD", name: "Recomendacao-Cliente.pdf" }]);
+  });
+
+  it("não inclui `attachment` no payload quando nenhum anexo é passado", async () => {
+    process.env.BREVO_API_KEY = "chave-teste";
+    process.env.BREVO_SENDER_EMAIL = "contato@essencialcentro.com";
+    const fetchMock = vi
+      .spyOn(global, "fetch")
+      .mockResolvedValue(new Response("{}", { status: 201 }));
+
+    await enviarEmailNotificacao({
+      destinatarioEmail: "cliente@example.com",
+      destinatarioNome: "Cliente",
+      titulo: "Título",
+      mensagem: "Mensagem",
+    });
+
+    const corpo = JSON.parse(fetchMock.mock.calls[0]![1]?.body as string);
+    expect(corpo.attachment).toBeUndefined();
+  });
+
   it("escapa a mensagem no HTML — nome com & ou < não quebra o corpo", async () => {
     process.env.BREVO_API_KEY = "chave-teste";
     process.env.BREVO_SENDER_EMAIL = "contato@essencialcentro.com";

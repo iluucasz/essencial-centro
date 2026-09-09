@@ -37,6 +37,9 @@ export type ClienteFormulario = {
   contatoEmergenciaNome: string | null;
   contatoEmergenciaTelefone: string | null;
   profissao: string | null;
+  peso: number | null;
+  altura: number | null;
+  queixas: string | null;
   objetivoTratamento: string | null;
   alergias: string | null;
   medicamentos: string | null;
@@ -595,6 +598,22 @@ export function FormularioCliente({ cliente }: { cliente?: ClienteFormulario }) 
           placeholder="Ex.: Designer"
         />
         <CampoTexto
+          defaultValue={cliente?.peso != null ? String(cliente.peso) : undefined}
+          error={state?.campos?.peso}
+          inputMode="decimal"
+          label="Peso (kg)"
+          name="peso"
+          placeholder="Ex.: 68.5"
+        />
+        <CampoTexto
+          defaultValue={cliente?.altura != null ? String(cliente.altura) : undefined}
+          error={state?.campos?.altura}
+          inputMode="decimal"
+          label="Altura (cm)"
+          name="altura"
+          placeholder="Ex.: 165"
+        />
+        <CampoTexto
           defaultValue={cliente?.contatoEmergenciaTelefone ?? undefined}
           error={state?.campos?.contatoEmergenciaTelefone}
           inputMode="tel"
@@ -614,6 +633,13 @@ export function FormularioCliente({ cliente }: { cliente?: ClienteFormulario }) 
       <CampoEndereco
         defaultValue={cliente?.endereco ?? undefined}
         error={state?.campos?.endereco}
+      />
+      <CampoArea
+        defaultValue={cliente?.queixas ?? undefined}
+        error={state?.campos?.queixas}
+        label="Queixas"
+        name="queixas"
+        placeholder="Ex.: Dificuldade para dormir e dores nas costas"
       />
       <CampoArea
         defaultValue={cliente?.objetivoTratamento ?? undefined}

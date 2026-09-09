@@ -22,6 +22,7 @@ const colunas = {
   analiseIa: analiseClinica.analiseIa,
   modeloIa: analiseClinica.modeloIa,
   observacaoProfissional: analiseClinica.observacaoProfissional,
+  prescricaoMedica: analiseClinica.prescricaoMedica,
   revisadoEm: analiseClinica.revisadoEm,
   criadoEm: analiseClinica.criadoEm,
 };
@@ -35,6 +36,7 @@ export type AnaliseDoCliente = {
   analiseIa: string;
   modeloIa: string;
   observacaoProfissional: string | null;
+  prescricaoMedica: string | null;
   revisadoEm: Date | null;
   criadoEm: Date;
   status: StatusRevisao;
@@ -87,6 +89,8 @@ export async function montarContextoClinico(clienteId: string) {
     .select({
       nome: cliente.nome,
       dataNascimento: cliente.dataNascimento,
+      peso: cliente.peso,
+      altura: cliente.altura,
       alergias: cliente.alergias,
       medicamentos: cliente.medicamentos,
       condicoesSaude: cliente.condicoesSaude,
@@ -143,6 +147,8 @@ export async function montarContextoClinico(clienteId: string) {
     ? Math.floor((Date.now() - dados.dataNascimento.getTime()) / (365.25 * 24 * 3600 * 1000))
     : null;
   if (idade) linhas.push(`- Idade: ${idade} anos`);
+  if (dados.peso) linhas.push(`- Peso: ${dados.peso} kg`);
+  if (dados.altura) linhas.push(`- Altura: ${dados.altura} cm`);
 
   const campos: [string, string | null][] = [
     ["Alergias", dados.alergias],

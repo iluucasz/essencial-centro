@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   analiseUtilizavel,
+  blocoAnaliseSchema,
+  blocosParaTexto,
+  dividirEmBlocos,
+  estruturaAnaliseSchema,
   montarPromptAnalise,
   montarPromptRefinamento,
   rotulosStatusRevisao,
@@ -10,6 +14,7 @@ import {
   tipoExigeArquivo,
   tiposAnalise,
   tituloPadrao,
+  type BlocoAnalise,
 } from "./analise";
 
 /**
@@ -65,7 +70,10 @@ describe("montarPromptAnalise — política clínica", () => {
     });
 
     expect(prompt).toContain("Nada aqui é prescrição");
-    expect(prompt).toContain("O que não dá para concluir");
+    expect(prompt).toContain("Hábitos que ajudam");
+    expect(prompt).toContain("O que evitar");
+    expect(prompt).toContain("O que eliminar");
+    expect(prompt).toContain("Suplementação");
   });
 });
 
@@ -143,12 +151,11 @@ describe("montarPromptRefinamento", () => {
     expect(prompt).toContain("acrescente dado novo");
   });
 
-  it("manda devolver a análise inteira, não um comentário sobre a mudança", () => {
+  it("manda montar a análise inteira, mantendo a mesma estrutura de seções", () => {
     const prompt = montarPromptRefinamento({ ...base, material: "x" });
 
-    expect(prompt).toContain("Reescreva a análise INTEIRA");
-    expect(prompt).toContain("nem explique o que mudou");
-    expect(prompt).toContain("pronta para substituir a anterior");
+    expect(prompt).toContain("análise INTEIRA");
+    expect(prompt).toContain("mantendo os mesmos títulos de seção");
   });
 
   it("separa análise atual e instrução em blocos distintos", () => {
@@ -208,5 +215,93 @@ describe("analiseUtilizavel", () => {
 
   it("aceita uma análise de tamanho plausível", () => {
     expect(analiseUtilizavel("## Resumo\nExame com hemoglobina abaixo da referência.")).toBe(true);
+  });
+});
+
+describe("dividirEmBlocos / blocosParaTexto", () => {
+  it("cabeçalho ## vira bloco título, e linhas - consecutivas viram um único bloco lista", () => {
+    const texto = [
+      "## Hábitos que ajudam",
+      "- Beber água",
+      "- Caminhar",
+      "",
+      "## O que evitar",
+      "- Sódio",
+    ].join("\n");
+
+    expect(dividirEmBlocos(texto)).toEqual([
+      { tipo: "titulo", texto: "Hábitos que ajudam" },
+      { tipo: "lista", itens: ["Beber água", "Caminhar"] },
+      { tipo: "titulo", texto: "O que evitar" },
+      { tipo: "lista", itens: ["Sódio"] },
+    ]);
+  });
+
+  it("cada linha solta (fora de lista/cabeçalho) vira um bloco parágrafo próprio", () => {
+    const texto = "Primeira frase.\nSegunda frase.";
+
+    expect(dividirEmBlocos(texto)).toEqual([
+      { tipo: "paragrafo", texto: "Primeira frase." },
+      { tipo: "paragrafo", texto: "Segunda frase." },
+    ]);
+  });
+
+  it("ignora linhas em branco", () => {
+    expect(dividirEmBlocos("Texto solto.\n\n\n## Título\n")).toEqual([
+      { tipo: "paragrafo", texto: "Texto solto." },
+      { tipo: "titulo", texto: "Título" },
+    ]);
+  });
+
+  it("blocosParaTexto reconstrói o markdown a partir dos blocos", () => {
+    const blocos: BlocoAnalise[] = [
+      { tipo: "titulo", texto: "Hábitos que ajudam" },
+      { tipo: "lista", itens: ["Beber água", "Caminhar"] },
+    ];
+
+    expect(blocosParaTexto(blocos)).toBe("## Hábitos que ajudam\n\n- Beber água\n- Caminhar");
+  });
+
+  it("blocosParaTexto descarta blocos vazios — é como a profissional remove um campo", () => {
+    const blocos: BlocoAnalise[] = [
+      { tipo: "titulo", texto: "Hábitos que ajudam" },
+      { tipo: "paragrafo", texto: "  " },
+      { tipo: "lista", itens: [] },
+    ];
+
+    expect(blocosParaTexto(blocos)).toBe("## Hábitos que ajudam");
+  });
+
+  it("blocosParaTexto(dividirEmBlocos(texto)) preserva os blocos (ida e volta) — a formatação exata de espaço em branco pode mudar, o conteúdo não", () => {
+    const texto = "## Hábitos que ajudam\n- Beber água\n- Caminhar\n\n## O que evitar\n- Sódio";
+
+    expect(dividirEmBlocos(blocosParaTexto(dividirEmBlocos(texto)))).toEqual(
+      dividirEmBlocos(texto),
+    );
+  });
+});
+
+describe("blocoAnaliseSchema / estruturaAnaliseSchema", () => {
+  it("aceita os três tipos de bloco", () => {
+    expect(blocoAnaliseSchema.safeParse({ tipo: "titulo", texto: "Resumo" }).success).toBe(true);
+    expect(blocoAnaliseSchema.safeParse({ tipo: "paragrafo", texto: "Um texto." }).success).toBe(
+      true,
+    );
+    expect(blocoAnaliseSchema.safeParse({ tipo: "lista", itens: ["Item 1"] }).success).toBe(true);
+  });
+
+  it("recusa lista sem nenhum item — bloco vazio não deveria existir", () => {
+    expect(blocoAnaliseSchema.safeParse({ tipo: "lista", itens: [] }).success).toBe(false);
+  });
+
+  it("recusa tipo desconhecido", () => {
+    expect(blocoAnaliseSchema.safeParse({ tipo: "tabela", texto: "x" }).success).toBe(false);
+  });
+
+  it("estruturaAnaliseSchema exige ao menos um bloco", () => {
+    expect(estruturaAnaliseSchema.safeParse({ blocos: [] }).success).toBe(false);
+    expect(
+      estruturaAnaliseSchema.safeParse({ blocos: [{ tipo: "titulo", texto: "Resumo" }] }).success,
+    ).toBe(true);
   });
 });

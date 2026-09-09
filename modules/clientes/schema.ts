@@ -1,5 +1,14 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { date, pgTable, text, timestamp, uuid, boolean, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  date,
+  doublePrecision,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  boolean,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 import { z } from "zod";
 
 import { agoraBrasilia, capitalizarNome } from "@/lib/utils";
@@ -14,6 +23,13 @@ const textoLongoOpcional = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
   z.string().trim().max(2000).optional(),
 );
+
+const numeroOpcional = (max: number) =>
+  z.preprocess((value) => {
+    if (typeof value !== "string") return value;
+    const normalizado = value.trim().replace(",", ".");
+    return normalizado === "" ? undefined : Number(normalizado);
+  }, z.number("Informe um número válido.").positive("Informe um número válido.").max(max).optional());
 
 const dataNascimentoSchema = z
   .preprocess((value) => {
@@ -35,6 +51,10 @@ export const cliente = pgTable(
     contatoEmergenciaNome: text("contato_emergencia_nome"),
     contatoEmergenciaTelefone: text("contato_emergencia_telefone"),
     profissao: text("profissao"),
+    peso: doublePrecision("peso"),
+    altura: doublePrecision("altura"),
+    /** Queixa principal — repete de recomendação em recomendação até a profissional atualizar. */
+    queixas: text("queixas"),
     objetivoTratamento: text("objetivo_tratamento"),
     alergias: text("alergias"),
     medicamentos: text("medicamentos"),
@@ -79,6 +99,9 @@ export const criarClienteSchema = z.object({
   contatoEmergenciaNome: textoCurtoOpcional,
   contatoEmergenciaTelefone: textoCurtoOpcional,
   profissao: textoCurtoOpcional,
+  peso: numeroOpcional(500),
+  altura: numeroOpcional(250),
+  queixas: textoLongoOpcional,
   objetivoTratamento: textoLongoOpcional,
   alergias: textoLongoOpcional,
   medicamentos: textoLongoOpcional,

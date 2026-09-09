@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 /**
  * Núcleo da análise clínica assistida por IA: vocabulário dos três tipos e montagem dos prompts.
  *
@@ -40,6 +42,10 @@ export function tipoExigeArquivo(tipo: TipoAnalise) {
  * Política enviada ao modelo em TODA análise. É a mesma do assistente flutuante
  * (`modules/assistente/prompt.ts`), repetida aqui de propósito: cada chamada é isolada e não herda
  * o prompt do chat, então a regra tem que viajar junto ou não existe.
+ *
+ * Não instrui mais sintaxe de markdown (##, -) — a saída é um objeto estruturado (`blocoAnaliseSchema`),
+ * então o formato é garantido pelo schema, não pedido em prosa. O que ainda precisa ser dito em
+ * prosa é o CONTEÚDO de cada campo.
  */
 const POLITICA_CLINICA = `Você é apoio à decisão de uma profissional de saúde — nunca a substitui.
 Tudo que escrever é apoio à decisão dela, nunca conduta fechada.
@@ -50,59 +56,61 @@ Regras que não se quebram:
 - Não calcule interação medicamentosa por conta própria. Se notar risco, sinalize como ponto a
   conferir, explicando o porquê.
 - Escreva em português do Brasil, direto, sem saudação e sem se apresentar.
-- Use markdown simples: títulos com ##, listas com - e **negrito**. Nada de tabelas gigantes.`;
+- Dentro do texto de um campo, pode usar **negrito** (dois asteriscos) pra destacar um termo, como
+  nome de suplemento. Nada de links nem tabelas.
+- Em um campo de lista, cada item é UMA ideia só — uma frase curta, no máximo duas. Se a ideia tiver
+  mais de uma parte (ex.: "manter X" + "reforçar Y"), separe em dois itens em vez de um item longo.`;
 
 const INSTRUCOES: Record<TipoAnalise, string> = {
-  exame: `Leia o exame laboratorial abaixo e organize assim:
+  exame: `Leia o exame laboratorial abaixo e monte os campos nesta ordem:
 
-## Resumo
-Dois ou três períodos sobre o quadro geral que o exame mostra.
+1. Campo título "Resumo", seguido de um campo parágrafo com dois ou três períodos sobre o quadro
+   geral que o exame mostra.
+2. Campo título "Fora da referência", seguido de um campo lista: para cada item alterado, um item com
+   nome, valor encontrado, faixa de referência do próprio laudo e se está acima ou abaixo. Só o que o
+   laudo mostra como alterado — não reclassifique por conta própria.
+3. Campo título "Dentro da referência, mas de olho", seguido de um campo lista com os itens normais
+   que ficaram perto do limite. Se não houver nenhum, um campo parágrafo "Nada a destacar.".
+4. Campo título "Pontos para a profissional conferir", seguido de um campo lista com o que merece
+   atenção, correlação clínica ou repetição de exame — sempre como pergunta ou sugestão de
+   conferência, nunca como conclusão.`,
 
-## Fora da referência
-Para cada item alterado: nome, valor encontrado, faixa de referência do próprio laudo e se está
-acima ou abaixo. Só o que o laudo mostra como alterado — não reclassifique por conta própria.
+  biorressonancia: `Leia o boletim de biorressonância abaixo e monte os campos nesta ordem:
 
-## Dentro da referência, mas de olho
-Itens normais que ficaram perto do limite, se houver. Se não houver, escreva "nada a destacar".
-
-## Pontos para a profissional conferir
-O que merece atenção, correlação clínica ou repetição de exame — sempre como pergunta ou sugestão de
-conferência, nunca como conclusão.`,
-
-  biorressonancia: `Leia o boletim de biorressonância abaixo e organize assim:
-
-## Resumo
-O que o boletim aponta, em dois ou três períodos.
-
-## Itens alterados
-Cada item que o aparelho marcou como alterado, com o grau/valor que o próprio boletim informa,
-agrupados por sistema do corpo quando o boletim permitir.
-
-## Recomendações que o próprio aparelho trouxe
-Transcreva o que o boletim sugere, se sugerir. Deixe claro que é do aparelho, não seu.
-
-## Pontos para a profissional conferir
-Correlações com queixa, histórico ou exames — como sugestão de conferência.
+1. Campo título "Resumo", seguido de um campo parágrafo com o que o boletim aponta, em dois ou três
+   períodos.
+2. Campo título "Itens alterados", seguido de um campo lista com cada item que o aparelho marcou como
+   alterado, com o grau/valor que o próprio boletim informa, agrupados por sistema do corpo quando o
+   boletim permitir.
+3. Campo título "Recomendações que o próprio aparelho trouxe", seguido de um campo lista transcrevendo
+   o que o boletim sugere, se sugerir. Deixe claro que é do aparelho, não seu.
+4. Campo título "Pontos para a profissional conferir", seguido de um campo lista com correlações com
+   queixa, histórico ou exames — como sugestão de conferência.
 
 Atenção: biorressonância não é exame laboratorial. Não a trate como diagnóstico nem misture os
 achados dela com resultado de laboratório.`,
 
-  recomendacao: `Monte uma PROPOSTA de conduta terapêutica a partir do histórico abaixo, assim:
+  recomendacao: `Monte uma recomendação terapêutica a partir do histórico abaixo, com exatamente
+estes quatro campos título, nesta ordem:
 
-## Leitura do caso
-O que o conjunto de registros sugere, em dois ou três períodos.
+1. Campo título "Hábitos que ajudam", seguido de um campo lista com hábitos concretos (rotina,
+   alimentação, autocuidado) que reforçam o tratamento, cada um ancorado em algo que aparece no
+   histórico.
+2. Campo título "O que evitar", seguido de um campo lista com hábitos, alimentos ou situações para
+   reduzir ou ter cautela, cada um com o motivo.
+3. Campo título "O que eliminar", seguido de um campo lista com o que deve ser cortado por completo,
+   cada um com o motivo.
+4. Campo título "Suplementação", seguido de um campo lista com sugestões de suplemento, cada uma com
+   **por que** está sendo sugerida, ancorada em algo do histórico. Sem dose fechada quando o histórico
+   não permitir. Antes de sugerir, confira alergias, medicamentos e suplementos já registrados no
+   prontuário — se algo puder conflitar, não sugira e explique o motivo em vez de listar a lacuna à
+   parte.
 
-## Proposta de conduta
-Itens concretos (suplementação, terapia, frequência, hábito), cada um com **por que** está sendo
-proposto, ancorado em algo que aparece no histórico. Sem dose fechada quando o histórico não permitir.
+Se não houver dado suficiente no histórico pra sustentar um campo inteiro, um item ou parágrafo
+"sem dado suficiente no prontuário para esta seção" em vez de inventar.
 
-## Antes de aplicar, conferir
-Alergias, medicamentos e suplementos já registrados que possam conflitar, e o que falta saber.
-
-## O que não dá para concluir com o que está registrado
-Seja explícito sobre as lacunas.
-
-Nada aqui é prescrição: a decisão e o ajuste de dose são da profissional.`,
+No fim, um campo parágrafo: "Nada aqui é prescrição: a decisão final e o ajuste de dose são da
+profissional."`,
 };
 
 export type EntradaPrompt = {
@@ -161,9 +169,8 @@ export function montarPromptRefinamento({
     POLITICA_CLINICA,
     "",
     `Você já escreveu a análise abaixo (${rotulosTipoAnalise[tipo].toLowerCase()}). A profissional`,
-    "pediu um ajuste. Reescreva a análise INTEIRA já com o ajuste aplicado, mantendo a mesma",
-    "estrutura de seções. Não responda conversando nem explique o que mudou — devolva só a análise",
-    "revisada, pronta para substituir a anterior.",
+    "pediu um ajuste. Monte os campos da análise INTEIRA já com o ajuste aplicado,",
+    "mantendo os mesmos títulos de seção, na mesma ordem.",
   ];
 
   if (material?.trim()) {
@@ -227,4 +234,107 @@ export const rotulosStatusRevisao: Record<StatusRevisao, string> = {
  */
 export function analiseUtilizavel(texto: string | null | undefined) {
   return Boolean(texto && texto.trim().length >= 40);
+}
+
+/**
+ * Forma estruturada da saída da IA — cada campo já nasce tipado (`generateObject`, não texto livre
+ * reinterpretado depois). É o mesmo vocabulário que o editor manual usa (`ModalEditarAnalise`): a
+ * profissional escolhe o tipo de cada campo num menu, exatamente os três tipos que a IA já produz.
+ *
+ * `itens` de `lista` some do schema se vier vazio — por isso pede mínimo de 1; um campo sem conteúdo
+ * não deveria existir, tanto vindo da IA quanto editado à mão.
+ */
+export const blocoAnaliseSchema = z.discriminatedUnion("tipo", [
+  z.object({
+    tipo: z.literal("titulo").describe("Título curto de uma seção do documento (2 a 6 palavras)."),
+    texto: z.string().min(1).max(200),
+  }),
+  z.object({
+    tipo: z.literal("paragrafo").describe("Um parágrafo de texto corrido."),
+    texto: z.string().min(1).max(2000),
+  }),
+  z.object({
+    tipo: z
+      .literal("lista")
+      .describe(
+        "Lista de itens curtos — um item por entrada do array. Cada item é UMA ideia só (uma " +
+          "frase, no máximo duas curtas). Se tiver mais de uma ideia, vira mais de um item.",
+      ),
+    itens: z.array(z.string().min(1).max(240)).min(1).max(30),
+  }),
+]);
+
+export type BlocoAnalise = z.infer<typeof blocoAnaliseSchema>;
+
+export const estruturaAnaliseSchema = z.object({
+  blocos: z
+    .array(blocoAnaliseSchema)
+    .min(1)
+    .max(60)
+    .describe("Os campos do documento, na ordem em que devem aparecer."),
+});
+
+export type EstruturaAnalise = z.infer<typeof estruturaAnaliseSchema>;
+
+/**
+ * Serializa os blocos estruturados em markdown simples — é o formato de ARMAZENAMENTO
+ * (`analiseIa`), usado tanto pela geração via IA (`generateObject` → aqui) quanto pelo editor manual
+ * (campos editados → aqui). Mantém tudo o resto do sistema (exibição no card, PDF, WhatsApp/e-mail,
+ * refinamento) trabalhando com o mesmo texto de sempre — só a ORIGEM do texto ficou confiável.
+ */
+export function blocosParaTexto(blocos: BlocoAnalise[]): string {
+  return blocos
+    .map((bloco) => {
+      if (bloco.tipo === "titulo") {
+        const texto = bloco.texto.trim();
+        return texto ? `## ${texto}` : "";
+      }
+
+      if (bloco.tipo === "lista") {
+        const itens = bloco.itens.map((item) => item.trim()).filter(Boolean);
+        return itens.length ? itens.map((item) => `- ${item}`).join("\n") : "";
+      }
+
+      return bloco.texto.trim();
+    })
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+/**
+ * Quebra o markdown salvo de volta em blocos tipados — é o que alimenta o editor manual
+ * (`ModalEditarAnalise`): cada bloco vira um campo com tipo escolhível. Inverso de `blocosParaTexto`
+ * (ida e volta preserva o conteúdo). Cada linha não vazia vira um bloco próprio — mesma convenção de
+ * `analisarBlocos` em `modules/assistente/conteudo-resumo.ts` ("cada linha, um bloco"), pelo mesmo
+ * motivo: juntar linhas gruda frases que deveriam ficar separadas.
+ */
+export function dividirEmBlocos(texto: string): BlocoAnalise[] {
+  const blocos: BlocoAnalise[] = [];
+  let itensAtuais: string[] = [];
+
+  function fecharListaAtual() {
+    if (itensAtuais.length) blocos.push({ tipo: "lista", itens: itensAtuais });
+    itensAtuais = [];
+  }
+
+  for (const linhaBruta of texto.split("\n")) {
+    const linha = linhaBruta.trim();
+    if (!linha) continue;
+
+    const cabecalho = linha.match(/^#{1,6}\s+(.+)$/);
+    const item = linha.match(/^[-*•]\s+(.+)$/);
+
+    if (cabecalho) {
+      fecharListaAtual();
+      blocos.push({ tipo: "titulo", texto: cabecalho[1].trim() });
+    } else if (item) {
+      itensAtuais.push(item[1].trim());
+    } else {
+      fecharListaAtual();
+      blocos.push({ tipo: "paragrafo", texto: linha });
+    }
+  }
+  fecharListaAtual();
+
+  return blocos;
 }

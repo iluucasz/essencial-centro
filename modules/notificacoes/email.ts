@@ -49,6 +49,8 @@ export async function enviarEmailNotificacao(params: {
   titulo: string;
   mensagem: string;
   link?: string;
+  /** Anexo único (ex.: PDF da recomendação terapêutica) — Brevo aceita `content` em base64 puro. */
+  anexo?: { conteudoBase64: string; nomeArquivo: string };
 }): Promise<ResultadoEnvioCanal> {
   const apiKey = process.env.BREVO_API_KEY;
   const remetenteEmail = process.env.BREVO_SENDER_EMAIL;
@@ -73,6 +75,13 @@ export async function enviarEmailNotificacao(params: {
         htmlContent: `<p>${escaparHtml(params.mensagem)}</p>${
           linkCompleto ? `<p><a href="${escaparHtml(linkCompleto)}">Acessar no portal</a></p>` : ""
         }`,
+        ...(params.anexo
+          ? {
+              attachment: [
+                { content: params.anexo.conteudoBase64, name: params.anexo.nomeArquivo },
+              ],
+            }
+          : {}),
       }),
     });
 

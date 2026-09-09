@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 import { deepSeek } from "@ai-sdk/deepseek";
-import { generateText } from "ai";
+import { generateObject } from "ai";
 import { and, eq } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { analiseUtilizavel, montarPromptRefinamento } from "@/modules/analises/analise";
+import {
+  analiseUtilizavel,
+  blocosParaTexto,
+  estruturaAnaliseSchema,
+  montarPromptRefinamento,
+} from "@/modules/analises/analise";
 import { analiseClinica, refinarAnaliseSchema } from "@/modules/analises/schema";
 import { montarContextoClinico } from "@/modules/analises/queries";
 import {
@@ -81,8 +86,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   let texto: string;
 
   try {
-    const resultado = await generateText({
+    const resultado = await generateObject({
       model: deepSeek(MODELO_DEEPSEEK_PADRAO),
+      schema: estruturaAnaliseSchema,
       prompt: montarPromptRefinamento({
         tipo: registro.tipo,
         analiseAtual: registro.analiseIa,
@@ -93,7 +99,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       providerOptions: OPCOES_PROVEDOR_DEEPSEEK,
     });
 
-    texto = resultado.text;
+    texto = blocosParaTexto(resultado.object.blocos);
   } catch (error) {
     console.error("[analises] falha ao refinar análise", error);
 

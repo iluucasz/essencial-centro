@@ -1,0 +1,1 @@
+ALTER TABLE "analise_clinica" ADD COLUMN "envios_registrados" jsonb DEFAULT '[]'::jsonb NOT NULL;

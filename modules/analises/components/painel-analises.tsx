@@ -6,14 +6,20 @@ import { Modal, useOverlayState } from "@heroui/react";
 import {
   Brain,
   CheckCircle2,
+  Download,
   FileText,
   FlaskConical,
   LoaderCircle,
+  Mail,
+  MessageCircle,
   Paperclip,
+  Pencil,
+  Plus,
   Sparkles,
   Trash2,
   TriangleAlert,
   Wand2,
+  X,
 } from "lucide-react";
 
 import { ConteudoModal } from "@/components/ui/modal-formulario";
@@ -21,14 +27,20 @@ import { cn } from "@/lib/utils";
 import { TextoFormatado } from "@/modules/assistente/components/texto-formatado";
 
 import {
+  blocosParaTexto,
   descricoesTipoAnalise,
+  dividirEmBlocos,
   rotulosStatusRevisao,
   rotulosTipoAnalise,
   tipoExigeArquivo,
   tiposAnalise,
+  type BlocoAnalise,
   type TipoAnalise,
 } from "../analise";
 import {
+  editarAnaliseManual,
+  enviarRecomendacaoEmail,
+  enviarRecomendacaoWhatsApp,
   excluirAnalise,
   revisarAnalise,
   salvarObservacaoAnalise,
@@ -44,6 +56,7 @@ export type AnaliseNaTela = {
   analiseIa: string;
   modeloIa: string;
   observacaoProfissional: string | null;
+  prescricaoMedica: string | null;
   status: "rascunho" | "revisada";
   criadoEm: string;
   revisadoEm: string | null;
@@ -443,6 +456,457 @@ function BotaoExcluir({ analise, clienteId }: { analise: AnaliseNaTela; clienteI
   );
 }
 
+function BotaoEnviarWhatsApp({
+  analise,
+  clienteId,
+}: {
+  analise: AnaliseNaTela;
+  clienteId: string;
+}) {
+  const [estado, acao, enviando] = useActionState(
+    async (_: EstadoAnalise, formData: FormData) => enviarRecomendacaoWhatsApp(formData),
+    estadoInicial,
+  );
+
+  return (
+    <form action={acao} className="flex items-center gap-2">
+      <input name="id" type="hidden" value={analise.id} />
+      <input name="clienteId" type="hidden" value={clienteId} />
+      <button
+        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-brand/30 bg-brand/5 px-3 text-xs font-semibold text-brand transition hover:bg-brand/10 disabled:opacity-60"
+        disabled={enviando}
+        type="submit"
+      >
+        {enviando ? (
+          <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
+        ) : (
+          <MessageCircle className="size-3.5" aria-hidden="true" />
+        )}
+        Enviar por WhatsApp
+      </button>
+      {estado.status === "sucesso" ? (
+        <span className="text-xs font-medium text-brand">{estado.mensagem}</span>
+      ) : null}
+      {estado.status === "erro" ? (
+        <span className="text-xs font-medium text-perigo">{estado.mensagem}</span>
+      ) : null}
+    </form>
+  );
+}
+
+function BotaoEnviarEmail({ analise, clienteId }: { analise: AnaliseNaTela; clienteId: string }) {
+  const [estado, acao, enviando] = useActionState(
+    async (_: EstadoAnalise, formData: FormData) => enviarRecomendacaoEmail(formData),
+    estadoInicial,
+  );
+
+  return (
+    <form action={acao} className="flex items-center gap-2">
+      <input name="id" type="hidden" value={analise.id} />
+      <input name="clienteId" type="hidden" value={clienteId} />
+      <button
+        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-roxo/30 bg-lilas/10 px-3 text-xs font-semibold text-roxo transition hover:bg-lilas/25 disabled:opacity-60"
+        disabled={enviando}
+        type="submit"
+      >
+        {enviando ? (
+          <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
+        ) : (
+          <Mail className="size-3.5" aria-hidden="true" />
+        )}
+        Enviar por e-mail
+      </button>
+      {estado.status === "sucesso" ? (
+        <span className="text-xs font-medium text-brand">{estado.mensagem}</span>
+      ) : null}
+      {estado.status === "erro" ? (
+        <span className="text-xs font-medium text-perigo">{estado.mensagem}</span>
+      ) : null}
+    </form>
+  );
+}
+
+/** Baixar/enviar o PDF só existe pra recomendação terapêutica — é o único tipo pensado pra ir ao paciente. */
+function AcoesRecomendacao({ analise, clienteId }: { analise: AnaliseNaTela; clienteId: string }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/70 bg-creme/60 p-3">
+      <a
+        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-xs font-semibold text-foreground transition hover:bg-creme"
+        href={`/api/analises/${analise.id}/pdf`}
+      >
+        <Download className="size-3.5" aria-hidden="true" />
+        Baixar PDF
+      </a>
+      <BotaoEnviarWhatsApp analise={analise} clienteId={clienteId} />
+      <BotaoEnviarEmail analise={analise} clienteId={clienteId} />
+    </div>
+  );
+}
+
+type TipoCampoEditavel = "titulo" | "paragrafo" | "lista" | "prescricao";
+type ItemListaEditavel = { id: string; texto: string };
+/** `texto` vale pra título/parágrafo/prescrição; `itens` vale pra lista — o campo carrega os dois, só usa um. */
+type CampoEditavel = {
+  id: string;
+  tipo: TipoCampoEditavel;
+  texto: string;
+  itens: ItemListaEditavel[];
+};
+
+/**
+ * "Prescrição médica" fica por último de propósito — é o mesmo vocabulário de tipo que o resto
+ * (Título/Parágrafo/Lista), mas o valor NUNCA entra no `blocoAnaliseSchema` que a IA usa: grava numa
+ * coluna separada (`analiseClinica.prescricaoMedica`) e sai no PDF com desenho próprio, sempre por
+ * último — ver `editarAnaliseManual` e `pdf-recomendacao.ts`.
+ */
+const ROTULOS_TIPO_CAMPO: Record<TipoCampoEditavel, string> = {
+  titulo: "Título",
+  paragrafo: "Parágrafo",
+  lista: "Lista",
+  prescricao: "Prescrição médica",
+};
+
+function novoItemLista(texto = ""): ItemListaEditavel {
+  return { id: crypto.randomUUID(), texto };
+}
+
+function paraCampoEditavel(bloco: BlocoAnalise): CampoEditavel {
+  if (bloco.tipo === "lista") {
+    return {
+      id: crypto.randomUUID(),
+      tipo: "lista",
+      texto: "",
+      itens: bloco.itens.map((texto) => novoItemLista(texto)),
+    };
+  }
+
+  return { id: crypto.randomUUID(), tipo: bloco.tipo, texto: bloco.texto, itens: [] };
+}
+
+/** Só recebe campos de conteúdo — quem chama já tirou os de tipo "prescricao" antes (ver `salvar`). */
+function paraBlocoAnalise(campo: CampoEditavel): BlocoAnalise {
+  if (campo.tipo === "lista") {
+    const itens = campo.itens.map((item) => item.texto.trim()).filter(Boolean);
+
+    return { tipo: "lista", itens };
+  }
+
+  if (campo.tipo === "prescricao") {
+    throw new Error("Campo de prescrição não pode virar bloco de conteúdo da IA.");
+  }
+
+  return { tipo: campo.tipo, texto: campo.texto.trim() };
+}
+
+/**
+ * Edição manual, campo a campo, com o TIPO de cada campo escolhido num menu — o mesmo vocabulário
+ * que a IA já usa (`blocoAnaliseSchema`): Título, Parágrafo ou Lista. Diferente de "Ajustar com IA"
+ * (que pede pro modelo reescrever): aqui a profissional corrige, remove ou adiciona campos
+ * diretamente, sem passar pela IA de novo.
+ */
+function ModalEditarAnalise({ analise, clienteId }: { analise: AnaliseNaTela; clienteId: string }) {
+  const router = useRouter();
+  const [campos, setCampos] = useState<CampoEditavel[]>([]);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const modal = useOverlayState({
+    onOpenChange: (aberto) => {
+      if (!aberto) return;
+
+      const camposConteudo = dividirEmBlocos(analise.analiseIa).map(paraCampoEditavel);
+      // A prescrição sempre entra por último — é o mesmo lugar que ela ocupa no PDF.
+      const campoPrescricao: CampoEditavel[] = analise.prescricaoMedica?.trim()
+        ? [
+            {
+              id: crypto.randomUUID(),
+              tipo: "prescricao",
+              texto: analise.prescricaoMedica,
+              itens: [],
+            },
+          ]
+        : [];
+
+      setCampos([...camposConteudo, ...campoPrescricao]);
+      setErro(null);
+    },
+  });
+
+  /**
+   * Trocar de tipo converte o conteúdo em vez de descartar: texto corrido vira um item de lista por
+   * linha, e itens de lista viram linhas de um parágrafo — nada se perde ao trocar o tipo por engano.
+   */
+  function atualizarTipo(id: string, tipo: TipoCampoEditavel) {
+    setCampos((atual) =>
+      atual.map((campo) => {
+        if (campo.id !== id || campo.tipo === tipo) return campo;
+
+        if (tipo === "lista") {
+          const linhas = campo.texto
+            .split("\n")
+            .map((linha) => linha.trim())
+            .filter(Boolean);
+
+          return { ...campo, tipo, itens: (linhas.length ? linhas : [""]).map(novoItemLista) };
+        }
+
+        if (campo.tipo === "lista") {
+          return { ...campo, tipo, texto: campo.itens.map((item) => item.texto).join("\n") };
+        }
+
+        return { ...campo, tipo };
+      }),
+    );
+  }
+
+  function atualizarTexto(id: string, texto: string) {
+    setCampos((atual) => atual.map((campo) => (campo.id === id ? { ...campo, texto } : campo)));
+  }
+
+  function atualizarItem(campoId: string, itemId: string, texto: string) {
+    setCampos((atual) =>
+      atual.map((campo) =>
+        campo.id === campoId
+          ? {
+              ...campo,
+              itens: campo.itens.map((item) => (item.id === itemId ? { ...item, texto } : item)),
+            }
+          : campo,
+      ),
+    );
+  }
+
+  function adicionarItem(campoId: string) {
+    setCampos((atual) =>
+      atual.map((campo) =>
+        campo.id === campoId ? { ...campo, itens: [...campo.itens, novoItemLista()] } : campo,
+      ),
+    );
+  }
+
+  function removerItem(campoId: string, itemId: string) {
+    setCampos((atual) =>
+      atual.map((campo) =>
+        campo.id === campoId
+          ? { ...campo, itens: campo.itens.filter((item) => item.id !== itemId) }
+          : campo,
+      ),
+    );
+  }
+
+  function removerCampo(id: string) {
+    setCampos((atual) => atual.filter((campo) => campo.id !== id));
+  }
+
+  function adicionarCampo() {
+    setCampos((atual) => [
+      ...atual,
+      { id: crypto.randomUUID(), tipo: "paragrafo", texto: "", itens: [] },
+    ]);
+  }
+
+  async function salvar() {
+    setErro(null);
+    setSalvando(true);
+
+    // Prescrição some da lista de blocos antes de virar `analiseIa` — grava numa coluna separada,
+    // nunca no texto que a IA lê/reescreve. Se houver mais de um campo prescrição (raro), concatena.
+    const camposConteudo = campos.filter((campo) => campo.tipo !== "prescricao");
+    const prescricaoMedica = campos
+      .filter((campo) => campo.tipo === "prescricao")
+      .map((campo) => campo.texto.trim())
+      .filter(Boolean)
+      .join("\n\n");
+
+    const formData = new FormData();
+    formData.set("id", analise.id);
+    formData.set("clienteId", clienteId);
+    formData.set("analiseIa", blocosParaTexto(camposConteudo.map(paraBlocoAnalise)));
+    formData.set("prescricaoMedica", prescricaoMedica);
+
+    const resultado = await editarAnaliseManual(formData);
+    setSalvando(false);
+
+    if (resultado.status === "sucesso") {
+      modal.close();
+      router.refresh();
+    } else {
+      setErro(resultado.mensagem ?? "Não foi possível salvar.");
+    }
+  }
+
+  return (
+    <>
+      <button
+        aria-label={`Editar análise ${analise.titulo}`}
+        className="rounded-lg p-2 text-muted transition hover:bg-lilas/25 hover:text-roxo"
+        onClick={() => modal.open()}
+        type="button"
+      >
+        <Pencil className="size-4" aria-hidden="true" />
+      </button>
+
+      <Modal state={modal}>
+        <Modal.Backdrop variant="opaque">
+          <Modal.Container className="w-[calc(100vw-1rem)] sm:w-full" size="lg">
+            <ConteudoModal titulo={`Editar — ${analise.titulo}`}>
+              <div className="grid gap-4">
+                <p className="text-sm leading-relaxed text-muted">
+                  Escolha o tipo de cada campo, edite o texto, remova o que não fizer sentido ou
+                  adicione um campo novo. Salvar substitui o texto atual — o texto original da IA
+                  fica guardado.
+                </p>
+
+                <div className="grid gap-3">
+                  {campos.map((campo) => (
+                    <div
+                      className={cn(
+                        "grid gap-2 rounded-2xl border p-3",
+                        campo.tipo === "prescricao"
+                          ? "border-dourado/40 bg-dourado/5"
+                          : "border-border bg-creme/50",
+                      )}
+                      key={campo.id}
+                    >
+                      <div className="flex items-center gap-2">
+                        <select
+                          className={cn(
+                            "h-9 shrink-0 rounded-lg border bg-surface px-2 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2",
+                            campo.tipo === "prescricao"
+                              ? "border-dourado/40 text-dourado focus-visible:outline-dourado"
+                              : "border-border text-roxo focus-visible:outline-roxo",
+                          )}
+                          onChange={(evento) =>
+                            atualizarTipo(campo.id, evento.target.value as TipoCampoEditavel)
+                          }
+                          value={campo.tipo}
+                        >
+                          {Object.entries(ROTULOS_TIPO_CAMPO).map(([valor, rotulo]) => (
+                            <option key={valor} value={valor}>
+                              {rotulo}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          aria-label="Remover campo"
+                          className="ml-auto shrink-0 rounded-lg p-2 text-muted transition hover:bg-perigo/10 hover:text-perigo"
+                          onClick={() => removerCampo(campo.id)}
+                          type="button"
+                        >
+                          <Trash2 className="size-4" aria-hidden="true" />
+                        </button>
+                      </div>
+
+                      {campo.tipo === "prescricao" ? (
+                        <>
+                          <textarea
+                            className="min-h-20 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dourado"
+                            onChange={(evento) => atualizarTexto(campo.id, evento.target.value)}
+                            placeholder={
+                              "Ex.: Pscovit — 10 borrifadas 3x ao dia.\nUsar por 12 semanas."
+                            }
+                            value={campo.texto}
+                          />
+                          <span className="text-xs text-muted">
+                            Só você escreve aqui — a IA nunca prescreve. Sai no PDF numa página
+                            própria, com desenho diferente do resto.
+                          </span>
+                        </>
+                      ) : campo.tipo === "titulo" ? (
+                        <input
+                          className="h-9 rounded-lg border border-border bg-surface px-3 text-sm font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+                          onChange={(evento) => atualizarTexto(campo.id, evento.target.value)}
+                          placeholder="Título da seção"
+                          value={campo.texto}
+                        />
+                      ) : campo.tipo === "lista" ? (
+                        <div className="grid gap-1.5">
+                          {campo.itens.map((item) => (
+                            <div className="flex items-center gap-1.5" key={item.id}>
+                              <span aria-hidden="true" className="shrink-0 text-muted">
+                                •
+                              </span>
+                              <input
+                                className="h-9 flex-1 rounded-lg border border-border bg-surface px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+                                onChange={(evento) =>
+                                  atualizarItem(campo.id, item.id, evento.target.value)
+                                }
+                                value={item.texto}
+                              />
+                              <button
+                                aria-label="Remover item"
+                                className="shrink-0 rounded-lg p-1.5 text-muted transition hover:bg-perigo/10 hover:text-perigo"
+                                onClick={() => removerItem(campo.id, item.id)}
+                                type="button"
+                              >
+                                <X className="size-3.5" aria-hidden="true" />
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            className="inline-flex h-8 w-fit items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 text-xs font-medium text-muted transition hover:bg-creme"
+                            onClick={() => adicionarItem(campo.id)}
+                            type="button"
+                          >
+                            <Plus className="size-3.5" aria-hidden="true" />
+                            Item
+                          </button>
+                        </div>
+                      ) : (
+                        <textarea
+                          className="min-h-16 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
+                          onChange={(evento) => atualizarTexto(campo.id, evento.target.value)}
+                          value={campo.texto}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  className="inline-flex h-10 w-fit items-center gap-2 rounded-lg border border-roxo/30 bg-lilas/10 px-4 text-sm font-semibold text-roxo transition hover:bg-lilas/25"
+                  onClick={adicionarCampo}
+                  type="button"
+                >
+                  <Plus className="size-4" aria-hidden="true" />
+                  Adicionar campo
+                </button>
+
+                {erro ? (
+                  <p className="flex items-start gap-2 text-sm font-medium text-perigo">
+                    <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                    {erro}
+                  </p>
+                ) : null}
+
+                <div className="flex gap-2">
+                  <button
+                    className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-roxo px-4 text-sm font-semibold text-white transition hover:bg-roxo/90 disabled:opacity-60"
+                    disabled={salvando}
+                    onClick={salvar}
+                    type="button"
+                  >
+                    {salvando ? (
+                      <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                    ) : null}
+                    Salvar
+                  </button>
+                  <button
+                    className="inline-flex h-11 items-center justify-center rounded-lg border border-border px-4 text-sm font-medium text-muted transition hover:bg-creme"
+                    onClick={() => modal.close()}
+                    type="button"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </ConteudoModal>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
+    </>
+  );
+}
+
 function CartaoAnalise({ analise, clienteId }: { analise: AnaliseNaTela; clienteId: string }) {
   const Icone = ICONES[analise.tipo];
   const rascunho = analise.status === "rascunho";
@@ -467,7 +931,10 @@ function CartaoAnalise({ analise, clienteId }: { analise: AnaliseNaTela; cliente
             </p>
           </div>
         </div>
-        <BotaoExcluir analise={analise} clienteId={clienteId} />
+        <div className="flex shrink-0 items-center gap-1">
+          <ModalEditarAnalise analise={analise} clienteId={clienteId} />
+          <BotaoExcluir analise={analise} clienteId={clienteId} />
+        </div>
       </header>
 
       <p
@@ -504,6 +971,10 @@ function CartaoAnalise({ analise, clienteId }: { analise: AnaliseNaTela; cliente
       <p className="text-xs text-muted">
         Gerado por IA ({analise.modeloIa}) como apoio à decisão — não é diagnóstico nem prescrição.
       </p>
+
+      {analise.tipo === "recomendacao" ? (
+        <AcoesRecomendacao analise={analise} clienteId={clienteId} />
+      ) : null}
 
       {/* Separadores: o campo acima é a conclusão DELA; a barra abaixo age sobre a análise da IA. */}
       <hr className="border-border/70" />

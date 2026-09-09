@@ -1,0 +1,1 @@
+ALTER TABLE "analise_clinica" ADD COLUMN "prescricao_medica" text;

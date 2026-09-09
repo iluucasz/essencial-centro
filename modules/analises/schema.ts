@@ -10,6 +10,9 @@ import { tiposAnalise } from "./analise";
 /** Uma rodada de ajuste pedida pela profissional. */
 export type RefinamentoRegistrado = { instrucao: string; em: string };
 
+/** Um envio da recomendação (WhatsApp/e-mail) ao paciente — histórico, não sobrescreve o anterior. */
+export type EnvioRegistrado = { canal: "whatsapp" | "email"; em: string; porId: string };
+
 /**
  * Análise clínica assistida por IA: leitura de exame, leitura de biorressonância e proposta de
  * conduta terapêutica.
@@ -56,6 +59,17 @@ export const analiseClinica = pgTable("analise_clinica", {
   refinamentos: jsonb("refinamentos").$type<RefinamentoRegistrado[]>().notNull().default([]),
   modeloIa: text("modelo_ia").notNull(),
   observacaoProfissional: text("observacao_profissional"),
+  /**
+   * Prescrição médica de verdade — escrita pela profissional, NUNCA pela IA (a `POLITICA_CLINICA`
+   * proíbe a IA de prescrever). Aparece no editor (`ModalEditarAnalise`) como só mais um tipo de
+   * campo ("Prescrição médica", ao lado de Título/Parágrafo/Lista) por conveniência dela, mas fica
+   * em coluna SEPARADA de `analiseIa` de propósito: nunca passa pelo `blocoAnaliseSchema` que a IA
+   * usa (`generateObject`/"Ajustar com IA"), e o PDF (`pdf-recomendacao.ts`) desenha essa coluna de
+   * forma visualmente distinta, sempre por último.
+   */
+  prescricaoMedica: text("prescricao_medica"),
+  /** Histórico de envios ao paciente (WhatsApp/e-mail) — evita reenvio às cegas do mesmo documento. */
+  enviosRegistrados: jsonb("envios_registrados").$type<EnvioRegistrado[]>().notNull().default([]),
 
   revisadoPorId: uuid("revisado_por_id").references(() => usuario.id, { onDelete: "set null" }),
   revisadoEm: timestamp("revisado_em", { mode: "date" }),
@@ -110,6 +124,19 @@ export const refinarAnaliseSchema = z.object({
     .trim()
     .min(3, "Escreva o que você quer ajustar.")
     .max(1000, "Deixe a instrução mais curta."),
+});
+
+/**
+ * Edição manual direta do texto (não via IA) — a profissional reescreve, remove ou adiciona seções
+ * pelo editor de campos. Mínimo baixo de propósito: diferente de `analiseUtilizavel` (que filtra
+ * resposta vazia/curta da IA), aqui é escolha dela decidir o quanto o texto deve ter.
+ */
+export const editarAnaliseManualSchema = z.object({
+  id: z.string().uuid("Análise inválida."),
+  clienteId: z.string().uuid("Cliente inválido."),
+  analiseIa: z.string().trim().min(1, "A análise não pode ficar vazia.").max(20000),
+  /** Vem do mesmo editor de campos, tipo "Prescrição médica" — nunca passa pela IA (ver `pdf-recomendacao.ts`). */
+  prescricaoMedica: textoOpcional(2000),
 });
 
 export const revisarAnaliseSchema = z.object({
