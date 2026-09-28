@@ -35,7 +35,7 @@ export function HeroSection() {
 
           <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
             <div>
-              <p className="font-serif text-2xl font-semibold text-ink">+12</p>
+              <p className="font-serif text-2xl font-semibold text-ink">8</p>
               <p className="text-sm text-ink-soft">anos de experiência</p>
             </div>
             <div className="hidden h-10 w-px bg-line sm:block" />

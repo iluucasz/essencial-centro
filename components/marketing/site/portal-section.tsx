@@ -55,7 +55,7 @@ export function PortalSection() {
               </p>
               <h3 className="mt-1 font-serif text-2xl font-semibold text-ink">{panel.title}</h3>
               <p className="mt-3 text-sm leading-relaxed text-ink-soft">{panel.description}</p>
-              <ul className="mt-5 flex flex-wrap gap-2">
+              <ul className="mt-5 mb-8 flex flex-wrap gap-2">
                 {panel.features.map((f) => (
                   <li
                     key={f}
@@ -67,7 +67,7 @@ export function PortalSection() {
               </ul>
               <Link
                 href={panel.href}
-                className={`${buttonVariants({ variant: "primary" })} mt-8 w-full`}
+                className={`${buttonVariants({ variant: "primary" })} mt-auto w-full`}
               >
                 {panel.cta}
                 <ArrowRight className="h-4 w-4" />

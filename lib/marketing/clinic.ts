@@ -14,11 +14,11 @@ export type Service = {
 export const CLINIC = {
   name: "Essencial Centro",
   tagline: "Estética, saúde e bem-estar",
-  phone: "(00) 00000-0000",
-  whatsapp: "5500000000000",
-  email: "contato@seudominio.com.br",
-  address: "Endereço da clínica",
-  instagram: "@sua_clinica",
+  phone: "+55 21 99253-1805",
+  whatsapp: "5521992531805",
+  email: "edvania.crespo@gmail.com",
+  address: "Rua Marcial, 80, Presidente Juscelino, Mesquita RJ, 26550-800, Brasil",
+  instagram: "@essencial.centro",
 } as const;
 
 export const NAV_LINKS = [
