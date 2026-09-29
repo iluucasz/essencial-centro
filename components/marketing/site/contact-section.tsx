@@ -2,26 +2,20 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Button } from "@heroui/react";
-import { MapPin, Clock, Phone, AtSign, Mail, Check } from "lucide-react";
-import { CLINIC, SERVICES } from "@/lib/marketing/clinic";
-import { Field, TextInput, TextArea, Select } from "@/components/marketing/ui/field";
+import { MapPin, Clock, Phone, AtSign, Mail, ArrowUpRight, Flower2 } from "lucide-react";
+import { CLINIC, CLINIC_LINKS, SERVICES, criarLinkAvaliacao } from "@/lib/marketing/clinic";
+import { Field, Select } from "@/components/marketing/ui/field";
 
-const CONTACT_ROWS = [
-  { icon: MapPin, label: "Endereço", value: CLINIC.address },
+const CONTACT_ROWS: { icon: typeof MapPin; label: string; value: string; href?: string }[] = [
+  { icon: MapPin, label: "Endereço", value: CLINIC.address, href: CLINIC_LINKS.address },
   { icon: Clock, label: "Horário", value: "Horário de atendimento a combinar" },
-  { icon: Phone, label: "Telefone / WhatsApp", value: CLINIC.phone },
-  { icon: AtSign, label: "Instagram", value: CLINIC.instagram },
-  { icon: Mail, label: "E-mail", value: CLINIC.email },
+  { icon: Phone, label: "Telefone / WhatsApp", value: CLINIC.phone, href: CLINIC_LINKS.phone },
+  { icon: AtSign, label: "Instagram", value: CLINIC.instagram, href: CLINIC_LINKS.instagram },
+  { icon: Mail, label: "E-mail", value: CLINIC.email, href: CLINIC_LINKS.email },
 ];
 
 export function ContactSection() {
-  const [sent, setSent] = useState(false);
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSent(true);
-  }
+  const [servico, setServico] = useState("");
 
   return (
     <section id="contato" className="scroll-mt-20 bg-cream-deep py-20 sm:py-24">
@@ -34,24 +28,36 @@ export function ContactSection() {
             Agende sua avaliação
           </h2>
           <p className="mt-4 text-lg leading-relaxed text-pretty text-ink-soft">
-            Conte um pouco sobre o que você procura. Retornamos para confirmar o melhor horário para
-            você.
+            Vamos encontrar um cuidado para o seu momento? Converse com a equipe pelo WhatsApp e
+            combine sua avaliação.
           </p>
         </div>
 
         <div className="mt-12 grid gap-8 lg:grid-cols-[1fr_1.1fr]">
           {/* Info */}
-          <div className="flex flex-col gap-6">
-            <div className="rounded-3xl border border-line bg-surface p-8">
+          <div className="flex min-w-0 flex-col gap-6">
+            <div className="rounded-3xl border border-line bg-surface p-6 sm:p-8">
               <ul className="flex flex-col gap-5 text-sm">
                 {CONTACT_ROWS.map((row) => (
                   <li key={row.label} className="flex items-start gap-4">
                     <span className="mt-0.5 flex h-10 w-10 flex-none items-center justify-center rounded-full bg-sage/60 text-forest">
                       <row.icon className="h-5 w-5" strokeWidth={1.75} />
                     </span>
-                    <div>
+                    <div className="min-w-0 wrap-break-word">
                       <p className="font-medium text-ink">{row.label}</p>
-                      <p className="text-ink-soft">{row.value}</p>
+                      {row.href ? (
+                        <a
+                          href={row.href}
+                          className="text-ink-soft underline-offset-4 transition-colors hover:text-forest hover:underline"
+                          {...(row.href.startsWith("http")
+                            ? { target: "_blank", rel: "noopener noreferrer" }
+                            : {})}
+                        >
+                          {row.value}
+                        </a>
+                      ) : (
+                        <p className="text-ink-soft">{row.value}</p>
+                      )}
                     </div>
                   </li>
                 ))}
@@ -68,65 +74,44 @@ export function ContactSection() {
             </div>
           </div>
 
-          {/* Form */}
-          <div className="rounded-3xl border border-line bg-surface p-8">
-            {sent ? (
-              <div className="flex h-full flex-col items-center justify-center gap-4 py-10 text-center">
-                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-forest/15 text-forest">
-                  <Check className="h-7 w-7" />
-                </span>
-                <h3 className="font-serif text-2xl font-semibold text-ink">Recebemos seu pedido</h3>
-                <p className="max-w-sm text-sm text-ink-soft">
-                  Em breve entraremos em contato pelo WhatsApp para confirmar sua avaliação.
-                  Obrigada pela confiança.
-                </p>
-                <Button variant="outline" onPress={() => setSent(false)}>
-                  Enviar outro pedido
-                </Button>
-              </div>
-            ) : (
-              <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <Field label="Nome completo" htmlFor="nome" required>
-                    <TextInput id="nome" name="nome" placeholder="Seu nome" required />
-                  </Field>
-                  <Field label="Telefone" htmlFor="tel" required>
-                    <TextInput id="tel" name="tel" placeholder="(00) 00000-0000" required />
-                  </Field>
-                </div>
-                <Field label="E-mail" htmlFor="email">
-                  <TextInput id="email" name="email" type="email" placeholder="voce@email.com" />
-                </Field>
-                <Field label="Serviço de interesse" htmlFor="servico">
-                  <Select id="servico" name="servico" defaultValue="">
-                    <option value="" disabled>
-                      Selecione uma opção
-                    </option>
-                    {SERVICES.map((s) => (
-                      <option key={s.slug} value={s.slug}>
-                        {s.name}
-                      </option>
-                    ))}
-                    <option value="outro">Ainda não sei / outro</option>
-                  </Select>
-                </Field>
-                <Field
-                  label="Mensagem"
-                  htmlFor="msg"
-                  hint="Seus dados são tratados com sigilo conforme a LGPD."
+          {/* Encaminhamento ao WhatsApp */}
+          <div className="min-w-0 rounded-3xl border border-line bg-surface p-6 sm:p-8">
+            <Flower2 className="size-9 text-roxo" strokeWidth={1.25} />
+            <h3 className="mt-5 font-serif text-2xl text-brand">Seu primeiro passo começa aqui.</h3>
+            <p className="mt-4 text-sm leading-relaxed text-muted">
+              Escolha uma área de interesse. Vamos abrir uma conversa com a Essencial para você
+              tirar dúvidas sobre os cuidados, valores e horários.
+            </p>
+            <div className="mt-7">
+              <Field label="Qual cuidado você procura?" htmlFor="servico">
+                <Select
+                  id="servico"
+                  name="servico"
+                  value={servico}
+                  onChange={(event) => setServico(event.target.value)}
                 >
-                  <TextArea
-                    id="msg"
-                    name="msg"
-                    placeholder="Conte o que você gostaria de tratar..."
-                  />
-                </Field>
-                <Button type="submit" variant="primary" size="lg" className="mt-1 w-full">
-                  <Mail className="h-4 w-4" />
-                  Enviar pedido de avaliação
-                </Button>
-              </form>
-            )}
+                  <option value="">Quero ajuda para escolher</option>
+                  {SERVICES.map((item) => (
+                    <option key={item.slug} value={item.name}>
+                      {item.name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+            <a
+              href={criarLinkAvaliacao(servico)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-6 inline-flex w-full items-center justify-center gap-3 rounded-full bg-brand px-5 py-4 text-sm font-medium text-surface transition-colors hover:bg-roxo"
+            >
+              Continuar no WhatsApp
+              <ArrowUpRight className="size-4" />
+            </a>
+            <p className="mt-4 text-xs leading-relaxed text-muted">
+              Você poderá revisar e enviar a mensagem no WhatsApp. O agendamento será confirmado
+              pela equipe durante a conversa.
+            </p>
           </div>
         </div>
       </div>

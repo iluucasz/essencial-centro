@@ -1,74 +1,83 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
-import { buttonVariants } from "@heroui/react";
-import { ArrowRight, ShieldCheck, Star } from "lucide-react";
+import { ArrowRight, Flower2, Leaf } from "lucide-react";
+import { criarLinkAvaliacao } from "@/lib/marketing/clinic";
 
 export function HeroSection() {
   return (
-    <section id="inicio" className="relative overflow-hidden pt-16">
-      <div className="pointer-events-none absolute -top-24 -right-24 h-96 w-96 rounded-full bg-sage/50 blur-3xl" />
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pt-16 pb-20 sm:px-6 lg:grid-cols-2 lg:gap-8 lg:px-8 lg:pt-24">
-        <div className="relative z-10">
-          <span className="inline-flex items-center gap-2 rounded-full border border-forest/20 bg-sage/60 px-4 py-1.5 text-xs font-medium tracking-[0.16em] text-forest-deep uppercase">
-            <Star className="h-3.5 w-3.5" />
-            Clínica de estética e bem-estar
+    <section id="inicio" className="relative overflow-hidden bg-creme pt-16">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-32 -right-32 size-[32rem] rounded-full bg-lilas/20 blur-3xl"
+      />
+      <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pt-12 pb-16 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 lg:px-8 lg:pt-20 lg:pb-24">
+        <div>
+          <span className="inline-flex items-center gap-3 text-xs font-semibold tracking-[0.2em] text-roxo uppercase">
+            <Flower2 className="size-5" strokeWidth={1.4} />
+            Saúde · Beleza · Bem-estar
           </span>
-
-          <h1 className="mt-6 font-serif text-4xl leading-[1.05] font-semibold tracking-tight text-balance text-ink sm:text-5xl lg:text-6xl">
-            Sua jornada de cuidado, do início aos <span className="text-forest">resultados</span>.
+          <h1 className="mt-7 font-serif text-5xl leading-[1.08] tracking-tight text-brand sm:text-6xl lg:text-7xl">
+            Sua beleza,
+            <br />
+            <span className="font-normal text-roxo italic">nosso cuidado.</span>
           </h1>
-
-          <p className="mt-6 max-w-lg text-lg leading-relaxed text-pretty text-ink-soft">
-            No Essencial Centro cada tratamento é acompanhado de perto: fichas digitais, evolução de
-            medidas e um portal exclusivo para você visualizar seus resultados com segurança.
+          <div className="mt-7 h-px w-20 bg-dourado" />
+          <p className="mt-7 max-w-md text-lg leading-relaxed text-muted">
+            Um tempo para você. Um cuidado com a sua essência.
           </p>
-
+          <p className="mt-4 max-w-lg leading-relaxed text-muted">
+            Na Essencial Centro, em Mesquita, estética, massoterapia e bem-estar se encontram em um
+            atendimento feito para acolher sua história e valorizar quem você é.
+          </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/#contato" className={buttonVariants({ variant: "primary", size: "lg" })}>
-              Agendar avaliação
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link href="/#servicos" className={buttonVariants({ variant: "outline", size: "lg" })}>
-              Conhecer serviços
+            <a
+              href={criarLinkAvaliacao()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-3 rounded-full bg-brand px-6 py-3.5 text-sm font-medium text-surface transition-colors hover:bg-roxo"
+            >
+              Agendar minha avaliação
+              <ArrowRight className="size-4" />
+            </a>
+            <Link
+              href="/#servicos"
+              className="inline-flex items-center justify-center rounded-full border border-brand/25 px-6 py-3.5 text-sm font-medium text-brand transition-colors hover:bg-lilas/20"
+            >
+              Conhecer os cuidados
             </Link>
           </div>
-
-          <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
-            <div>
-              <p className="font-serif text-2xl font-semibold text-ink">8</p>
-              <p className="text-sm text-ink-soft">anos de experiência</p>
-            </div>
-            <div className="hidden h-10 w-px bg-line sm:block" />
-            <div>
-              <p className="font-serif text-2xl font-semibold text-ink">8</p>
-              <p className="text-sm text-ink-soft">áreas de tratamento</p>
-            </div>
-            <div className="hidden h-10 w-px bg-line sm:block" />
-            <div className="flex items-center gap-2 text-sm text-ink-soft">
-              <ShieldCheck className="h-5 w-5 text-forest" />
-              Dados protegidos (LGPD)
-            </div>
-          </div>
+          <p className="mt-8 flex items-center gap-2 text-xs text-brand">
+            <Leaf className="size-4 text-salvia" />
+            Atendimento individualizado, com técnica e carinho.
+          </p>
         </div>
-
-        <div className="relative z-10">
-          <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] border border-line shadow-xl shadow-forest/5">
+        <div className="relative mx-auto w-full max-w-md pb-6 lg:mx-0">
+          <div
+            aria-hidden="true"
+            className="absolute -right-3 bottom-2 h-4/5 w-full rounded-t-full rounded-b-[2rem] border border-dourado/50 sm:-right-5"
+          />
+          <div className="relative aspect-[4/5] overflow-hidden rounded-t-full rounded-b-[2rem] bg-lilas/20">
             <Image
               src="/profissionais_modelos/prof_1.png"
-              alt="Profissional do Essencial Centro na sala de procedimentos, ao lado do equipamento de laser"
+              alt="Atendimento da Essencial Centro em ambiente de cuidados estéticos"
               fill
-              priority
-              sizes="(max-width: 1024px) 100vw, 50vw"
+              preload
+              sizes="(max-width: 640px) 90vw, 450px"
               className="object-cover object-top"
             />
           </div>
-          <div className="absolute -bottom-6 -left-6 hidden max-w-[15rem] rounded-2xl border border-line bg-cream/95 p-4 shadow-lg backdrop-blur sm:block">
-            <p className="text-sm font-semibold text-ink">Acompanhamento real</p>
-            <p className="mt-1 text-xs leading-relaxed text-ink-soft">
-              Medidas, fotos e evolução registradas a cada sessão no seu prontuário digital.
-            </p>
+          <div className="relative mx-5 -mt-10 flex items-center gap-4 rounded-2xl border border-lilas/30 bg-surface px-5 py-5 shadow-lg shadow-brand/5">
+            <Flower2 className="size-9 shrink-0 text-roxo" strokeWidth={1.2} />
+            <div>
+              <p className="font-serif text-lg text-brand">Cuidar de você é a nossa missão.</p>
+              <p className="mt-1 text-xs text-muted">Essencial Centro de Massoterapia e Estética</p>
+            </div>
           </div>
         </div>
+      </div>
+      <div className="border-y border-lilas/25 bg-lilas/15 px-4 py-5 text-center text-xs font-medium tracking-[0.18em] text-roxo uppercase">
+        Autoestima <span className="mx-3 text-dourado">·</span> Bem-estar{" "}
+        <span className="mx-3 text-dourado">·</span> Qualidade de vida
       </div>
     </section>
   );

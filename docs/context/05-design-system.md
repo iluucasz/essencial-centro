@@ -49,6 +49,19 @@ usando `brand`, `roxo`, `creme`, `surface`, `border` e demais tokens oficiais.
 
 ## Direção visual
 
+### Catálogo público da Essencial (setembro de 2026)
+
+A home usa o lema “Sua beleza, nosso cuidado”, creme rosado, verde institucional,
+roxo/lilás e detalhes dourados, seguindo as artes fornecidas em `public/images`.
+O catálogo público em `lib/marketing/clinic.ts` reúne sete categorias: corporal,
+facial, ortomolecular, integrativas, massoterapia, nutrição e podologia. É conteúdo
+editorial público, independente dos serviços e prontuários do painel.
+As páginas ilustradas de estética e massoterapia podem ser expandidas e ampliadas;
+valores e disponibilidade são confirmados com a equipe. Textos sobre terapias não
+reproduzem promessas de cura ou diagnóstico universal por biorressonância.
+O contato encaminha ao WhatsApp com uma mensagem sobre a categoria escolhida,
+revisada e enviada pelo visitante. Não grava pedidos nem mostra confirmação de envio.
+
 - Fundo creme muito claro; cartões brancos; títulos em verde ou roxo.
 - Ícones lineares (`lucide-react`); cantos arredondados (`--radius`); sombras discretas.
 - Folhagens/ornamentos só em telas institucionais ou vazias. Dourado apenas em detalhes.

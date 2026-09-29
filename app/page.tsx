@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { AboutSection } from "@/components/marketing/site/about-section";
 import { ContactSection } from "@/components/marketing/site/contact-section";
 import { FaqSection } from "@/components/marketing/site/faq-section";
@@ -7,6 +8,12 @@ import { PortalSection } from "@/components/marketing/site/portal-section";
 import { ServicesSection } from "@/components/marketing/site/services-section";
 import { SiteFooter } from "@/components/marketing/site/site-footer";
 import { SiteHeader } from "@/components/marketing/site/site-header";
+
+export const metadata: Metadata = {
+  title: "Essencial Centro | Estética, Massoterapia e Bem-estar em Mesquita",
+  description:
+    "Sua beleza, nosso cuidado. Conheça os cuidados em estética facial e corporal, massoterapia, terapias integrativas, nutrição e podologia da Essencial Centro, em Mesquita, RJ.",
+};
 
 export default function HomePage() {
   return (

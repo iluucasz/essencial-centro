@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Logo } from "./logo";
-import { CLINIC, SERVICES } from "@/lib/marketing/clinic";
+import { CLINIC, CLINIC_LINKS, SERVICES } from "@/lib/marketing/clinic";
 
 export function SiteFooter() {
   return (
@@ -10,8 +10,8 @@ export function SiteFooter() {
           <div className="md:col-span-2">
             <Logo inverted />
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-cream/70">
-              {CLINIC.tagline}. Cuidado integrado com acompanhamento digital de cada etapa do seu
-              tratamento.
+              {CLINIC.tagline}. Sua beleza, nosso cuidado. Em Mesquita, um espaço para cuidar da sua
+              autoestima e do seu bem-estar.
             </p>
           </div>
 
@@ -20,7 +20,7 @@ export function SiteFooter() {
               Serviços
             </h3>
             <ul className="mt-4 flex flex-col gap-2.5 text-sm text-cream/70">
-              {SERVICES.slice(0, 5).map((s) => (
+              {SERVICES.map((s) => (
                 <li key={s.slug}>
                   <Link href="/#servicos" className="transition-colors hover:text-cream">
                     {s.name}
@@ -35,9 +35,24 @@ export function SiteFooter() {
               Contato
             </h3>
             <ul className="mt-4 flex flex-col gap-2.5 text-sm text-cream/70">
-              <li>{CLINIC.address}</li>
-              <li>{CLINIC.phone}</li>
-              <li>{CLINIC.instagram}</li>
+              {(
+                [
+                  [CLINIC.address, CLINIC_LINKS.address],
+                  [CLINIC.phone, CLINIC_LINKS.phone],
+                  [CLINIC.instagram, CLINIC_LINKS.instagram],
+                ] as const
+              ).map(([texto, href]) => (
+                <li key={href}>
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="transition-colors hover:text-cream"
+                  >
+                    {texto}
+                  </a>
+                </li>
+              ))}
               <li>
                 <Link href="/entrar" className="transition-colors hover:text-cream">
                   Login

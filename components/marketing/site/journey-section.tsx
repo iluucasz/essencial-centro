@@ -11,11 +11,11 @@ export function JourneySection() {
               Como funciona
             </span>
             <h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-              Mais que uma agenda: uma jornada digital do seu tratamento
+              Um cuidado que começa na escuta e segue com você
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-pretty text-cream/75">
-              Do primeiro atendimento aos resultados, tudo fica registrado e organizado. Você
-              acompanha de onde começou, o que foi feito e o que já conquistou.
+              Você não precisa chegar sabendo qual procedimento escolher. Nossa equipe ajuda a
+              entender as possibilidades e acompanha cada etapa do seu cuidado.
             </p>
 
             <ol className="mt-10 space-y-6">

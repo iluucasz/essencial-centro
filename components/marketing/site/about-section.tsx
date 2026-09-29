@@ -12,7 +12,7 @@ const HIGHLIGHTS = [
 
 export function AboutSection() {
   return (
-    <section id="sobre" className="scroll-mt-20 bg-cream py-20 sm:py-24">
+    <section id="sobre" className="scroll-mt-20 bg-creme py-20 sm:py-24">
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
         <div className="relative order-2 lg:order-1">
           <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] border border-line shadow-xl shadow-forest/5">
@@ -25,7 +25,7 @@ export function AboutSection() {
             />
           </div>
           {/* Assina a foto: numa clínica, saber quem atende importa mais que um selo genérico. */}
-          <div className="absolute -top-4 -right-4 hidden max-w-56 rounded-2xl border border-line bg-clay px-5 py-4 text-cream shadow-lg sm:block">
+          <div className="absolute -top-4 -right-4 hidden max-w-56 rounded-2xl border border-line bg-roxo px-5 py-4 text-cream shadow-lg sm:block">
             <p className="font-serif text-xl font-semibold">{RESPONSAVEL.nome}</p>
             <p className="mt-0.5 text-xs leading-relaxed text-cream/85">{RESPONSAVEL.titulo}</p>
           </div>
@@ -35,13 +35,13 @@ export function AboutSection() {
           <span className="text-sm font-semibold tracking-[0.16em] text-forest uppercase">
             Sobre a clínica
           </span>
-          <h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-balance text-ink sm:text-4xl">
+          <h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-balance text-brand sm:text-4xl">
             Cuidado essencial, com técnica e carinho
           </h2>
           <p className="mt-4 text-lg leading-relaxed text-pretty text-ink-soft">
-            O Essencial Centro nasceu para unir estética, saúde e bem-estar em uma experiência
-            organizada e transparente. Aqui, cada detalhe do seu tratamento é registrado com
-            responsabilidade e respeito à sua privacidade.
+            Na Essencial Centro de Massoterapia e Estética, cuidar de você é a nossa missão. Em
+            Mesquita, reunimos cuidados com o corpo, a pele e o bem-estar em um espaço de escuta e
+            acolhimento. Cada atendimento começa com a sua história e respeita o seu momento.
           </p>
 
           <ul className="mt-8 space-y-3">

@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Sparkles, Waves, Wind, Scissors, Eye, Snowflake, HandHeart, Flower2 } from "lucide-react";
+import { Sparkles, Waves, Wind, HandHeart, Flower2, Leaf, Footprints } from "lucide-react";
 
 export type Service = {
   slug: string;
@@ -7,8 +7,8 @@ export type Service = {
   short: string;
   description: string;
   icon: LucideIcon;
-  duration: string;
-  category: "Corporal" | "Facial" | "Terapias" | "Beleza";
+  treatments: string[];
+  catalogs?: { title: string; image: string }[];
 };
 
 export const CLINIC = {
@@ -21,6 +21,14 @@ export const CLINIC = {
   instagram: "@essencial.centro",
 } as const;
 
+/** Destinos clicáveis dos contatos — externos abrem em nova aba. */
+export const CLINIC_LINKS = {
+  address: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(CLINIC.address)}`,
+  phone: `https://wa.me/${CLINIC.whatsapp}`,
+  instagram: `https://www.instagram.com/${CLINIC.instagram.replace(/^@/, "")}/`,
+  email: `mailto:${CLINIC.email}`,
+} as const;
+
 export const NAV_LINKS = [
   { label: "Início", href: "/#inicio" },
   { label: "Serviços", href: "/#servicos" },
@@ -29,120 +37,161 @@ export const NAV_LINKS = [
   { label: "Contato", href: "/#contato" },
 ] as const;
 
+/** Catálogo público fornecido pela Essencial em setembro de 2026. */
 export const SERVICES: Service[] = [
   {
     slug: "estetica-corporal",
-    name: "Estética Corporal",
-    short: "Redução de medidas e firmeza",
+    name: "Estética corporal",
+    short: "Seu corpo, seu cuidado",
     description:
-      "Protocolos para gordura localizada, celulite, flacidez e retenção com acompanhamento de medidas por sessão.",
+      "Protocolos personalizados para contorno corporal, textura e firmeza da pele, definidos a partir da sua avaliação.",
     icon: Waves,
-    duration: "60 min",
-    category: "Corporal",
+    treatments: [
+      "Redução de gordura e remodelamento corporal",
+      "Tratamento para celulite",
+      "Redução de flacidez",
+      "Tratamento para estrias",
+      "Tonificação muscular",
+      "Clareamento de manchas nas áreas íntimas",
+      "Drenagem linfática",
+    ],
+    catalogs: [
+      {
+        title: "Remodelamento corporal",
+        image: "/images/32486ae6-dcba-4703-94a8-28e45c19cb23.jpg",
+      },
+      { title: "Estrias e tonificação", image: "/images/6857581b-ea62-4006-9105-3424227da70b.jpg" },
+      { title: "Drenagem e flacidez", image: "/images/ddd7b5f2-f451-43f2-bb28-e2fd0d410980.jpg" },
+    ],
   },
   {
-    slug: "limpeza-de-pele",
-    name: "Limpeza de Pele",
-    short: "Facial feminina e masculina",
+    slug: "estetica-facial",
+    name: "Estética facial",
+    short: "Realce a sua beleza natural",
     description:
-      "Avaliação de fototipo, oleosidade, acne e textura, com limpeza profunda e cuidado personalizado.",
+      "Um olhar atento às necessidades da sua pele, com cuidados para hidratação, textura e rejuvenescimento.",
     icon: Sparkles,
-    duration: "50 min",
-    category: "Facial",
+    treatments: [
+      "Rejuvenescimento facial com skinbooster",
+      "Microagulhamento",
+      "Tratamento para melasma",
+      "Limpeza de pele: acneica, com marcas de acne, oleosa ou ressecada",
+      "Hidratação profunda",
+      "Rejuvenescimento de pálpebras",
+      "Redução de papada",
+      "Drenagem linfática facial",
+      "Extração de miliuns",
+    ],
+    catalogs: [
+      {
+        title: "Limpeza e cuidados com a pele",
+        image: "/images/a314997c-81ec-454f-9c60-fc55e1ff24d7.jpg",
+      },
+      {
+        title: "Estética facial avançada",
+        image: "/images/c971fd0a-1e1c-48ef-9486-30d4a78f39d7.jpg",
+      },
+    ],
+  },
+  {
+    slug: "terapia-ortomolecular",
+    name: "Terapia ortomolecular",
+    short: "Atenção ao seu bem-estar",
+    description:
+      "Atendimento individualizado para conversar sobre hábitos, alimentação e necessidades de cuidado. Indicações e encaminhamentos são definidos na avaliação profissional.",
+    icon: Leaf,
+    treatments: [
+      "Avaliação de hábitos e necessidades nutricionais",
+      "Orientação sobre suplementação",
+      "Consulta sobre avaliação por biorressonância",
+      "Acompanhamento voltado ao bem-estar",
+    ],
+  },
+  {
+    slug: "terapias-integrativas",
+    name: "Terapias integrativas",
+    short: "Cuidado que acolhe você por inteiro",
+    description:
+      "Conheça as opções de cuidado complementar da Essencial. A escolha de cada recurso considera seu histórico, suas necessidades e a avaliação profissional.",
+    icon: Wind,
+    treatments: ["Ozonioterapia", "Laserterapia e ILIB", "Auriculoterapia"],
   },
   {
     slug: "massoterapia",
     name: "Massoterapia",
-    short: "Alívio de dores e tensões",
+    short: "Permita-se esse momento",
     description:
-      "Massagens terapêuticas e relaxantes com mapeamento da dor e evolução registrada a cada atendimento.",
+      "Uma pausa na rotina para cuidar de você, com massagens e técnicas escolhidas conforme a sua avaliação.",
     icon: HandHeart,
-    duration: "60 min",
-    category: "Terapias",
+    treatments: [
+      "Massagem terapêutica",
+      "Massagem relaxante",
+      "Pedras quentes",
+      "Aromaterapia",
+      "Ventosaterapia",
+    ],
+    catalogs: [
+      { title: "Massagens e bem-estar", image: "/images/0bded8a0-f0ab-4817-801e-f9c8c9e9dc68.jpg" },
+    ],
   },
   {
-    slug: "ozonioterapia",
-    name: "Ozonioterapia",
-    short: "Terapia integrativa",
+    slug: "nutricao",
+    name: "Nutrição",
+    short: "Alimentação e cuidado no dia a dia",
     description:
-      "Protocolo com histórico clínico detalhado por sistemas do corpo e controle de até 15 sessões.",
-    icon: Wind,
-    duration: "40 min",
-    category: "Terapias",
-  },
-  {
-    slug: "terapia-capilar",
-    name: "Terapia Capilar",
-    short: "Saúde do couro cabeludo",
-    description:
-      "Avaliação de cabelo e couro cabeludo, hábitos e tratamentos anteriores para um plano sob medida.",
-    icon: Scissors,
-    duration: "45 min",
-    category: "Terapias",
-  },
-  {
-    slug: "extensao-de-cilios",
-    name: "Extensão de Cílios",
-    short: "Olhar marcante e natural",
-    description:
-      "Anamnese ocular completa, avaliação de alergias e aplicação segura com termo de responsabilidade.",
-    icon: Eye,
-    duration: "90 min",
-    category: "Beleza",
-  },
-  {
-    slug: "criolipolise",
-    name: "Criolipólise",
-    short: "Congelamento de gordura",
-    description:
-      "Avaliação de contraindicações, medidas corporais e autorização específica de imagens.",
-    icon: Snowflake,
-    duration: "60 min",
-    category: "Corporal",
-  },
-  {
-    slug: "depilacao",
-    name: "Depilação",
-    short: "Pele lisa e cuidada",
-    description: "Histórico de técnicas, reações e alergias avaliados antes de cada procedimento.",
+      "Atendimento com nutricionista. Converse com a equipe para conhecer a consulta e combinar seu horário.",
     icon: Flower2,
-    duration: "30 min",
-    category: "Beleza",
+    treatments: ["Consulta com nutricionista", "Orientação alimentar individualizada"],
+  },
+  {
+    slug: "podologia",
+    name: "Podologia",
+    short: "Carinho em cada passo",
+    description:
+      "Cuidados com os pés a partir de uma avaliação individual. Fale com a equipe para saber mais sobre o atendimento.",
+    icon: Footprints,
+    treatments: ["Avaliação dos pés", "Cuidados podológicos"],
   },
 ];
+
+export function criarLinkAvaliacao(servico?: string) {
+  const mensagem = servico
+    ? "Olá! Gostaria de agendar uma avaliação de " + servico + " na Essencial Centro."
+    : "Olá! Gostaria de agendar uma avaliação na Essencial Centro.";
+  return CLINIC_LINKS.phone + "?text=" + encodeURIComponent(mensagem);
+}
 
 export const JOURNEY_STEPS = [
   {
     number: "01",
     title: "Avaliação inicial",
     description:
-      "Você preenche a anamnese digital antes da consulta. Dados pessoais são reaproveitados em todas as fichas.",
+      "Começamos ouvindo você: seus objetivos, sua rotina e seu histórico ajudam a orientar o cuidado.",
   },
   {
     number: "02",
     title: "Plano de tratamento",
     description:
-      "A profissional define o protocolo, registra medidas, fotografias e as orientações liberadas para você.",
+      "A partir da avaliação, conversamos sobre as opções e construímos um plano que faça sentido para você.",
   },
   {
     number: "03",
     title: "Acompanhamento por sessão",
     description:
-      "Cada atendimento registra evolução, medidas e escala de dor, tudo vinculado ao seu prontuário.",
+      "Acompanhamos como você se sente e a resposta ao cuidado para ajustar cada etapa quando necessário.",
   },
   {
     number: "04",
     title: "Resultados e evolução",
     description:
-      "Acompanhe gráficos de medidas, comparativos de antes e depois autorizados e seus documentos assinados.",
+      "No seu portal, consulte os registros e as orientações disponibilizados pela profissional.",
   },
 ];
 
 export const DIFFERENTIALS = [
   {
-    title: "Fichas digitais inteligentes",
-    description:
-      "Formulários que reagem às respostas: campos aparecem só quando são necessários, sem paredão de perguntas.",
+    title: "Escuta e acolhimento",
+    description: "Tempo para entender o que você precisa e tirar suas dúvidas.",
     icon: Sparkles,
   },
   {
@@ -169,6 +218,16 @@ export const RESPONSAVEL = {
 } as const;
 
 export const FAQ = [
+  {
+    question: "Não sei qual tratamento escolher. Por onde começo?",
+    answer:
+      "Comece por uma avaliação. Vamos conversar sobre o que você procura, seu histórico e suas necessidades para apresentar as opções de cuidado e esclarecer suas dúvidas.",
+  },
+  {
+    question: "Como consulto valores e agendo meu atendimento?",
+    answer:
+      "Escolha uma categoria no catálogo e fale com a equipe pelo WhatsApp. Algumas categorias também têm páginas do catálogo com valores. A equipe confirma o orçamento, a disponibilidade e o horário antes do atendimento.",
+  },
   {
     question: "Meus dados de saúde ficam protegidos?",
     answer:
