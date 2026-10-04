@@ -117,6 +117,19 @@ no enum entra visível por padrão. `tiposDocumentoSomenteProfissional` (em `mod
 
 ## Segredos
 
+### Publicação editorial no site
+
+`modules/site-publico` não consulta clientes, prontuários nem fotos clínicas. A profissional
+cadastra separadamente apenas os nomes, relatos e mídias aprovados para divulgação. Upload e
+publicação exigem declaração explícita de autorização; escrita revalida papel `profissional` e
+barra função `reader`. Leitura pública filtra `publicado` **e** `autorizacaoPublicacao` e projeta
+somente campos editoriais, sem dados de autoria/histórico. Cada versão registra quem declarou a
+autorização e quando. Rascunhos e histórico não são acessíveis publicamente.
+
+Os arquivos desta área são deliberadamente públicos no Blob, em `site-publico/`, inclusive antes
+de exibir o item na home; a tela informa isso antes do envio. Despublicar retira o conteúdo da home,
+mas não revoga a URL pública do arquivo. Não reutilizar essa rota/pasta para fotos clínicas.
+
 `.env.local` (ignorado). `AUTH_SECRET` forte; `DATABASE_URL` só em env. Nada de credencial no repo.
 Repositório está público — **não** commitar dados reais de pacientes nem dumps.
 

@@ -136,3 +136,13 @@ h6 {
 body:has(.area-interna) {
   background: var(--background-interno);
 }
+
+/* Barra de progresso do catálogo público: preenche no tempo da troca automática. */
+@keyframes catalogo-progresso {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}

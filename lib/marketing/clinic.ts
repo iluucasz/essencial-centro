@@ -154,11 +154,12 @@ export const SERVICES: Service[] = [
   },
 ];
 
-export function criarLinkAvaliacao(servico?: string) {
+/** Link do WhatsApp com mensagem pronta. `whatsapp` vem do contato editável (só dígitos, com DDI). */
+export function criarLinkAvaliacao(servico?: string, whatsapp: string = CLINIC.whatsapp) {
   const mensagem = servico
     ? "Olá! Gostaria de agendar uma avaliação de " + servico + " na Essencial Centro."
     : "Olá! Gostaria de agendar uma avaliação na Essencial Centro.";
-  return CLINIC_LINKS.phone + "?text=" + encodeURIComponent(mensagem);
+  return `https://wa.me/${whatsapp}?text=${encodeURIComponent(mensagem)}`;
 }
 
 export const JOURNEY_STEPS = [

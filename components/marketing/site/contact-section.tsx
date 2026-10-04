@@ -3,34 +3,48 @@
 import { useState } from "react";
 import Image from "next/image";
 import { MapPin, Clock, Phone, AtSign, Mail, ArrowUpRight, Flower2 } from "lucide-react";
-import { CLINIC, CLINIC_LINKS, SERVICES, criarLinkAvaliacao } from "@/lib/marketing/clinic";
+import { SERVICES, criarLinkAvaliacao } from "@/lib/marketing/clinic";
 import { Field, Select } from "@/components/marketing/ui/field";
+import {
+  blocoContatoPadrao,
+  linksContato,
+  numeroWhatsapp,
+  type BlocoContato,
+} from "@/modules/site-publico/blocos";
 
-const CONTACT_ROWS: { icon: typeof MapPin; label: string; value: string; href?: string }[] = [
-  { icon: MapPin, label: "Endereço", value: CLINIC.address, href: CLINIC_LINKS.address },
-  { icon: Clock, label: "Horário", value: "Horário de atendimento a combinar" },
-  { icon: Phone, label: "Telefone / WhatsApp", value: CLINIC.phone, href: CLINIC_LINKS.phone },
-  { icon: AtSign, label: "Instagram", value: CLINIC.instagram, href: CLINIC_LINKS.instagram },
-  { icon: Mail, label: "E-mail", value: CLINIC.email, href: CLINIC_LINKS.email },
-];
-
-export function ContactSection() {
+export function ContactSection({
+  categorias = SERVICES.map((servico) => servico.name),
+  conteudo = blocoContatoPadrao,
+}: {
+  /** Nomes das categorias do catálogo editável — mesma lista mostrada na seção de serviços. */
+  categorias?: string[];
+  conteudo?: BlocoContato;
+}) {
   const [servico, setServico] = useState("");
+  const links = linksContato(conteudo);
+  const linhas = [
+    { icone: MapPin, rotulo: "Endereço", valor: conteudo.endereco, href: links.endereco },
+    { icone: Clock, rotulo: "Horário", valor: conteudo.horario, href: "" },
+    { icone: Phone, rotulo: "Telefone / WhatsApp", valor: conteudo.telefone, href: links.whatsapp },
+    { icone: AtSign, rotulo: "Instagram", valor: conteudo.instagram, href: links.instagram },
+    { icone: Mail, rotulo: "E-mail", valor: conteudo.email, href: links.email },
+  ].filter((linha) => linha.valor);
 
   return (
     <section id="contato" className="scroll-mt-20 bg-cream-deep py-20 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <span className="text-sm font-semibold tracking-[0.16em] text-forest uppercase">
-            Contato
+            {conteudo.selo}
           </span>
           <h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-balance text-ink sm:text-4xl">
-            Agende sua avaliação
+            {conteudo.titulo}
           </h2>
-          <p className="mt-4 text-lg leading-relaxed text-pretty text-ink-soft">
-            Vamos encontrar um cuidado para o seu momento? Converse com a equipe pelo WhatsApp e
-            combine sua avaliação.
-          </p>
+          {conteudo.texto && (
+            <p className="mt-4 text-lg leading-relaxed text-pretty text-ink-soft">
+              {conteudo.texto}
+            </p>
+          )}
         </div>
 
         <div className="mt-12 grid gap-8 lg:grid-cols-[1fr_1.1fr]">
@@ -38,52 +52,52 @@ export function ContactSection() {
           <div className="flex min-w-0 flex-col gap-6">
             <div className="rounded-3xl border border-line bg-surface p-6 sm:p-8">
               <ul className="flex flex-col gap-5 text-sm">
-                {CONTACT_ROWS.map((row) => (
-                  <li key={row.label} className="flex items-start gap-4">
+                {linhas.map((linha) => (
+                  <li key={linha.rotulo} className="flex items-start gap-4">
                     <span className="mt-0.5 flex h-10 w-10 flex-none items-center justify-center rounded-full bg-sage/60 text-forest">
-                      <row.icon className="h-5 w-5" strokeWidth={1.75} />
+                      <linha.icone className="h-5 w-5" strokeWidth={1.75} />
                     </span>
                     <div className="min-w-0 wrap-break-word">
-                      <p className="font-medium text-ink">{row.label}</p>
-                      {row.href ? (
+                      <p className="font-medium text-ink">{linha.rotulo}</p>
+                      {linha.href ? (
                         <a
-                          href={row.href}
+                          href={linha.href}
                           className="text-ink-soft underline-offset-4 transition-colors hover:text-forest hover:underline"
-                          {...(row.href.startsWith("http")
+                          {...(linha.href.startsWith("http")
                             ? { target: "_blank", rel: "noopener noreferrer" }
                             : {})}
                         >
-                          {row.value}
+                          {linha.valor}
                         </a>
                       ) : (
-                        <p className="text-ink-soft">{row.value}</p>
+                        <p className="text-ink-soft">{linha.valor}</p>
                       )}
                     </div>
                   </li>
                 ))}
               </ul>
             </div>
-            <div className="relative hidden aspect-[16/9] overflow-hidden rounded-3xl border border-line sm:block">
-              <Image
-                src="/profissionais_modelos/dr_edmo.png"
-                alt="Dr. Edmo de Souza, terapeuta ortomolecular do Essencial Centro"
-                fill
-                sizes="(max-width: 1024px) 100vw, 40vw"
-                className="object-cover object-top"
-              />
-            </div>
+            {conteudo.imagem && (
+              <div className="relative hidden aspect-video overflow-hidden rounded-3xl border border-line sm:block">
+                <Image
+                  src={conteudo.imagem}
+                  alt={conteudo.descricaoImagem}
+                  fill
+                  unoptimized={conteudo.imagem.startsWith("https:")}
+                  sizes="(max-width: 1024px) 100vw, 40vw"
+                  className="object-cover object-top"
+                />
+              </div>
+            )}
           </div>
 
           {/* Encaminhamento ao WhatsApp */}
           <div className="min-w-0 rounded-3xl border border-line bg-surface p-6 sm:p-8">
             <Flower2 className="size-9 text-roxo" strokeWidth={1.25} />
-            <h3 className="mt-5 font-serif text-2xl text-brand">Seu primeiro passo começa aqui.</h3>
-            <p className="mt-4 text-sm leading-relaxed text-muted">
-              Escolha uma área de interesse. Vamos abrir uma conversa com a Essencial para você
-              tirar dúvidas sobre os cuidados, valores e horários.
-            </p>
+            <h3 className="mt-5 font-serif text-2xl text-brand">{conteudo.cartaoTitulo}</h3>
+            <p className="mt-4 text-sm leading-relaxed text-muted">{conteudo.cartaoTexto}</p>
             <div className="mt-7">
-              <Field label="Qual cuidado você procura?" htmlFor="servico">
+              <Field label={conteudo.pergunta} htmlFor="servico">
                 <Select
                   id="servico"
                   name="servico"
@@ -91,27 +105,26 @@ export function ContactSection() {
                   onChange={(event) => setServico(event.target.value)}
                 >
                   <option value="">Quero ajuda para escolher</option>
-                  {SERVICES.map((item) => (
-                    <option key={item.slug} value={item.name}>
-                      {item.name}
+                  {categorias.map((nome) => (
+                    <option key={nome} value={nome}>
+                      {nome}
                     </option>
                   ))}
                 </Select>
               </Field>
             </div>
             <a
-              href={criarLinkAvaliacao(servico)}
+              href={criarLinkAvaliacao(servico, numeroWhatsapp(conteudo.telefone))}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-6 inline-flex w-full items-center justify-center gap-3 rounded-full bg-brand px-5 py-4 text-sm font-medium text-surface transition-colors hover:bg-roxo"
             >
-              Continuar no WhatsApp
+              {conteudo.botao}
               <ArrowUpRight className="size-4" />
             </a>
-            <p className="mt-4 text-xs leading-relaxed text-muted">
-              Você poderá revisar e enviar a mensagem no WhatsApp. O agendamento será confirmado
-              pela equipe durante a conversa.
-            </p>
+            {conteudo.observacao && (
+              <p className="mt-4 text-xs leading-relaxed text-muted">{conteudo.observacao}</p>
+            )}
           </div>
         </div>
       </div>

@@ -1,8 +1,30 @@
 import Link from "next/link";
 import { Logo } from "./logo";
-import { CLINIC, CLINIC_LINKS, SERVICES } from "@/lib/marketing/clinic";
+import { CLINIC, SERVICES } from "@/lib/marketing/clinic";
+import {
+  blocoContatoPadrao,
+  blocoRodapePadrao,
+  linksContato,
+  type BlocoContato,
+  type BlocoRodape,
+} from "@/modules/site-publico/blocos";
 
-export function SiteFooter() {
+export function SiteFooter({
+  categorias = SERVICES.map((servico) => servico.name),
+  contato = blocoContatoPadrao,
+  conteudo = blocoRodapePadrao,
+}: {
+  categorias?: string[];
+  contato?: BlocoContato;
+  conteudo?: BlocoRodape;
+}) {
+  const links = linksContato(contato);
+  const contatos = [
+    [contato.endereco, links.endereco],
+    [contato.telefone, links.whatsapp],
+    [contato.instagram, links.instagram],
+  ].filter(([texto, href]) => texto && href);
+
   return (
     <footer className="border-t border-forest-deep/40 bg-forest-deep text-cream">
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
@@ -10,8 +32,7 @@ export function SiteFooter() {
           <div className="md:col-span-2">
             <Logo inverted />
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-cream/70">
-              {CLINIC.tagline}. Sua beleza, nosso cuidado. Em Mesquita, um espaço para cuidar da sua
-              autoestima e do seu bem-estar.
+              {conteudo.descricao}
             </p>
           </div>
 
@@ -20,10 +41,10 @@ export function SiteFooter() {
               Serviços
             </h3>
             <ul className="mt-4 flex flex-col gap-2.5 text-sm text-cream/70">
-              {SERVICES.map((s) => (
-                <li key={s.slug}>
+              {categorias.map((nome) => (
+                <li key={nome}>
                   <Link href="/#servicos" className="transition-colors hover:text-cream">
-                    {s.name}
+                    {nome}
                   </Link>
                 </li>
               ))}
@@ -35,13 +56,7 @@ export function SiteFooter() {
               Contato
             </h3>
             <ul className="mt-4 flex flex-col gap-2.5 text-sm text-cream/70">
-              {(
-                [
-                  [CLINIC.address, CLINIC_LINKS.address],
-                  [CLINIC.phone, CLINIC_LINKS.phone],
-                  [CLINIC.instagram, CLINIC_LINKS.instagram],
-                ] as const
-              ).map(([texto, href]) => (
+              {contatos.map(([texto, href]) => (
                 <li key={href}>
                   <a
                     href={href}
@@ -66,7 +81,7 @@ export function SiteFooter() {
           <p>
             &copy; {new Date().getFullYear()} {CLINIC.name}. Todos os direitos reservados.
           </p>
-          <p>Dados sensíveis tratados conforme a LGPD.</p>
+          {conteudo.aviso && <p>{conteudo.aviso}</p>}
         </div>
       </div>
     </footer>

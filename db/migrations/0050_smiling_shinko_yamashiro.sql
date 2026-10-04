@@ -1,0 +1,1 @@
+ALTER TABLE "conteudo_site" ADD COLUMN "nota" integer;

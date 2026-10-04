@@ -28,3 +28,4 @@ export * from "../../modules/dor/schema";
 export * from "../../modules/analises/schema";
 export * from "../../modules/whatsapp/schema";
 export * from "../../modules/controles/schema";
+export * from "../../modules/site-publico/schema";

@@ -56,11 +56,13 @@ roxo/lilás e detalhes dourados, seguindo as artes fornecidas em `public/images`
 O catálogo público em `lib/marketing/clinic.ts` reúne sete categorias: corporal,
 facial, ortomolecular, integrativas, massoterapia, nutrição e podologia. É conteúdo
 editorial público, independente dos serviços e prontuários do painel.
-As páginas ilustradas de estética e massoterapia podem ser expandidas e ampliadas;
-valores e disponibilidade são confirmados com a equipe. Textos sobre terapias não
-reproduzem promessas de cura ou diagnóstico universal por biorressonância.
-O contato encaminha ao WhatsApp com uma mensagem sobre a categoria escolhida,
-revisada e enviada pelo visitante. Não grava pedidos nem mostra confirmação de envio.
+O catálogo segue o formato editorial do "elegant carousel": à esquerda o contador "— 01 / 10",
+a chamada, o nome da categoria em serifa grande, a arte da página em roxo itálico, a descrição,
+os tratamentos em duas colunas, o botão de WhatsApp e as setas. À direita fica a arte num quadro
+com cantos dourados sobre um brilho lilás. Embaixo, as categorias são barras de progresso: a da
+vez se preenche no tempo da troca automática (keyframes `catalogo-progresso` em `globals.css`),
+as anteriores ficam cheias, e a barra para ao pausar, ao passar o mouse ou ao focar. No celular
+as barras rolam na horizontal.
 
 - Fundo creme muito claro; cartões brancos; títulos em verde ou roxo.
 - Ícones lineares (`lucide-react`); cantos arredondados (`--radius`); sombras discretas.
@@ -68,6 +70,32 @@ revisada e enviada pelo visitante. Não grava pedidos nem mostra confirmação d
 - Fotos grandes na comparação de resultados; gráficos simples; botões com texto direto.
 
 ## Componentes-âncora
+
+### Site: carrossel principal, profissionais e depoimentos
+
+O destaque principal mantém o recorte em arco, contorno dourado e legenda sobre cartão branco.
+Aceita imagens e vídeos administrados em `/painel/site`, com setas laterais e indicadores abaixo,
+troca de fotos a cada 5 segundos e pausa durante interação ou reprodução de vídeo. Vídeos têm
+controles nativos, sem autoplay com som; a legenda fica abaixo para não cobrir os controles.
+Sem destaques cadastrados, o carrossel já navega entre as três fotos institucionais existentes,
+começando pela imagem original da home, com setas e indicadores visíveis.
+
+A seção de profissionais apresenta foto, nome, especialidade e apresentação. Sem cadastros,
+reutiliza a responsável já identificada na seção Sobre (Edvania Crespo), sem inventar equipe.
+Profissionais aparecem num leque 3D de cards (`components/ui/card-stack.tsx`, adaptado do
+21st.dev para `motion/react`). Cada card é um retrato com nome e especialidade sobre um degradê
+verde; o da frente fica erguido e os vizinhos se abrem em arco. Navega por arraste, clique no
+card de trás, setas, bolinhas e teclado, em ciclo, e respeita a preferência por menos movimento.
+Abaixo do leque, um painel animado mostra nome, especialidade, apresentação e "Agendar com
+<nome>" (WhatsApp do contato). A largura do card acompanha a tela (220–320px).
+Depoimentos: cabeçalho centralizado e cards verticais (9:16) lado a lado: 3 no desktop, 2 no
+tablet e 1 no celular. Sobre cada card fica a nota em arco de estrelas douradas (as do centro
+maiores). Vídeo tem capa com selo, botão de play, autor e trecho do relato sobre um desfoque
+crescente para baixo. Texto é um card do mesmo tamanho, com aspas, relato em serifa itálica e
+autor. A navegação ‹ bolinhas › avança um card por vez, em ciclo, e some no breakpoint em que
+todos já cabem. Aceita gesto horizontal e teclado, sem rotação automática.
+Não há solicitação de opinião. A seção só aparece quando há relatos publicados, em qualquer
+ambiente; não existem depoimentos de demonstração. Nenhuma nota é presumida para registros antigos sem avaliação.
 
 - **Botão primário**: `brand`/HeroUI `accent`, texto branco, cantos arredondados (ex.: "Salvar avaliação").
 - **Botão secundário**: fundo `lilas` claro ou HeroUI `secondary`, texto `roxo` (ex.: "Comparar resultados").
