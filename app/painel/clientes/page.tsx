@@ -1,9 +1,8 @@
 import { auth } from "@/auth";
-import { ModalFormulario } from "@/components/ui/modal-formulario";
 import { autorizarPapel } from "@/modules/auth/rbac";
 import { podeExcluirClientes } from "@/modules/clientes/acesso";
-import { FormularioCliente } from "@/modules/clientes/components/formulario-cliente";
 import { ListaClientes } from "@/modules/clientes/components/lista-clientes";
+import { ModalNovoCliente } from "@/modules/clientes/components/modal-novo-cliente";
 import { aplicarFiltroCliente, normalizarFiltroCliente } from "@/modules/clientes/filtro";
 import { listarClientes } from "@/modules/clientes/queries";
 
@@ -28,9 +27,7 @@ export default async function ClientesPage({
           </p>
         </div>
 
-        <ModalFormulario rotuloBotao="Novo cliente" titulo="Novo cliente">
-          <FormularioCliente />
-        </ModalFormulario>
+        <ModalNovoCliente />
       </header>
 
       <ListaClientes

@@ -15,6 +15,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 
+import { BotaoOpcao } from "@/components/ui/botao-opcao";
 import { ConteudoModal } from "@/components/ui/modal-formulario";
 import {
   criarFichaDeModelo,
@@ -134,34 +135,6 @@ function EnvioWhatsApp({ clienteId, modelo }: { clienteId: string; modelo: Model
   );
 }
 
-function BotaoAcao({
-  icone,
-  titulo,
-  descricao,
-  onClick,
-}: {
-  icone: React.ReactNode;
-  titulo: string;
-  descricao: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      className="group flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 text-left transition hover:border-roxo/30 hover:bg-lilas/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-roxo"
-      onClick={onClick}
-      type="button"
-    >
-      <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-lilas/20 text-roxo transition group-hover:bg-roxo group-hover:text-white">
-        {icone}
-      </span>
-      <span>
-        <span className="block font-semibold text-foreground">{titulo}</span>
-        <span className="mt-0.5 block text-sm text-muted">{descricao}</span>
-      </span>
-    </button>
-  );
-}
-
 export function SeletorModeloFicha({
   clienteId,
   modelos,
@@ -251,13 +224,13 @@ export function SeletorModeloFicha({
 
                 {acao === "escolher" ? (
                   <div className="grid gap-2">
-                    <BotaoAcao
+                    <BotaoOpcao
                       descricao="A profissional preenche a ficha agora."
                       icone={<PenLine className="size-5" aria-hidden />}
                       onClick={() => setAcao("preencher")}
                       titulo="Preencher ficha"
                     />
-                    <BotaoAcao
+                    <BotaoOpcao
                       descricao="Enviar link para o cliente preencher."
                       icone={<MessageCircle className="size-5" aria-hidden />}
                       onClick={() => setAcao("whatsapp")}

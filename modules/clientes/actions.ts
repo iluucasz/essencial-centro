@@ -21,6 +21,7 @@ import { medicamentoInformado } from "@/modules/medicamentos/schema";
 import { pacote } from "@/modules/pacotes/schema";
 import { sessao } from "@/modules/sessoes/schema";
 
+import { checkboxAtivo, lerFormularioCliente } from "./formulario";
 import { cliente, criarClienteSchema } from "./schema";
 
 /**
@@ -56,10 +57,6 @@ export type EstadoExclusaoCliente = {
 
 const estadoInicialExclusao: EstadoExclusaoCliente = { status: "inicial" };
 
-function checkboxAtivo(value: FormDataEntryValue | null) {
-  return value === "on" || value === "true";
-}
-
 function getValor(formData: FormData, nome: string) {
   return formData.get(nome);
 }
@@ -69,28 +66,7 @@ function isEmailDuplicado(error: unknown) {
 }
 
 function parseFormularioCliente(formData: FormData) {
-  return criarClienteSchema.safeParse({
-    nome: getValor(formData, "nome"),
-    dataNascimento: getValor(formData, "dataNascimento"),
-    telefone: getValor(formData, "telefone"),
-    email: getValor(formData, "email"),
-    endereco: getValor(formData, "endereco"),
-    contatoEmergenciaNome: getValor(formData, "contatoEmergenciaNome"),
-    contatoEmergenciaTelefone: getValor(formData, "contatoEmergenciaTelefone"),
-    profissao: getValor(formData, "profissao"),
-    peso: getValor(formData, "peso"),
-    altura: getValor(formData, "altura"),
-    queixas: getValor(formData, "queixas"),
-    objetivoTratamento: getValor(formData, "objetivoTratamento"),
-    alergias: getValor(formData, "alergias"),
-    medicamentos: getValor(formData, "medicamentos"),
-    condicoesSaude: getValor(formData, "condicoesSaude"),
-    cirurgias: getValor(formData, "cirurgias"),
-    contraindicacoes: getValor(formData, "contraindicacoes"),
-    consentimentoDados: checkboxAtivo(getValor(formData, "consentimentoDados")),
-    consentimentoImagem: checkboxAtivo(getValor(formData, "consentimentoImagem")),
-    observacoesInternas: getValor(formData, "observacoesInternas"),
-  });
+  return criarClienteSchema.safeParse(lerFormularioCliente(formData));
 }
 
 export async function criarCliente(

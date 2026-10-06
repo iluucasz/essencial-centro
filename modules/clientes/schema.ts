@@ -7,6 +7,7 @@ import {
   timestamp,
   uuid,
   boolean,
+  pgEnum,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { z } from "zod";
@@ -81,6 +82,30 @@ export const cliente = pgTable(
   }),
 );
 
+export const statusConviteCadastro = ["pendente", "concluido"] as const;
+
+export const statusConviteCadastroEnum = pgEnum("status_convite_cadastro", statusConviteCadastro);
+
+/**
+ * Link de autocadastro enviado por WhatsApp: o próprio cliente preenche o cadastro numa rota pública
+ * (`app/cadastro/[token]`). O token é a única autorização — forte, com expiração e de uso único pelo
+ * STATUS (`pendente` → `concluido`), mesmo padrão da ficha pública (ver `modules/fichas/token.ts`).
+ */
+export const conviteCadastroCliente = pgTable("convite_cadastro_cliente", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  /** Número informado pela equipe — destino do link e valor inicial do telefone no formulário. */
+  telefone: text("telefone").notNull(),
+  token: text("token").notNull().unique(),
+  tokenExpiraEm: timestamp("token_expira_em", { mode: "date" }).notNull(),
+  status: statusConviteCadastroEnum("status").notNull().default("pendente"),
+  clienteId: uuid("cliente_id").references(() => cliente.id, { onDelete: "set null" }),
+  criadoPorId: uuid("criado_por_id")
+    .notNull()
+    .references(() => usuario.id, { onDelete: "restrict" }),
+  criadoEm: timestamp("criado_em", { mode: "date" }).notNull().defaultNow(),
+  concluidoEm: timestamp("concluido_em", { mode: "date" }),
+});
+
 export const clienteSelectSchema = createSelectSchema(cliente);
 export const clienteInsertSchema = createInsertSchema(cliente);
 
@@ -112,6 +137,18 @@ export const criarClienteSchema = z.object({
   consentimentoImagem: z.boolean(),
   observacoesInternas: textoLongoOpcional,
 });
+
+/**
+ * Autocadastro pelo link público: mesmos campos, menos as observações internas (nunca vão ao
+ * cliente) e com o consentimento redigido para quem está autorizando.
+ */
+export const cadastroPublicoClienteSchema = criarClienteSchema
+  .omit({ observacoesInternas: true })
+  .extend({
+    consentimentoDados: z
+      .boolean()
+      .refine(Boolean, "Para concluir, autorize o uso dos seus dados no atendimento."),
+  });
 
 export type Cliente = typeof cliente.$inferSelect;
 export type NovoCliente = typeof cliente.$inferInsert;

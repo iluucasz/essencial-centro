@@ -149,6 +149,14 @@ Repositório está público — **não** commitar dados reais de pacientes nem d
   ao cliente. `enviarFichaPublica` revalida as respostas no servidor; o envio é único pelo status
   (`aguardando_cliente` → `preenchida`) e o link preenchido vira só a tela "Ficha já preenchida",
   sem expor nenhuma resposta.
+- **Autocadastro público de cliente** (`app/cadastro/[token]`, `modules/clientes`): "Novo cliente →
+  Enviar para WhatsApp" gera um `convite_cadastro_cliente` (token forte, expira em 14 dias) e manda
+  o link ao número digitado pela equipe. A página é sem login e não expõe nenhum dado existente (só
+  o telefone digitado, como valor inicial). O formulário é o mesmo do painel **sem observações
+  internas** (`cadastroPublicoClienteSchema` as descarta no servidor) e com consentimento em 1ª
+  pessoa. `concluirCadastroPublico` reserva o convite pelo status (`pendente` → `concluido`) antes
+  de inserir, então duplo envio não duplica cliente. **Não** cria acesso ao portal — isso continua
+  sendo ação da equipe (`gerarAcessoPortalCliente`).
 - **Biometria**: check-in por impressão digital (Fase 3, `modules/biometria`) — alternativa ao QR
   Code, nunca substitui: o cliente pode ser confirmado por QR Code a qualquer momento, mesmo com
   biometria cadastrada. Só o **template extraído** (binário proprietário do SDK do leitor) é

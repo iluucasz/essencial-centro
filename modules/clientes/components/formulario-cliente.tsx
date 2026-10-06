@@ -61,7 +61,11 @@ function formatarDataInput(data?: Date | null) {
   return `${ano}-${mes}-${dia}`;
 }
 
-function MensagemFormulario({ state }: { state: EstadoFormularioCliente | undefined }) {
+export function MensagemFormulario({
+  state,
+}: {
+  state: Pick<EstadoFormularioCliente, "status" | "mensagem"> | undefined;
+}) {
   if (!state?.mensagem) return null;
 
   return (
@@ -505,6 +509,184 @@ function CampoEndereco({ defaultValue, error }: { defaultValue?: string; error?:
   );
 }
 
+/**
+ * Campos do cadastro de cliente, compartilhados pelo painel e pelo autocadastro público
+ * (`publico`): este nunca mostra as observações internas e redige o consentimento em 1ª pessoa.
+ */
+export function CamposCliente({
+  campos,
+  cliente,
+  publico = false,
+}: {
+  campos?: Record<string, string[] | undefined>;
+  cliente?: Partial<ClienteFormulario>;
+  publico?: boolean;
+}) {
+  return (
+    <>
+      <div className="grid gap-4 md:grid-cols-2">
+        <CampoTexto
+          defaultValue={cliente?.nome ?? undefined}
+          error={campos?.nome}
+          label="Nome e sobrenome"
+          name="nome"
+          placeholder="Ex.: Thalia Eluan"
+          required
+        />
+        <CampoDataCalendario
+          defaultValue={formatarDataInput(cliente?.dataNascimento)}
+          error={campos?.dataNascimento}
+          label="Data de nascimento"
+          name="dataNascimento"
+          required
+        />
+        <CampoTexto
+          defaultValue={cliente?.telefone ?? undefined}
+          error={campos?.telefone}
+          inputMode="tel"
+          label="Telefone"
+          name="telefone"
+          placeholder="Ex.: (21) 99928-1504"
+        />
+        <CampoTexto
+          defaultValue={cliente?.email ?? undefined}
+          error={campos?.email}
+          label="E-mail"
+          name="email"
+          placeholder="Ex.: cliente@email.com"
+          type="email"
+        />
+        <CampoTexto
+          defaultValue={cliente?.profissao ?? undefined}
+          error={campos?.profissao}
+          label="Profissão"
+          name="profissao"
+          placeholder="Ex.: Designer"
+        />
+        <CampoTexto
+          defaultValue={cliente?.peso != null ? String(cliente.peso) : undefined}
+          error={campos?.peso}
+          inputMode="decimal"
+          label="Peso (kg)"
+          name="peso"
+          placeholder="Ex.: 68.5"
+        />
+        <CampoTexto
+          defaultValue={cliente?.altura != null ? String(cliente.altura) : undefined}
+          error={campos?.altura}
+          inputMode="decimal"
+          label="Altura (cm)"
+          name="altura"
+          placeholder="Ex.: 165"
+        />
+        <CampoTexto
+          defaultValue={cliente?.contatoEmergenciaTelefone ?? undefined}
+          error={campos?.contatoEmergenciaTelefone}
+          inputMode="tel"
+          label="Telefone de emergência"
+          name="contatoEmergenciaTelefone"
+          placeholder="Ex.: (21) 99999-9999"
+        />
+      </div>
+
+      <CampoTexto
+        defaultValue={cliente?.contatoEmergenciaNome ?? undefined}
+        error={campos?.contatoEmergenciaNome}
+        label="Contato de emergência"
+        name="contatoEmergenciaNome"
+        placeholder="Ex.: Maria Eluan (mãe)"
+      />
+      <CampoEndereco defaultValue={cliente?.endereco ?? undefined} error={campos?.endereco} />
+      <CampoArea
+        defaultValue={cliente?.queixas ?? undefined}
+        error={campos?.queixas}
+        label="Queixas"
+        name="queixas"
+        placeholder="Ex.: Dificuldade para dormir e dores nas costas"
+      />
+      <CampoArea
+        defaultValue={cliente?.objetivoTratamento ?? undefined}
+        error={campos?.objetivoTratamento}
+        label="Objetivo do tratamento"
+        name="objetivoTratamento"
+        placeholder="Ex.: Redução de medidas e melhora da textura da pele"
+      />
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <CampoArea
+          defaultValue={cliente?.alergias ?? undefined}
+          error={campos?.alergias}
+          label="Alergias"
+          name="alergias"
+          placeholder="Ex.: Nega alergias conhecidas"
+        />
+        <CampoArea
+          defaultValue={cliente?.medicamentos ?? undefined}
+          error={campos?.medicamentos}
+          label="Medicamentos em uso"
+          name="medicamentos"
+          placeholder="Ex.: Anticoncepcional oral"
+        />
+        <CampoArea
+          defaultValue={cliente?.condicoesSaude ?? undefined}
+          error={campos?.condicoesSaude}
+          label="Condições de saúde"
+          name="condicoesSaude"
+          placeholder="Ex.: Sem comorbidades relatadas"
+        />
+        <CampoArea
+          defaultValue={cliente?.cirurgias ?? undefined}
+          error={campos?.cirurgias}
+          label="Cirurgias"
+          name="cirurgias"
+          placeholder="Ex.: Cesárea em 2020"
+        />
+      </div>
+
+      <CampoArea
+        defaultValue={cliente?.contraindicacoes ?? undefined}
+        error={campos?.contraindicacoes}
+        label="Contraindicações"
+        name="contraindicacoes"
+        placeholder="Ex.: Evitar radiofrequência em região com sensibilidade"
+      />
+      {publico ? null : (
+        <CampoArea
+          defaultValue={cliente?.observacoesInternas ?? undefined}
+          error={campos?.observacoesInternas}
+          label="Observações internas"
+          name="observacoesInternas"
+          placeholder="Anotações apenas para a equipe, não visíveis ao cliente"
+        />
+      )}
+
+      <div className="grid gap-3 rounded-xl bg-creme p-4">
+        <CampoCheckbox
+          defaultChecked={cliente?.consentimentoDados}
+          error={campos?.consentimentoDados}
+          label={
+            publico
+              ? "Autorizo o uso dos meus dados para atendimento e acompanhamento."
+              : "Cliente consentiu com o uso dos dados para atendimento e acompanhamento."
+          }
+          name="consentimentoDados"
+          required
+        />
+        <CampoCheckbox
+          defaultChecked={cliente?.consentimentoImagem}
+          error={campos?.consentimentoImagem}
+          label={
+            publico
+              ? "Autorizo o uso da minha imagem quando aplicável."
+              : "Cliente consentiu com uso de imagem quando aplicável."
+          }
+          name="consentimentoImagem"
+        />
+      </div>
+    </>
+  );
+}
+
 export function FormularioCliente({ cliente }: { cliente?: ClienteFormulario }) {
   const [state, formAction, pending] = useActionState(
     cliente ? atualizarCliente : criarCliente,
@@ -558,158 +740,7 @@ export function FormularioCliente({ cliente }: { cliente?: ClienteFormulario }) 
     <form action={formAction} className="grid min-w-0 gap-6">
       {cliente ? <input name="id" type="hidden" value={cliente.id} /> : null}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <CampoTexto
-          defaultValue={cliente?.nome ?? undefined}
-          error={state?.campos?.nome}
-          label="Nome e sobrenome"
-          name="nome"
-          placeholder="Ex.: Thalia Eluan"
-          required
-        />
-        <CampoDataCalendario
-          defaultValue={formatarDataInput(cliente?.dataNascimento)}
-          error={state?.campos?.dataNascimento}
-          label="Data de nascimento"
-          name="dataNascimento"
-          required
-        />
-        <CampoTexto
-          defaultValue={cliente?.telefone ?? undefined}
-          error={state?.campos?.telefone}
-          inputMode="tel"
-          label="Telefone"
-          name="telefone"
-          placeholder="Ex.: (21) 99928-1504"
-        />
-        <CampoTexto
-          defaultValue={cliente?.email ?? undefined}
-          error={state?.campos?.email}
-          label="E-mail"
-          name="email"
-          placeholder="Ex.: cliente@email.com"
-          type="email"
-        />
-        <CampoTexto
-          defaultValue={cliente?.profissao ?? undefined}
-          error={state?.campos?.profissao}
-          label="Profissão"
-          name="profissao"
-          placeholder="Ex.: Designer"
-        />
-        <CampoTexto
-          defaultValue={cliente?.peso != null ? String(cliente.peso) : undefined}
-          error={state?.campos?.peso}
-          inputMode="decimal"
-          label="Peso (kg)"
-          name="peso"
-          placeholder="Ex.: 68.5"
-        />
-        <CampoTexto
-          defaultValue={cliente?.altura != null ? String(cliente.altura) : undefined}
-          error={state?.campos?.altura}
-          inputMode="decimal"
-          label="Altura (cm)"
-          name="altura"
-          placeholder="Ex.: 165"
-        />
-        <CampoTexto
-          defaultValue={cliente?.contatoEmergenciaTelefone ?? undefined}
-          error={state?.campos?.contatoEmergenciaTelefone}
-          inputMode="tel"
-          label="Telefone de emergência"
-          name="contatoEmergenciaTelefone"
-          placeholder="Ex.: (21) 99999-9999"
-        />
-      </div>
-
-      <CampoTexto
-        defaultValue={cliente?.contatoEmergenciaNome ?? undefined}
-        error={state?.campos?.contatoEmergenciaNome}
-        label="Contato de emergência"
-        name="contatoEmergenciaNome"
-        placeholder="Ex.: Maria Eluan (mãe)"
-      />
-      <CampoEndereco
-        defaultValue={cliente?.endereco ?? undefined}
-        error={state?.campos?.endereco}
-      />
-      <CampoArea
-        defaultValue={cliente?.queixas ?? undefined}
-        error={state?.campos?.queixas}
-        label="Queixas"
-        name="queixas"
-        placeholder="Ex.: Dificuldade para dormir e dores nas costas"
-      />
-      <CampoArea
-        defaultValue={cliente?.objetivoTratamento ?? undefined}
-        error={state?.campos?.objetivoTratamento}
-        label="Objetivo do tratamento"
-        name="objetivoTratamento"
-        placeholder="Ex.: Redução de medidas e melhora da textura da pele"
-      />
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <CampoArea
-          defaultValue={cliente?.alergias ?? undefined}
-          error={state?.campos?.alergias}
-          label="Alergias"
-          name="alergias"
-          placeholder="Ex.: Nega alergias conhecidas"
-        />
-        <CampoArea
-          defaultValue={cliente?.medicamentos ?? undefined}
-          error={state?.campos?.medicamentos}
-          label="Medicamentos em uso"
-          name="medicamentos"
-          placeholder="Ex.: Anticoncepcional oral"
-        />
-        <CampoArea
-          defaultValue={cliente?.condicoesSaude ?? undefined}
-          error={state?.campos?.condicoesSaude}
-          label="Condições de saúde"
-          name="condicoesSaude"
-          placeholder="Ex.: Sem comorbidades relatadas"
-        />
-        <CampoArea
-          defaultValue={cliente?.cirurgias ?? undefined}
-          error={state?.campos?.cirurgias}
-          label="Cirurgias"
-          name="cirurgias"
-          placeholder="Ex.: Cesárea em 2020"
-        />
-      </div>
-
-      <CampoArea
-        defaultValue={cliente?.contraindicacoes ?? undefined}
-        error={state?.campos?.contraindicacoes}
-        label="Contraindicações"
-        name="contraindicacoes"
-        placeholder="Ex.: Evitar radiofrequência em região com sensibilidade"
-      />
-      <CampoArea
-        defaultValue={cliente?.observacoesInternas ?? undefined}
-        error={state?.campos?.observacoesInternas}
-        label="Observações internas"
-        name="observacoesInternas"
-        placeholder="Anotações apenas para a equipe, não visíveis ao cliente"
-      />
-
-      <div className="grid gap-3 rounded-xl bg-creme p-4">
-        <CampoCheckbox
-          defaultChecked={cliente?.consentimentoDados}
-          error={state?.campos?.consentimentoDados}
-          label="Cliente consentiu com o uso dos dados para atendimento e acompanhamento."
-          name="consentimentoDados"
-          required
-        />
-        <CampoCheckbox
-          defaultChecked={cliente?.consentimentoImagem}
-          error={state?.campos?.consentimentoImagem}
-          label="Cliente consentiu com uso de imagem quando aplicável."
-          name="consentimentoImagem"
-        />
-      </div>
+      <CamposCliente campos={state?.campos} cliente={cliente} />
 
       <MensagemFormulario state={state} />
 
