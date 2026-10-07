@@ -14,6 +14,11 @@ import { z } from "zod";
 import { usuario } from "@/modules/auth/schema";
 import { cliente } from "@/modules/clientes/schema";
 
+import { estadosConexaoWhatsApp } from "./conexao-tipos";
+
+/** PK fixa da linha única de `conexao_whatsapp`. */
+export const CHAVE_CONEXAO_WHATSAPP = "clinica";
+
 /**
  * Configuração da automação de aniversário. Linha única — a clínica é uma só, sem multi-tenant —
  * então nunca há lookup por ID: `queries.ts`/`actions.ts` sempre pegam a primeira (e única) linha,
@@ -206,3 +211,24 @@ export type MensagemPredefinida = typeof mensagemPredefinida.$inferSelect;
 export type CampanhaMensagem = typeof campanhaMensagem.$inferSelect;
 export type SalvarMensagemPredefinidaInput = z.infer<typeof salvarMensagemPredefinidaSchema>;
 export type EnviarCampanhaInput = z.infer<typeof enviarCampanhaSchema>;
+
+export const estadoConexaoWhatsAppEnum = pgEnum("estado_conexao_whatsapp", estadosConexaoWhatsApp);
+
+/**
+ * Número de WhatsApp conectado pelo painel (instância da Evolution API criada por nós). Linha
+ * única — a clínica é uma só, sem multi-tenant — presa pela PK fixa `chave = "clinica"`: o upsert
+ * nunca cria uma segunda linha, nem com dois cliques simultâneos em "Conectar". Sem linha = nenhuma
+ * instância criada (`not_created`). Colunas em inglês por seguirem o contrato da especificação da
+ * integração. Ver `modules/whatsapp/conexao.ts`.
+ */
+export const conexaoWhatsApp = pgTable("conexao_whatsapp", {
+  chave: text("chave").primaryKey().default(CHAVE_CONEXAO_WHATSAPP),
+  nomeInstancia: text("instance_name").notNull(),
+  instanciaCriadaEm: timestamp("instance_created_at", { mode: "date" }).notNull(),
+  estado: estadoConexaoWhatsAppEnum("connection_state").notNull(),
+  numeroConectado: text("connected_number"),
+  nomeConectado: text("connected_name"),
+  verificadoEm: timestamp("connection_checked_at", { mode: "date" }),
+});
+
+export type ConexaoWhatsApp = typeof conexaoWhatsApp.$inferSelect;

@@ -165,6 +165,16 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
   número, não só prefixo. Diagnóstico manual (status da conexão + envio de teste) em
   `/painel/configuracoes`, sempre `profissional`, nunca chamado em polling.
 
+- ✅ Conexão do número de WhatsApp pelo painel — cartão "WhatsApp" em `/painel/whatsapp` (só
+  admin): cria a instância `essencial-centro` na Evolution, mostra o QR Code (status a cada 4 s, QR
+  novo a cada 30 s), mostra número/perfil conectado e desconecta (logout, a instância continua).
+  Rotas `GET|POST|DELETE /api/whatsapp/instance` e `GET /api/whatsapp/instance/qrcode`; cliente
+  HTTP em `modules/whatsapp/evolution.ts`, regras em `modules/whatsapp/conexao.ts`, linha única em
+  `conexao_whatsapp`. Recusa (409) criar se o nome já existir no servidor sem estar gravado como
+  nosso — o servidor pode ser compartilhado. Só usa `EVOLUTION_API_URL`/`EVOLUTION_API_KEY`
+  (chave global); **o envio de mensagens ainda sai pela `EVOLUTION_INSTANCE` da env**, não pela
+  instância conectada aqui.
+
 - ✅ Atendimento domiciliar com rota — coluna `modalidade` (`presencial`/`domiciliar`) em
   `agendamento` (`modules/agenda/schema.ts`), escolhida no mesmo formulário de agendamento, sem
   tabela nova. Reusa `cliente.endereco` (já existente desde a Fase 1) em vez de duplicar endereço

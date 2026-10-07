@@ -1,5 +1,8 @@
-import { Cake, MessageSquareText, Send } from "lucide-react";
+import { Cake, MessageSquareText, Send, Smartphone } from "lucide-react";
 
+import { getSessaoAtual } from "@/modules/auth/queries";
+
+import { ConexaoWhatsApp } from "@/modules/whatsapp/components/conexao-whatsapp";
 import { FormularioAniversario } from "@/modules/whatsapp/components/formulario-aniversario";
 import { FormularioCampanha } from "@/modules/whatsapp/components/formulario-campanha";
 import { HistoricoAniversarios } from "@/modules/whatsapp/components/historico-aniversarios";
@@ -27,13 +30,18 @@ export default async function WhatsAppPage() {
     mensagensPredefinidas,
     clientes,
     historicoCampanhas,
+    sessao,
   ] = await Promise.all([
     obterConfiguracaoAniversario(),
     listarHistoricoAniversarios(),
     listarMensagensPredefinidas(),
     listarClientesComTelefone(),
     listarHistoricoCampanhas(),
+    getSessaoAtual(),
   ]);
+  // Só pra decidir se o cartão aparece — quem barra de verdade é a rota `/api/whatsapp/instance`.
+  const podeConectarNumero =
+    sessao?.user?.role === "profissional" && sessao.user.funcao === "admin";
 
   return (
     <div className="grid gap-8">
@@ -43,6 +51,24 @@ export default async function WhatsAppPage() {
           Automações e envios de mensagens por WhatsApp — área interna, não visível ao cliente.
         </p>
       </header>
+
+      {podeConectarNumero ? (
+        <section className="grid gap-4 rounded-3xl border border-border bg-surface p-5 shadow-sm">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+              <Smartphone className="size-5 text-roxo" aria-hidden="true" />
+              WhatsApp
+            </h2>
+            <p className="mt-1 text-sm text-muted">
+              Conecte o número da clínica lendo um QR Code com o celular.
+            </p>
+          </div>
+
+          <div className="border-t border-border/70 pt-4">
+            <ConexaoWhatsApp />
+          </div>
+        </section>
+      ) : null}
 
       <section className="grid gap-4 rounded-3xl border border-border bg-surface p-5 shadow-sm">
         <div>
