@@ -314,7 +314,10 @@ export function PainelShell({
 
         <motion.main
           animate={{ opacity: 1 }}
-          className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 md:px-6 md:py-6"
+          // `relative` é o que prende elementos `absolute` (ex.: `sr-only` de inputs de arquivo)
+          // dentro desta área rolável — sem ele, o bloco que os contém é a página, eles vazam abaixo
+          // do viewport e o documento inteiro passa a rolar, levando junto header e sidebar.
+          className="relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 md:px-6 md:py-6"
           initial={{ opacity: 0 }}
           key={pathname}
           transition={{
