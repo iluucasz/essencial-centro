@@ -74,6 +74,12 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
   (atendimento ≠ uso de imagem). Acesso restrito a `profissional` (não liberado para `recepcao`).
 - **DorRegistro** — escala 0–10, tipo, frequência, localização (mapa corporal), evolução por sessão.
 - **EventoAuditoria** — quem criou/alterou o quê e quando (histórico de alterações).
+- **Campanha de WhatsApp** — mensagem avulsa ou baseada em modelo, enviada a todos os clientes com
+  telefone, a uma seleção manual ou aos clientes de uma tag. Aceita `{nome}` e `{name}` para o
+  primeiro nome e exibe na prévia a formatação do WhatsApp (`*negrito*`, `_itálico_`, `~riscado~`).
+  A automação de aniversário aceita tanto um brinde curto, encaixado no texto padrão, quanto uma
+  mensagem completa; mensagens completas são usadas diretamente para não duplicar saudação e
+  encerramento.
 - **LancamentoFinanceiro** — receita ou despesa da clínica: categoria, valor, data, forma e
   situação de pagamento (pendente/pago/cancelado), opcionalmente vinculado a `Cliente`/`Pacote`.
   Acesso restrito a `profissional` (ver `04-roadmap.md` Fase 2). Distinto do valor/situação de

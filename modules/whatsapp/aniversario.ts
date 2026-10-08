@@ -1,4 +1,5 @@
 import { mesmoDiaCalendario } from "@/lib/utils";
+import { personalizarMensagem } from "@/modules/whatsapp/mensagens";
 
 /**
  * Automação de mensagem de aniversário. Tudo aqui é função pura pra ser testável sem banco nem
@@ -60,12 +61,22 @@ export function mensagemAniversario({
   primeiroNome: string;
   brinde?: string | null;
 }): string {
+  const complemento = brinde?.trim();
+
+  // Mantém compatibilidade com configurações em que foi colada uma mensagem inteira no campo que
+  // originalmente aceitava apenas o brinde. Assim ela não fica aninhada dentro do texto padrão.
+  if (complemento && /feliz\s+anivers[aá]rio/i.test(complemento)) {
+    return personalizarMensagem(complemento, primeiroNome);
+  }
+
   return [
     `Feliz aniversário, ${primeiroNome}! 🎉`,
     "",
     "Toda a equipe da Essencial Centro deseja um dia repleto de alegria, saúde e muito bem-estar.",
-    brinde ? "" : null,
-    brinde ? `Como presente, preparamos algo especial pra você: ${brinde}` : null,
+    complemento ? "" : null,
+    complemento
+      ? `Como presente, preparamos algo especial pra você: ${personalizarMensagem(complemento, primeiroNome)}`
+      : null,
     "",
     "Esperamos você em breve! 💜",
   ]

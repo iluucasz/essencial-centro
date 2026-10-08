@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { personalizarMensagem } from "./mensagens";
+import { personalizarMensagem, segmentarMensagemWhatsApp } from "./mensagens";
 
 describe("personalizarMensagem", () => {
   it("substitui {nome} pelo nome informado", () => {
@@ -19,7 +19,25 @@ describe("personalizarMensagem", () => {
     );
   });
 
-  it("não confunde {NOME} maiúsculo com o token — só {nome} exato é suportado", () => {
-    expect(personalizarMensagem("Olá, {NOME}!", "Ana")).toBe("Olá, {NOME}!");
+  it("aceita {nome}, {name} e variações em maiúsculas", () => {
+    expect(personalizarMensagem("Olá, {NOME}! Hi, {name}!", "Ana")).toBe("Olá, Ana! Hi, Ana!");
+  });
+});
+
+describe("segmentarMensagemWhatsApp", () => {
+  it("identifica a formatação visual usada pelo WhatsApp sem manter os marcadores", () => {
+    expect(segmentarMensagemWhatsApp("Temos *desconto* e _carinho_.")).toEqual([
+      { texto: "Temos ", formato: "texto" },
+      { texto: "desconto", formato: "negrito" },
+      { texto: " e ", formato: "texto" },
+      { texto: "carinho", formato: "italico" },
+      { texto: ".", formato: "texto" },
+    ]);
+  });
+
+  it("mantém marcador incompleto como texto comum", () => {
+    expect(segmentarMensagemWhatsApp("Valor *especial")).toEqual([
+      { texto: "Valor *especial", formato: "texto" },
+    ]);
   });
 });

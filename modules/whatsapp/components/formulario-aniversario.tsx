@@ -11,6 +11,8 @@ import {
 } from "@/modules/whatsapp/actions";
 import { mensagemAniversario } from "@/modules/whatsapp/aniversario";
 
+import { PreviaMensagemWhatsApp } from "./previa-mensagem-whatsapp";
+
 const estadoInicial: EstadoConfiguracaoAniversario = { status: "inicial" };
 const NOME_EXEMPLO = "Maria";
 
@@ -72,9 +74,10 @@ export function FormularioAniversario({
     estadoInicial,
   );
   const [brinde, setBrinde] = useState(brindeInicial ?? "");
+  const mensagemPrevia = mensagemAniversario({ primeiroNome: NOME_EXEMPLO, brinde });
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-start">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)] lg:items-start xl:grid-cols-[minmax(0,1fr)_26rem]">
       <form action={formAction} className="grid min-w-0 gap-5">
         <label className="flex w-fit cursor-pointer items-center gap-3">
           <span className="relative inline-flex h-6 w-11 shrink-0 items-center">
@@ -94,21 +97,24 @@ export function FormularioAniversario({
 
         <div className="grid min-w-0 gap-2">
           <label className="text-sm font-medium text-foreground" htmlFor="brinde">
-            Brinde (opcional)
+            Mensagem personalizada ou brinde (opcional)
           </label>
           <textarea
-            className="min-h-24 w-full min-w-0 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground transition outline-none placeholder:text-muted/70 focus:border-roxo focus:ring-2 focus:ring-roxo/20"
+            className="h-72 min-h-24 w-full min-w-0 resize-y rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground transition outline-none placeholder:text-muted/70 focus:border-roxo focus:ring-2 focus:ring-roxo/20"
             id="brinde"
             maxLength={500}
             name="brinde"
             onChange={(event) => setBrinde(event.target.value)}
-            placeholder="Ex.: 10% de desconto numa sessão à sua escolha"
+            placeholder="Digite apenas o brinde ou cole aqui a mensagem completa de aniversário."
             value={brinde}
           />
-          <p className="text-xs text-muted">
-            Some da mensagem quando fica em branco — sem prometer um presente que a clínica não quer
-            oferecer no momento.
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
+            <p>
+              Use <code className="rounded bg-creme px-1">{"{nome}"}</code> para o primeiro nome e
+              <code className="ml-1 rounded bg-creme px-1">*texto*</code> para negrito.
+            </p>
+            <span>{brinde.length}/500</span>
+          </div>
         </div>
 
         {estado.status === "erro" && estado.mensagem ? (
@@ -145,14 +151,14 @@ export function FormularioAniversario({
         </div>
       </form>
 
-      <div className="grid w-full min-w-0 gap-2 lg:w-80">
+      <div className="grid w-full min-w-0 gap-2">
         <p className="flex items-center gap-1.5 text-xs font-medium text-muted">
           <MessageCircle className="size-3.5" aria-hidden="true" />
           Pré-visualização (com um nome de exemplo)
         </p>
-        <div className="rounded-2xl bg-brand/5 p-4">
-          <p className="rounded-2xl rounded-tl-sm bg-surface p-3 text-sm whitespace-pre-line text-foreground shadow-sm">
-            {mensagemAniversario({ primeiroNome: NOME_EXEMPLO, brinde })}
+        <div className="rounded-2xl bg-brand/5 p-3">
+          <p className="rounded-2xl rounded-tl-sm bg-surface p-4 text-sm leading-relaxed text-foreground shadow-sm">
+            <PreviaMensagemWhatsApp mensagem={mensagemPrevia} />
           </p>
         </div>
       </div>

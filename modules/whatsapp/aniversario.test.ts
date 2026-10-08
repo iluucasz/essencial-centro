@@ -67,6 +67,20 @@ describe("mensagemAniversario", () => {
     expect(mensagem.toLowerCase()).toContain("presente");
   });
 
+  it("usa uma mensagem completa sem duplicar o texto padrão e personaliza os tokens", () => {
+    const mensagemCompleta = [
+      "Feliz aniversário, {nome}! 🎉",
+      "",
+      "Temos uma condição especial para você, {name}.",
+      "",
+      "Esperamos você em breve! 💜",
+    ].join("\n");
+
+    expect(mensagemAniversario({ primeiroNome: "Maria", brinde: mensagemCompleta })).toBe(
+      "Feliz aniversário, Maria! 🎉\n\nTemos uma condição especial para você, Maria.\n\nEsperamos você em breve! 💜",
+    );
+  });
+
   it("não menciona presente/brinde quando não há nenhum cadastrado", () => {
     const semBrinde = mensagemAniversario({ primeiroNome: "Natalia" });
     const brindeVazio = mensagemAniversario({ primeiroNome: "Natalia", brinde: null });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { filtrarClientesCampanha } from "./filtro-clientes";
+import { agruparClientesPorTag, filtrarClientesCampanha } from "./filtro-clientes";
 
 const clientes = [
   { id: "1", nome: "Ana Souza", tag: "Pós-operatório" },
@@ -16,5 +16,19 @@ describe("filtrarClientesCampanha", () => {
 
   it("mantém todos os clientes quando a busca está vazia", () => {
     expect(filtrarClientesCampanha(clientes, "  ")).toBe(clientes);
+  });
+});
+
+describe("agruparClientesPorTag", () => {
+  it("lista as tags existentes com seus destinatários e ignora quem não tem tag", () => {
+    const grupos = agruparClientesPorTag([
+      ...clientes,
+      { id: "4", nome: "Daniel Rocha", tag: "vip" },
+    ]);
+
+    expect(grupos.map((grupo) => [grupo.tag, grupo.clientes.map((c) => c.id)])).toEqual([
+      ["Pós-operatório", ["1"]],
+      ["VIP", ["2", "4"]],
+    ]);
   });
 });
