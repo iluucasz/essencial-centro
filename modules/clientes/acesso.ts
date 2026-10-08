@@ -2,7 +2,7 @@ import { autorizarClienteDono, ErroAutorizacao, type UsuarioSessao } from "@/mod
 
 import type { Cliente } from "./schema";
 
-export type ClienteSemInternos = Omit<Cliente, "observacoesInternas">;
+export type ClienteSemInternos = Omit<Cliente, "observacoesInternas" | "tag">;
 
 export type ClienteVisivel = Cliente | ClienteSemInternos;
 
@@ -15,7 +15,7 @@ export function podeExcluirClientes(usuario: UsuarioSessao) {
 }
 
 export function removerCamposInternos(cliente: Cliente): ClienteSemInternos {
-  const { observacoesInternas: _observacoesInternas, ...clienteSemInternos } = cliente;
+  const { observacoesInternas: _observacoesInternas, tag: _tag, ...clienteSemInternos } = cliente;
 
   return clienteSemInternos;
 }

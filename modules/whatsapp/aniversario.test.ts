@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest";
 import { devDispararAutomaticamente, ehAniversarioHoje, mensagemAniversario } from "./aniversario";
 
 describe("ehAniversarioHoje", () => {
+  it("ignora cliente sem data de nascimento", () => {
+    expect(ehAniversarioHoje(null, new Date("2026-05-20T00:00:00.000Z"))).toBe(false);
+  });
+
   it("reconhece o aniversário quando mês e dia batem, independente do ano de nascimento", () => {
     const nascimento = new Date("1990-05-20T00:00:00.000Z");
     const hoje = new Date("2026-05-20T00:00:00.000Z");

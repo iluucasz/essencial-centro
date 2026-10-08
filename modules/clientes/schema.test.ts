@@ -8,6 +8,7 @@ describe("criarClienteSchema", () => {
       nome: "Maria da Silva",
       dataNascimento: "1990-05-20",
       email: "maria@example.com",
+      tag: "  VIP  ",
       consentimentoDados: true,
       consentimentoImagem: false,
     });
@@ -16,7 +17,20 @@ describe("criarClienteSchema", () => {
     if (resultado.success) {
       expect(resultado.data.nome).toBe("Maria da Silva");
       expect(resultado.data.dataNascimento).toBeInstanceOf(Date);
+      expect(resultado.data.tag).toBe("VIP");
     }
+  });
+
+  it("aceita cadastro sem data de nascimento quando ela não foi informada", () => {
+    const resultado = criarClienteSchema.safeParse({
+      nome: "Maria Fernanda",
+      dataNascimento: "",
+      consentimentoDados: true,
+      consentimentoImagem: true,
+    });
+
+    expect(resultado.success).toBe(true);
+    if (resultado.success) expect(resultado.data.dataNascimento).toBeUndefined();
   });
 
   it("recusa nascimento futuro e cadastro sem consentimento de dados", () => {

@@ -2,20 +2,34 @@ import { auth } from "@/auth";
 import { autorizarPapel } from "@/modules/auth/rbac";
 import { podeExcluirClientes } from "@/modules/clientes/acesso";
 import { ListaClientes } from "@/modules/clientes/components/lista-clientes";
+import { ModalAtribuirTag } from "@/modules/clientes/components/modal-atribuir-tag";
 import { ModalNovoCliente } from "@/modules/clientes/components/modal-novo-cliente";
-import { aplicarFiltroCliente, normalizarFiltroCliente } from "@/modules/clientes/filtro";
-import { listarClientes } from "@/modules/clientes/queries";
+import {
+  aplicarFiltroCliente,
+  aplicarFiltroTagCliente,
+  normalizarFiltroCliente,
+} from "@/modules/clientes/filtro";
+import { listarClientes, listarClientesParaTags } from "@/modules/clientes/queries";
 
 export default async function ClientesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ busca?: string; filtro?: string }>;
+  searchParams: Promise<{ busca?: string; filtro?: string; tag?: string }>;
 }) {
-  const { busca, filtro } = await searchParams;
+  const { busca, filtro, tag } = await searchParams;
   const usuarioAtual = autorizarPapel(await auth(), ["profissional", "recepcao"]);
   const filtroAtual = normalizarFiltroCliente(filtro);
-  const clientes = await listarClientes(busca);
-  const clientesFiltrados = aplicarFiltroCliente(clientes, filtroAtual);
+  const [clientes, clientesParaTags] = await Promise.all([
+    listarClientes(busca),
+    listarClientesParaTags(),
+  ]);
+  const tagsDisponiveis = Array.from(
+    new Set(clientesParaTags.map((cliente) => cliente.tag?.trim()).filter(Boolean)),
+  ).sort((a, b) => a!.localeCompare(b!, "pt-BR")) as string[];
+  const clientesFiltrados = aplicarFiltroTagCliente(
+    aplicarFiltroCliente(clientes, filtroAtual),
+    tag,
+  );
 
   return (
     <div className="grid min-w-0 gap-6 sm:gap-8">
@@ -27,7 +41,10 @@ export default async function ClientesPage({
           </p>
         </div>
 
-        <ModalNovoCliente />
+        <div className="grid gap-2 sm:flex sm:flex-wrap sm:justify-end">
+          <ModalAtribuirTag clientes={clientesParaTags} />
+          <ModalNovoCliente />
+        </div>
       </header>
 
       <ListaClientes
@@ -35,6 +52,8 @@ export default async function ClientesPage({
         clientes={clientesFiltrados}
         filtro={filtroAtual}
         podeExcluir={podeExcluirClientes(usuarioAtual)}
+        tag={tag}
+        tagsDisponiveis={tagsDisponiveis}
         total={clientes.length}
       />
     </div>

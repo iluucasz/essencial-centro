@@ -25,6 +25,7 @@ export async function listarClientes(busca?: string) {
       contatoEmergenciaNome: cliente.contatoEmergenciaNome,
       contatoEmergenciaTelefone: cliente.contatoEmergenciaTelefone,
       profissao: cliente.profissao,
+      tag: cliente.tag,
       peso: cliente.peso,
       altura: cliente.altura,
       queixas: cliente.queixas,
@@ -41,7 +42,13 @@ export async function listarClientes(busca?: string) {
     })
     .from(cliente)
     .where(
-      termo ? or(ilike(cliente.nome, `%${termo}%`), ilike(cliente.email, `%${termo}%`)) : undefined,
+      termo
+        ? or(
+            ilike(cliente.nome, `%${termo}%`),
+            ilike(cliente.email, `%${termo}%`),
+            ilike(cliente.tag, `%${termo}%`),
+          )
+        : undefined,
     )
     .orderBy(desc(cliente.criadoEm));
 
@@ -86,6 +93,16 @@ export async function listarClientes(busca?: string) {
       fotoPerfilData: fotoPerfil?.dataFoto ?? null,
     };
   });
+}
+
+/** Projeção mínima para gerenciar tags sem levar dados clínicos ao componente cliente. */
+export async function listarClientesParaTags() {
+  autorizarPapel(await auth(), ["profissional", "recepcao"]);
+
+  return db
+    .select({ id: cliente.id, nome: cliente.nome, tag: cliente.tag })
+    .from(cliente)
+    .orderBy(cliente.nome);
 }
 
 export async function getCliente(id: string) {

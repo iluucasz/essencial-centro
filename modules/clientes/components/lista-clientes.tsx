@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { CalendarDays, Mail, Phone, Target } from "lucide-react";
+import { CalendarDays, Mail, Phone, Tag, Target } from "lucide-react";
 
 import type { FiltroCliente } from "@/modules/clientes/filtro";
 
@@ -71,12 +71,16 @@ export function ListaClientes({
   filtro,
   total,
   podeExcluir,
+  tag,
+  tagsDisponiveis,
 }: {
   clientes: ClienteResumo[];
   busca?: string;
   filtro: FiltroCliente;
   total: number;
   podeExcluir: boolean;
+  tag?: string;
+  tagsDisponiveis: string[];
 }) {
   return (
     <section className="min-w-0">
@@ -89,7 +93,12 @@ export function ListaClientes({
         </div>
 
         <div className="min-w-0">
-          <FiltrosClientes busca={busca} filtro={filtro} />
+          <FiltrosClientes
+            busca={busca}
+            filtro={filtro}
+            tag={tag}
+            tagsDisponiveis={tagsDisponiveis}
+          />
         </div>
       </div>
 
@@ -132,7 +141,9 @@ export function ListaClientes({
                         {cliente.nome}
                       </span>
                       <span className="block text-xs text-muted">
-                        Nasc. {formatadorData.format(cliente.dataNascimento)}
+                        {cliente.dataNascimento
+                          ? `Nasc. ${formatadorData.format(cliente.dataNascimento)}`
+                          : "Nascimento não informado"}
                       </span>
                     </span>
                   </Link>
@@ -172,6 +183,14 @@ export function ListaClientes({
                   >
                     {cliente.objetivoTratamento ?? "Sem objetivo registrado"}
                   </LinhaMobile>
+                  {cliente.tag ? (
+                    <LinhaMobile
+                      className="font-medium text-roxo"
+                      icone={<Tag className="mt-0.5 size-4 shrink-0 text-roxo" aria-hidden />}
+                    >
+                      {cliente.tag}
+                    </LinhaMobile>
+                  ) : null}
                   <LinhaMobile
                     className="text-xs"
                     icone={
@@ -237,8 +256,16 @@ export function ListaClientes({
                               {cliente.nome}
                             </span>
                             <span className="mt-1 block text-xs text-muted">
-                              Nasc. {formatadorData.format(cliente.dataNascimento)}
+                              {cliente.dataNascimento
+                                ? `Nasc. ${formatadorData.format(cliente.dataNascimento)}`
+                                : "Nascimento não informado"}
                             </span>
+                            {cliente.tag ? (
+                              <span className="mt-2 inline-flex max-w-full items-center gap-1 rounded-full bg-lilas/25 px-2 py-0.5 text-xs font-medium text-roxo">
+                                <Tag className="size-3 shrink-0" aria-hidden="true" />
+                                <span className="truncate">{cliente.tag}</span>
+                              </span>
+                            ) : null}
                           </span>
                         </span>
                       </CelulaLink>

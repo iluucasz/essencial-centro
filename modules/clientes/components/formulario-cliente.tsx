@@ -30,13 +30,14 @@ const classeArea =
 export type ClienteFormulario = {
   id: string;
   nome: string;
-  dataNascimento: Date;
+  dataNascimento: Date | null;
   telefone: string | null;
   email: string | null;
   endereco: string | null;
   contatoEmergenciaNome: string | null;
   contatoEmergenciaTelefone: string | null;
   profissao: string | null;
+  tag: string | null;
   peso: number | null;
   altura: number | null;
   queixas: string | null;
@@ -536,9 +537,8 @@ export function CamposCliente({
         <CampoDataCalendario
           defaultValue={formatarDataInput(cliente?.dataNascimento)}
           error={campos?.dataNascimento}
-          label="Data de nascimento"
+          label="Data de nascimento (opcional)"
           name="dataNascimento"
-          required
         />
         <CampoTexto
           defaultValue={cliente?.telefone ?? undefined}
@@ -563,6 +563,15 @@ export function CamposCliente({
           name="profissao"
           placeholder="Ex.: Designer"
         />
+        {publico ? null : (
+          <CampoTexto
+            defaultValue={cliente?.tag ?? undefined}
+            error={campos?.tag}
+            label="Tag (opcional)"
+            name="tag"
+            placeholder="Ex.: VIP, Pós-operatório"
+          />
+        )}
         <CampoTexto
           defaultValue={cliente?.peso != null ? String(cliente.peso) : undefined}
           error={campos?.peso}

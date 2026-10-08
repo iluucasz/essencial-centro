@@ -11,9 +11,21 @@ const opcoesFiltro: Array<{ valor: FiltroCliente; rotulo: string }> = [
   { valor: "sem-contato", rotulo: "Sem contato" },
   { valor: "com-objetivo", rotulo: "Com objetivo" },
   { valor: "sem-objetivo", rotulo: "Sem objetivo" },
+  { valor: "com-tag", rotulo: "Com tag" },
+  { valor: "sem-tag", rotulo: "Sem tag" },
 ];
 
-export function FiltrosClientes({ busca, filtro }: { busca?: string; filtro: FiltroCliente }) {
+export function FiltrosClientes({
+  busca,
+  filtro,
+  tag,
+  tagsDisponiveis,
+}: {
+  busca?: string;
+  filtro: FiltroCliente;
+  tag?: string;
+  tagsDisponiveis: string[];
+}) {
   const formRef = useRef<HTMLFormElement>(null);
   const timerBuscaRef = useRef<number | null>(null);
 
@@ -37,7 +49,7 @@ export function FiltrosClientes({ busca, filtro }: { busca?: string; filtro: Fil
   return (
     <form
       action="/painel/clientes"
-      className="grid w-full min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_12rem] xl:w-auto xl:grid-cols-[minmax(18rem,24rem)_13rem]"
+      className="grid w-full min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_12rem_12rem] xl:w-auto xl:grid-cols-[minmax(18rem,24rem)_13rem_13rem]"
       method="get"
       ref={formRef}
     >
@@ -56,7 +68,7 @@ export function FiltrosClientes({ busca, filtro }: { busca?: string; filtro: Fil
             id="busca"
             name="busca"
             onChange={enviarBusca}
-            placeholder="Buscar cliente..."
+            placeholder="Buscar por nome, e-mail ou tag..."
           />
         </span>
       </div>
@@ -74,6 +86,24 @@ export function FiltrosClientes({ busca, filtro }: { busca?: string; filtro: Fil
         {opcoesFiltro.map((opcao) => (
           <option key={opcao.valor} value={opcao.valor}>
             {opcao.rotulo}
+          </option>
+        ))}
+      </select>
+
+      <label className="sr-only" htmlFor="tag">
+        Filtrar por tag
+      </label>
+      <select
+        className="h-11 w-full min-w-0 rounded-full border border-border bg-surface px-4 text-sm font-semibold text-brand transition outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
+        defaultValue={tag ?? ""}
+        id="tag"
+        name="tag"
+        onChange={selecionarFiltro}
+      >
+        <option value="">Todas as tags</option>
+        {tagsDisponiveis.map((tagDisponivel) => (
+          <option key={tagDisponivel} value={tagDisponivel}>
+            {tagDisponivel}
           </option>
         ))}
       </select>

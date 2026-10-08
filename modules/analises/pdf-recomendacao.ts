@@ -48,7 +48,7 @@ const formatadorDataCurta = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short
 
 export type DadosRecomendacaoPdf = {
   clienteNome: string;
-  clienteDataNascimento: Date;
+  clienteDataNascimento: Date | null;
   clientePeso: number | null;
   clienteAltura: number | null;
   clienteQueixas: string | null;
@@ -221,10 +221,14 @@ function desenharDadosCliente(pdf: DocumentoPdf, dados: DadosRecomendacaoPdf, yI
     y,
   );
 
-  const idade = calcularIdade(dados.clienteDataNascimento, dados.dataEmissao);
-  const medidas: Array<[string, string]> = [
-    ["Nascimento: ", `${formatadorDataCurta.format(dados.clienteDataNascimento)} (${idade} anos)`],
-  ];
+  const medidas: Array<[string, string]> = [];
+  if (dados.clienteDataNascimento) {
+    const idade = calcularIdade(dados.clienteDataNascimento, dados.dataEmissao);
+    medidas.push([
+      "Nascimento: ",
+      `${formatadorDataCurta.format(dados.clienteDataNascimento)} (${idade} anos)`,
+    ]);
+  }
   if (dados.clientePeso) medidas.push(["Peso: ", `${formatarNumero(dados.clientePeso)} kg`]);
   if (dados.clienteAltura) medidas.push(["Altura: ", `${formatarNumero(dados.clienteAltura)} cm`]);
   y = desenharLinhaRotulada(pdf, medidas, y);

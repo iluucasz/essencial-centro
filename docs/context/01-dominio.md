@@ -7,8 +7,10 @@ As tabelas Drizzle são declaradas por módulo (ver `03-convencoes.md`).
 
 - **Usuario** — conta de acesso (Auth.js). Tem `role` (`profissional` | `cliente` | `recepcao`).
   Um usuário-cliente vincula-se a **um** `Cliente`.
-- **Cliente** — pessoa atendida. Dados pessoais reutilizáveis (nome, nascimento, telefone,
-  e-mail, endereço, contato de emergência, profissão), mais objetivo do tratamento,
+- **Cliente** — pessoa atendida. Dados pessoais reutilizáveis (nome, nascimento opcional, telefone,
+  e-mail, endereço, contato de emergência, profissão), uma tag operacional interna opcional
+  para filtros e campanhas de WhatsApp. A tag é atribuída em lote pela equipe e cada cliente
+  participa de uma tag por vez; uma nova atribuição substitui a anterior. Inclui ainda objetivo do tratamento,
   alergias, medicamentos, condições de saúde, cirurgias, contraindicações e consentimentos.
 - **Servico** — oferta clínica (ver catálogo em `00-produto.md`/`brief.md`). Grupo é texto livre com
   lista de sugestões extensível (`opcaoServico`, ver `modules/servicos/schema.ts`) — padrão inicial:

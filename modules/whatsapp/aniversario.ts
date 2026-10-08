@@ -16,7 +16,9 @@ function eBissexto(ano: number) {
  * Caso especial: quem nasceu em 29/fev não teria aniversário nenhum nos 3 anos não bissextos em
  * cada 4 — comemora em 28/fev nesses anos, senão a pessoa passaria a vida sem receber a mensagem.
  */
-export function ehAniversarioHoje(dataNascimento: Date, hoje: Date): boolean {
+export function ehAniversarioHoje(dataNascimento: Date | null, hoje: Date): boolean {
+  if (!dataNascimento) return false;
+
   const mesNascimento = dataNascimento.getUTCMonth();
   const diaNascimento = dataNascimento.getUTCDate();
 

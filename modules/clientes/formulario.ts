@@ -13,6 +13,7 @@ export function lerFormularioCliente(formData: FormData) {
     contatoEmergenciaNome: formData.get("contatoEmergenciaNome"),
     contatoEmergenciaTelefone: formData.get("contatoEmergenciaTelefone"),
     profissao: formData.get("profissao"),
+    tag: formData.get("tag"),
     peso: formData.get("peso"),
     altura: formData.get("altura"),
     queixas: formData.get("queixas"),

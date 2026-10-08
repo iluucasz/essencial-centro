@@ -81,7 +81,7 @@ export async function listarClientesComTelefone() {
   autorizarPapel(await auth(), ["profissional"]);
 
   return db
-    .select({ id: cliente.id, nome: cliente.nome, telefone: cliente.telefone })
+    .select({ id: cliente.id, nome: cliente.nome, telefone: cliente.telefone, tag: cliente.tag })
     .from(cliente)
     .where(isNotNull(cliente.telefone))
     .orderBy(cliente.nome);

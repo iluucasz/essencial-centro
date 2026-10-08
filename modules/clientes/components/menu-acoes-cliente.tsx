@@ -18,6 +18,7 @@ import {
   Phone,
   Pill,
   ShieldCheck,
+  Tag,
   Trash2,
   UserRound,
 } from "lucide-react";
@@ -97,7 +98,10 @@ function VisualizacaoCliente({ cliente }: { cliente: ClienteFormulario }) {
               {cliente.nome}
             </span>
             <span className="mt-1 block text-sm text-muted">
-              {valorTexto(cliente.profissao)} · {formatadorData.format(cliente.dataNascimento)}
+              {valorTexto(cliente.profissao)} ·{" "}
+              {cliente.dataNascimento
+                ? formatadorData.format(cliente.dataNascimento)
+                : "Nascimento não informado"}
             </span>
           </span>
         </div>
@@ -107,12 +111,19 @@ function VisualizacaoCliente({ cliente }: { cliente: ClienteFormulario }) {
         <CampoVisualizacao
           icone={<CalendarDays className="size-4" aria-hidden="true" />}
           label="Data de nascimento"
-          valor={formatadorData.format(cliente.dataNascimento)}
+          valor={
+            cliente.dataNascimento ? formatadorData.format(cliente.dataNascimento) : "Não informado"
+          }
         />
         <CampoVisualizacao
           icone={<UserRound className="size-4" aria-hidden="true" />}
           label="Profissão"
           valor={valorTexto(cliente.profissao)}
+        />
+        <CampoVisualizacao
+          icone={<Tag className="size-4" aria-hidden="true" />}
+          label="Tag"
+          valor={valorTexto(cliente.tag)}
         />
         <CampoVisualizacao
           icone={<Phone className="size-4" aria-hidden="true" />}

@@ -118,17 +118,19 @@ describe("convite de autocadastro", () => {
     );
   });
 
-  it("o schema público descarta observações internas", () => {
+  it("o schema público descarta observações internas e tag operacional", () => {
     const resultado = cadastroPublicoClienteSchema.safeParse({
       nome: "Maria Silva",
       dataNascimento: "1990-05-20",
       consentimentoDados: true,
       consentimentoImagem: false,
       observacoesInternas: "não deveria entrar",
+      tag: "VIP",
     });
 
     expect(resultado.success).toBe(true);
     expect(resultado.data).not.toHaveProperty("observacoesInternas");
+    expect(resultado.data).not.toHaveProperty("tag");
   });
 });
 

@@ -34,24 +34,30 @@ const numeroOpcional = (max: number) =>
 
 const dataNascimentoSchema = z
   .preprocess((value) => {
+    if (value === null || value === undefined || value === "") return undefined;
     if (value instanceof Date) return value;
     if (typeof value === "string" && value) return new Date(`${value}T00:00:00.000`);
     return value;
-  }, z.date("Informe a data de nascimento."))
-  .refine((value) => value <= agoraBrasilia(), "A data de nascimento não pode estar no futuro.");
+  }, z.date("Informe uma data de nascimento válida.").optional())
+  .refine(
+    (value) => !value || value <= agoraBrasilia(),
+    "A data de nascimento não pode estar no futuro.",
+  );
 
 export const cliente = pgTable(
   "cliente",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     nome: text("nome").notNull(),
-    dataNascimento: date("data_nascimento", { mode: "date" }).notNull(),
+    dataNascimento: date("data_nascimento", { mode: "date" }),
     telefone: text("telefone"),
     email: text("email"),
     endereco: text("endereco"),
     contatoEmergenciaNome: text("contato_emergencia_nome"),
     contatoEmergenciaTelefone: text("contato_emergencia_telefone"),
     profissao: text("profissao"),
+    /** Classificação operacional interna usada pela equipe em filtros e campanhas. */
+    tag: text("tag"),
     peso: doublePrecision("peso"),
     altura: doublePrecision("altura"),
     /** Queixa principal — repete de recomendação em recomendação até a profissional atualizar. */
@@ -124,6 +130,7 @@ export const criarClienteSchema = z.object({
   contatoEmergenciaNome: textoCurtoOpcional,
   contatoEmergenciaTelefone: textoCurtoOpcional,
   profissao: textoCurtoOpcional,
+  tag: textoCurtoOpcional,
   peso: numeroOpcional(500),
   altura: numeroOpcional(250),
   queixas: textoLongoOpcional,
@@ -143,7 +150,7 @@ export const criarClienteSchema = z.object({
  * cliente) e com o consentimento redigido para quem está autorizando.
  */
 export const cadastroPublicoClienteSchema = criarClienteSchema
-  .omit({ observacoesInternas: true })
+  .omit({ observacoesInternas: true, tag: true })
   .extend({
     consentimentoDados: z
       .boolean()

@@ -15,6 +15,7 @@ const clienteBase: Cliente = {
   contatoEmergenciaNome: "Ana",
   contatoEmergenciaTelefone: "11888888888",
   profissao: "Designer",
+  tag: "VIP",
   peso: 68.5,
   altura: 165,
   queixas: "Dor lombar recorrente",
@@ -62,10 +63,11 @@ const outroCliente: UsuarioSessao = {
 };
 
 describe("acesso de clientes", () => {
-  it("remove observações internas do DTO visível ao cliente", () => {
+  it("remove observações internas e tag operacional do DTO visível ao cliente", () => {
     const seguro = removerCamposInternos(clienteBase);
 
     expect("observacoesInternas" in seguro).toBe(false);
+    expect("tag" in seguro).toBe(false);
   });
 
   it("profissional vê dados completos e cliente vê apenas o próprio cadastro sem internos", () => {

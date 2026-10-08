@@ -6,6 +6,7 @@ import { LoaderCircle, Search, Send, Users } from "lucide-react";
 
 import { ConteudoModal, ParteModalAnimada } from "@/components/ui/modal-formulario";
 import { enviarCampanhaMensagem, type EstadoEnvioCampanha } from "@/modules/whatsapp/actions";
+import { filtrarClientesCampanha } from "@/modules/whatsapp/filtro-clientes";
 import { personalizarMensagem } from "@/modules/whatsapp/mensagens";
 import type { MensagemPredefinida } from "@/modules/whatsapp/schema";
 
@@ -14,7 +15,12 @@ import { CampoAnexoWhatsApp } from "./campo-anexo";
 const estadoInicial: EstadoEnvioCampanha = { status: "inicial" };
 const NOME_EXEMPLO = "Maria";
 
-type ClienteParaCampanha = { id: string; nome: string; telefone: string | null };
+type ClienteParaCampanha = {
+  id: string;
+  nome: string;
+  telefone: string | null;
+  tag: string | null;
+};
 
 function SeletorClientes({
   clientes,
@@ -32,11 +38,7 @@ function SeletorClientes({
   const [busca, setBusca] = useState("");
 
   const filtrados = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-
-    if (!termo) return clientes;
-
-    return clientes.filter((c) => c.nome.toLowerCase().includes(termo));
+    return filtrarClientesCampanha(clientes, busca);
   }, [clientes, busca]);
 
   return (
@@ -50,7 +52,7 @@ function SeletorClientes({
           <input
             className="h-10 w-full rounded-lg border border-border bg-surface pr-3 pl-9 text-sm text-foreground outline-none focus:border-roxo focus:ring-2 focus:ring-roxo/20"
             onChange={(event) => setBusca(event.target.value)}
-            placeholder="Buscar cliente pelo nome"
+            placeholder="Buscar cliente por nome ou tag"
             type="text"
             value={busca}
           />
@@ -86,7 +88,12 @@ function SeletorClientes({
                   type="checkbox"
                   value={c.id}
                 />
-                <span className="min-w-0 truncate">{c.nome}</span>
+                <span className="min-w-0 flex-1 truncate">{c.nome}</span>
+                {c.tag ? (
+                  <span className="shrink-0 rounded-full bg-lilas/25 px-2 py-0.5 text-xs font-medium text-roxo">
+                    {c.tag}
+                  </span>
+                ) : null}
               </label>
             </li>
           ))

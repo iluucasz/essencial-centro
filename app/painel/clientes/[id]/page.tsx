@@ -205,7 +205,9 @@ function formatarTexto(valor: ValorInfo) {
   return valor;
 }
 
-function formatarIdade(dataNascimento: Date) {
+function formatarIdade(dataNascimento: Date | null) {
+  if (!dataNascimento) return null;
+
   const hoje = agoraBrasilia();
   let idade = hoje.getUTCFullYear() - dataNascimento.getUTCFullYear();
   const aindaNaoFezAniversario =
