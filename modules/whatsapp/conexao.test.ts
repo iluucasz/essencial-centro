@@ -192,12 +192,40 @@ describe("criarConexaoWhatsApp", () => {
 });
 
 describe("gerarQrCodeWhatsApp", () => {
-  it("sem instância gravada → 409", async () => {
+  it("sem instância gravada → cria no servidor e devolve o QR", async () => {
+    mocks.consultar.mockResolvedValue({ ok: true, instancia: null });
+    mocks.criar.mockResolvedValue({ ok: true, qr });
+
+    expect(await gerarQrCodeWhatsApp()).toEqual({ connected: false, qr });
+    expect(mocks.criar).toHaveBeenCalledWith(config, NOME_INSTANCIA_WHATSAPP);
+  });
+
+  it("registro órfão (instância sumiu do servidor) → recria em vez de dar 404", async () => {
+    mocks.lerConexao.mockResolvedValue(registro());
+    mocks.consultar.mockResolvedValue({ ok: true, instancia: null });
+    mocks.criar.mockResolvedValue({ ok: true, qr });
+
+    expect(await gerarQrCodeWhatsApp()).toEqual({ connected: false, qr });
+    expect(mocks.limpar).toHaveBeenCalled();
+    expect(mocks.criar).toHaveBeenCalledWith(config, NOME_INSTANCIA_WHATSAPP);
+  });
+
+  it("nome já existe no servidor sem ser nosso → 409, sem criar", async () => {
+    mocks.consultar.mockResolvedValue({
+      ok: true,
+      instancia: { estado: "open", numero: "5511900000000", nomePerfil: "Outra pessoa" },
+    });
+
     await esperarErro(gerarQrCodeWhatsApp(), 409);
+    expect(mocks.criar).not.toHaveBeenCalled();
   });
 
   it("já conectado → connected: true, sem QR", async () => {
     mocks.lerConexao.mockResolvedValue(registro());
+    mocks.consultar.mockResolvedValue({
+      ok: true,
+      instancia: { estado: "connecting", numero: null, nomePerfil: null },
+    });
     mocks.qrCode.mockResolvedValue({ ok: true, conectado: true, qr: null });
 
     expect(await gerarQrCodeWhatsApp()).toEqual({ connected: true, qr: null });
@@ -205,6 +233,10 @@ describe("gerarQrCodeWhatsApp", () => {
 
   it("devolve o QR novo", async () => {
     mocks.lerConexao.mockResolvedValue(registro());
+    mocks.consultar.mockResolvedValue({
+      ok: true,
+      instancia: { estado: "connecting", numero: null, nomePerfil: null },
+    });
     mocks.qrCode.mockResolvedValue({ ok: true, conectado: false, qr });
 
     expect(await gerarQrCodeWhatsApp()).toEqual({ connected: false, qr });

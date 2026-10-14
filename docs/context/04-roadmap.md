@@ -171,7 +171,8 @@ Princípio: não virar "polvo tecnológico" no começo. Entregar o MVP enxuto e 
   Rotas `GET|POST|DELETE /api/whatsapp/instance` e `GET /api/whatsapp/instance/qrcode`; cliente
   HTTP em `modules/whatsapp/evolution.ts`, regras em `modules/whatsapp/conexao.ts`, linha única em
   `conexao_whatsapp`. Recusa (409) criar se o nome já existir no servidor sem estar gravado como
-  nosso — o servidor pode ser compartilhado. Só usa `EVOLUTION_API_URL`/`EVOLUTION_API_KEY`
+  nosso — o servidor pode ser compartilhado. "Gerar QR Code" também confere o servidor e recria a
+  instância sozinho se ela sumiu (registro órfão após trocar/recriar a Evolution). Só usa `EVOLUTION_API_URL`/`EVOLUTION_API_KEY`
   (chave global); **o envio de mensagens ainda sai pela `EVOLUTION_INSTANCE` da env**, não pela
   instância conectada aqui.
 

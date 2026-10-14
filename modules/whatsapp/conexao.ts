@@ -172,11 +172,29 @@ export async function criarConexaoWhatsApp(): Promise<RespostaCriarConexao> {
   return { status: statusDoRegistro(registro), qr };
 }
 
+/**
+ * QR Code novo. Se a instância não existe — nunca foi criada, ou o registro ficou órfão porque o
+ * servidor Evolution foi trocado/recriado — cria na hora (mesmas regras de `criarConexaoWhatsApp`),
+ * em vez de exigir um passo manual.
+ */
 export async function gerarQrCodeWhatsApp(): Promise<RespostaQrCode> {
   const config = exigirConfiguracao();
-  const registro = await exigirInstanciaGravada();
+  const gravado = await lerConexaoWhatsApp();
 
-  const { conectado, qr } = await qrCodeNovo(config, registro.nomeInstancia);
+  if (!gravado || (await obterStatusConexaoWhatsApp()).state === "not_created") {
+    const { status, qr: qrCriado } = await criarConexaoWhatsApp();
+    if (status.state === "connected") return { connected: true, qr: null };
+    if (!qrCriado) {
+      throw new ErroConexaoWhatsApp(
+        "O servidor do WhatsApp não devolveu um QR Code. Tente de novo.",
+        502,
+      );
+    }
+
+    return { connected: false, qr: qrCriado };
+  }
+
+  const { conectado, qr } = await qrCodeNovo(config, gravado.nomeInstancia);
   if (conectado) return { connected: true, qr: null };
   if (!qr) {
     throw new ErroConexaoWhatsApp(
